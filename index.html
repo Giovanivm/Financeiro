@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sucesso Financeiro</title>
-    
     <!-- Configuração PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4f46e5">
@@ -40,41 +39,38 @@
                     <input type="email" id="authEmail" class="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="seu@email.com">
                 </div>
                 <div>
-                    <label class="text-xs font-semibold text-slate-600 block mb-1">Senha (Mínimo 6 dígitos)</label>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1">Senha</label>
                     <input type="password" id="authPassword" class="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
                 </div>
             </div>
 
-            <!-- Caixa de Alerta de Erros -->
-            <div id="authError" class="hidden p-3 rounded-xl text-xs font-semibold text-left"></div>
+            <p id="authError" class="text-xs text-rose-500 hidden font-medium"></p>
 
-            <div class="space-y-2 pt-2">
-                <button onclick="handleLogin()" id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3.5 rounded-xl text-sm shadow-lg transition">
-                    Entrar
-                </button>
-                <button onclick="handleSignUp()" id="btnSignup" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl text-sm shadow-md transition">
-                    Criar Nova Conta
-                </button>
+            <div class="space-y-2">
+                <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm shadow-lg transition">Entrar</button>
+                <button onclick="handleSignUp()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm transition">Criar Nova Conta</button>
             </div>
         </div>
     </div>
 
     <!-- Interface Principal do Aplicativo -->
     <div id="appScreen" class="hidden">
+        <!-- Topo / Cabeçalho -->
         <header class="bg-indigo-600 text-white p-5 rounded-b-3xl shadow-lg">
             <div class="flex justify-between items-center max-w-md mx-auto">
                 <div>
                     <h1 class="text-lg font-bold">Finanças do Casal</h1>
-                    <p id="userEmailDisplay" class="text-xs opacity-80"></p>
+                    <p id="userEmailDisplay" class="text-xs text-indigo-200"></p>
                 </div>
-                <button onclick="handleLogout()" title="Sair da conta" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
-                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                <button onclick="handleLogout()" title="Sair da conta" class="w-9 h-9 bg-indigo-500 hover:bg-indigo-700 rounded-xl flex items-center justify-center transition">
+                    <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
             
+            <!-- Resumo Financeiro -->
             <div class="mt-6 bg-white/10 backdrop-blur-md rounded-2xl p-4 max-w-md mx-auto flex justify-between items-center">
                 <div>
-                    <span class="text-xs uppercase font-semibold block opacity-80">Saldo Atual</span>
+                    <span class="text-xs text-indigo-200 uppercase font-semibold block">Saldo Atual</span>
                     <span id="totalBalance" class="text-2xl font-black">R$ 0,00</span>
                 </div>
                 <div class="text-right space-y-1">
@@ -84,11 +80,15 @@
             </div>
         </header>
 
+        <!-- Formulário de Lançamento -->
         <main class="max-w-md mx-auto p-4 space-y-4">
             <div class="bg-white p-4 rounded-2xl shadow-sm space-y-3">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Novo Lançamento</h3>
                 <div class="flex gap-2">
                     <input type="text" id="descInput" placeholder="Descrição (ex: Mercado)" class="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500">
+                    <button onclick="startVoiceRecognition()" class="bg-indigo-50 text-indigo-600 px-4 rounded-xl hover:bg-indigo-100 transition" title="Lançar por Voz">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
                 </div>
                 <div class="flex gap-2">
                     <input type="number" id="valueInput" step="0.01" placeholder="Valor (R$)" class="w-1/2 p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500">
@@ -100,35 +100,32 @@
                 <button onclick="addTransaction()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm shadow hover:bg-slate-800 transition">Adicionar</button>
             </div>
 
+            <!-- Lista de Extrato -->
             <div class="space-y-2">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Lançamentos Recentes</h3>
-                <div id="transactionList" class="space-y-2"></div>
+                <div id="transactionList" class="space-y-2">
+                    <!-- Registros aparecerão aqui em tempo real -->
+                </div>
             </div>
         </main>
     </div>
 
-    <!-- Script de Inicialização e Lógica do App -->
+    <!-- Script Principal do Sistema -->
     <script>
-        // Configuração do Firebase
+        // Configuração do seu Firebase Realtime Database
         const firebaseConfig = { 
             apiKey: "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE",
-            authDomain: "financeiro-de-sucesso.firebaseapp.com",
-            databaseURL: "https://financairo-de-sucesso-default-rtdb.firebaseio.com",
-            projectId: "financeiro-de-sucesso",
-            storageBucket: "financeiro-de-sucesso.firebasestorage.app",
-            messagingSenderId: "91519286609",
-            appId: "1:91519286609:web:c7b24f800c6c23154f6770"
+            databaseURL: "https://sucesso-financeiro-c3cbe-default-rtdb.firebaseio.com" 
         };
         
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.database();
         
         let currentUser = null;
         let dbRef = null;
 
+        // Monitor de Estado de Login
         auth.onAuthStateChanged(user => {
             const authScreen = document.getElementById('authScreen');
             const appScreen = document.getElementById('appScreen');
@@ -139,44 +136,37 @@
                 authScreen.classList.add('hidden');
                 appScreen.classList.remove('hidden');
                 
-                connectDatabase();
+                // Conecta os dados no nó privado do usuário logado
+                dbRef = db.ref('users/' + user.uid + '/financeiro');
+                listenToData();
             } else {
                 currentUser = null;
-                if (dbRef) dbRef.off();
                 dbRef = null;
                 authScreen.classList.remove('hidden');
                 appScreen.classList.add('hidden');
             }
         });
 
-        function connectDatabase() {
-            if (dbRef) dbRef.off();
-            dbRef = db.ref('casais/default-casal');
-            listenToData();
-        }
-
+        // Ações de Autenticação com Tratamento Correto de E-mail
         function handleLogin() {
             const email = document.getElementById('authEmail').value.trim();
             const pass = document.getElementById('authPassword').value;
-            showError('', 'info');
+            showError('');
 
             if (!email || !pass) {
-                showError('Digite o e-mail e a senha.', 'error');
+                showError('Preencha o e-mail e a senha.');
                 return;
             }
 
-            document.getElementById('btnLogin').innerText = 'Entrando...';
-
             auth.signInWithEmailAndPassword(email, pass).catch(err => {
-                document.getElementById('btnLogin').innerText = 'Entrar';
                 if (err.code === 'auth/user-not-found') {
-                    showError('E-mail não cadastrado. Clique no botão verde "Criar Nova Conta".', 'error');
+                    showError('E-mail não cadastrado. Clique em "Criar Nova Conta".');
                 } else if (err.code === 'auth/wrong-password') {
-                    showError('Senha incorreta.', 'error');
+                    showError('Senha incorreta.');
                 } else if (err.code === 'auth/invalid-email') {
-                    showError('Formato de e-mail inválido.', 'error');
+                    showError('Formato de e-mail inválido.');
                 } else {
-                    showError('Erro ao entrar: ' + err.message, 'error');
+                    showError('Erro ao entrar: ' + err.message);
                 }
             });
         }
@@ -184,27 +174,24 @@
         function handleSignUp() {
             const email = document.getElementById('authEmail').value.trim();
             const pass = document.getElementById('authPassword').value;
-            showError('', 'info');
+            showError('');
 
             if (!email) {
-                showError('Digite um e-mail válido.', 'error');
+                showError('Digite um e-mail válido.');
                 return;
             }
             if (pass.length < 6) {
-                showError('A senha precisa ter pelo menos 6 caracteres.', 'error');
+                showError('A senha deve ter pelo menos 6 caracteres.');
                 return;
             }
 
-            document.getElementById('btnSignup').innerText = 'Criando conta...';
-
             auth.createUserWithEmailAndPassword(email, pass).catch(err => {
-                document.getElementById('btnSignup').innerText = 'Criar Nova Conta';
                 if (err.code === 'auth/email-already-in-use') {
-                    showError('Este e-mail já existe! Clique no botão azul "Entrar".', 'error');
+                    showError('Este e-mail já está cadastrado. Clique em "Entrar".');
                 } else if (err.code === 'auth/invalid-email') {
-                    showError('E-mail em formato inválido.', 'error');
+                    showError('Formato de e-mail inválido.');
                 } else {
-                    showError('Erro ao cadastrar: ' + err.message, 'error');
+                    showError('Erro ao cadastrar: ' + err.message);
                 }
             });
         }
@@ -213,25 +200,22 @@
             auth.signOut();
         }
 
-        function showError(msg, type) {
+        function showError(msg) {
             const errEl = document.getElementById('authError');
             if (msg) {
                 errEl.innerText = msg;
                 errEl.classList.remove('hidden');
-                if (type === 'error') {
-                    errEl.className = "p-3 rounded-xl text-xs font-semibold text-left bg-rose-100 text-rose-700 border border-rose-200";
-                } else {
-                    errEl.className = "p-3 rounded-xl text-xs font-semibold text-left bg-blue-100 text-blue-700 border border-blue-200";
-                }
             } else {
                 errEl.classList.add('hidden');
             }
         }
 
+        // Lógica do Banco de Dados
         function listenToData() {
             if (!dbRef) return;
             dbRef.on('value', snapshot => {
-                renderApp(snapshot.val() || {});
+                const data = snapshot.val() || {};
+                renderApp(data);
             });
         }
 
@@ -241,11 +225,12 @@
             const type = document.getElementById('typeInput').value;
 
             if (!desc || isNaN(val) || val <= 0) {
-                alert('Informe uma descrição e um valor válido!');
+                alert('Preencha a descrição e um valor válido!');
                 return;
             }
 
-            dbRef.child('items').push({
+            const newPostRef = dbRef.child('items').push();
+            newPostRef.set({
                 desc: desc,
                 val: val,
                 type: type,
@@ -257,7 +242,7 @@
         }
 
         function deleteTransaction(key) {
-            if (confirm('Deseja excluir este registro?')) {
+            if (confirm('Deseja excluir este lançamento?')) {
                 dbRef.child('items/' + key).remove();
             }
         }
@@ -282,7 +267,7 @@
                 if (item.type === 'despesa') totalOut += item.val;
 
                 const isIncome = item.type === 'receita';
-                const colorClass = isIncome ? 'text-emerald-500' : 'text-rose-500';
+                const colorClass = isIncome ? 'text-emerald-600' : 'text-rose-600';
                 const sign = isIncome ? '+' : '-';
 
                 listEl.innerHTML += `
@@ -293,7 +278,7 @@
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="font-extrabold text-sm ${colorClass}">${sign} R$ ${item.val.toFixed(2).replace('.', ',')}</span>
-                            <button onclick="deleteTransaction('${key}')" class="text-slate-400 hover:text-rose-500 transition">
+                            <button onclick="deleteTransaction('${key}')" class="text-slate-300 hover:text-rose-500 transition">
                                 <i class="fa-solid fa-trash text-xs"></i>
                             </button>
                         </div>
@@ -305,6 +290,24 @@
             document.getElementById('totalBalance').innerText = `R$ ${balance.toFixed(2).replace('.', ',')}`;
             document.getElementById('totalIncome').innerText = `+ R$ ${totalIn.toFixed(2).replace('.', ',')}`;
             document.getElementById('totalExpense').innerText = `- R$ ${totalOut.toFixed(2).replace('.', ',')}`;
+        }
+
+        // Reconhecimento de Voz Simples
+        function startVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('Reconhecimento de voz não suportado neste navegador.');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                document.getElementById('descInput').value = text;
+            };
         }
     </script>
 </body>
