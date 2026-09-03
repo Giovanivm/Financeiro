@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="h-full">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -59,22 +59,6 @@
         </div>
     </div>
 
-    <!-- Modal: Configuração de Conexão do Casal (Engrenagem) -->
-    <div id="configModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4 text-slate-800">
-            <h3 class="font-bold border-b pb-2 text-base">Conectar Celulares (Código do Casal)</h3>
-            <p class="text-xs text-slate-500">Insira um código exclusivo para o casal. O parceiro deve usar exatamente o mesmo código no aparelho dele para sincronizarem os dados.</p>
-            <div>
-                <label class="text-xs font-semibold text-slate-600 block mb-1">Código do Casal</label>
-                <input type="text" id="pairCodeInput" class="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold uppercase" placeholder="EX: NOSSO-CASAL-123">
-            </div>
-            <div class="flex gap-2 pt-2">
-                <button type="button" onclick="closeConfigModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-                <button type="button" onclick="savePairCode()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Conectar</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Interface Principal do Aplicativo -->
     <div id="appScreen" class="hidden">
         <header class="bg-indigo-600 text-white p-5 rounded-b-3xl shadow-lg">
@@ -83,14 +67,9 @@
                     <h1 class="text-lg font-bold">Finanças do Casal</h1>
                     <p id="userEmailDisplay" class="text-xs opacity-80"></p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button onclick="openConfigModal()" title="Conectar Casal" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
-                        <i class="fa-solid fa-gear text-xs"></i>
-                    </button>
-                    <button onclick="handleLogout()" title="Sair da conta" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
-                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
-                    </button>
-                </div>
+                <button onclick="handleLogout()" title="Sair da conta" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
+                    <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                </button>
             </div>
             
             <div class="mt-6 bg-white/10 backdrop-blur-md rounded-2xl p-4 max-w-md mx-auto flex justify-between items-center">
@@ -110,9 +89,6 @@
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Novo Lançamento</h3>
                 <div class="flex gap-2">
                     <input type="text" id="descInput" placeholder="Descrição (ex: Mercado)" class="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500">
-                    <button onclick="startVoiceRecognition()" class="bg-indigo-50 text-indigo-600 px-4 rounded-xl hover:bg-indigo-100 transition" title="Lançar por Voz">
-                        <i class="fa-solid fa-microphone"></i>
-                    </button>
                 </div>
                 <div class="flex gap-2">
                     <input type="number" id="valueInput" step="0.01" placeholder="Valor (R$)" class="w-1/2 p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500">
@@ -152,7 +128,6 @@
         
         let currentUser = null;
         let dbRef = null;
-        let pairCode = localStorage.getItem('casal_pair_code') || 'casal-demo-123';
 
         auth.onAuthStateChanged(user => {
             const authScreen = document.getElementById('authScreen');
@@ -176,29 +151,8 @@
 
         function connectDatabase() {
             if (dbRef) dbRef.off();
-            dbRef = db.ref('casais/' + pairCode);
+            dbRef = db.ref('casais/default-casal');
             listenToData();
-        }
-
-        function openConfigModal() {
-            document.getElementById('pairCodeInput').value = pairCode;
-            document.getElementById('configModal').classList.remove('hidden');
-        }
-
-        function closeConfigModal() {
-            document.getElementById('configModal').classList.add('hidden');
-        }
-
-        function savePairCode() {
-            const newCode = document.getElementById('pairCodeInput').value.trim().toLowerCase().replace(/\s+/g, '-');
-            if (!newCode) {
-                alert('Digite um código válido!');
-                return;
-            }
-            pairCode = newCode;
-            localStorage.setItem('casal_pair_code', newCode);
-            closeConfigModal();
-            connectDatabase();
         }
 
         function handleLogin() {
@@ -351,22 +305,6 @@
             document.getElementById('totalBalance').innerText = `R$ ${balance.toFixed(2).replace('.', ',')}`;
             document.getElementById('totalIncome').innerText = `+ R$ ${totalIn.toFixed(2).replace('.', ',')}`;
             document.getElementById('totalExpense').innerText = `- R$ ${totalOut.toFixed(2).replace('.', ',')}`;
-        }
-
-        function startVoiceRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert('Voz não suportada neste navegador.');
-                return;
-            }
-
-            const recognition = new SpeechRecognition();
-            recognition.lang = 'pt-BR';
-            recognition.start();
-
-            recognition.onresult = (event) => {
-                document.getElementById('descInput').value = event.results[0][0].transcript;
-            };
         }
     </script>
 </body>
