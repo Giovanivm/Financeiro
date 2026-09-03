@@ -114,7 +114,6 @@
     <script>
         // Configuração do seu Firebase Realtime Database
         const firebaseConfig = { 
-            apiKey: "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE",
             databaseURL: "https://sucesso-financeiro-c3cbe-default-rtdb.firebaseio.com" 
         };
         
@@ -147,52 +146,29 @@
             }
         });
 
-        // Ações de Autenticação com Tratamento Correto de E-mail
+        // Ações de Autenticação
         function handleLogin() {
-            const email = document.getElementById('authEmail').value.trim();
+            const email = document.getElementById('authEmail').value;
             const pass = document.getElementById('authPassword').value;
             showError('');
 
-            if (!email || !pass) {
-                showError('Preencha o e-mail e a senha.');
-                return;
-            }
-
             auth.signInWithEmailAndPassword(email, pass).catch(err => {
-                if (err.code === 'auth/user-not-found') {
-                    showError('E-mail não cadastrado. Clique em "Criar Nova Conta".');
-                } else if (err.code === 'auth/wrong-password') {
-                    showError('Senha incorreta.');
-                } else if (err.code === 'auth/invalid-email') {
-                    showError('Formato de e-mail inválido.');
-                } else {
-                    showError('Erro ao entrar: ' + err.message);
-                }
+                showError('Erro ao entrar: Verifique e-mail e senha.');
             });
         }
 
         function handleSignUp() {
-            const email = document.getElementById('authEmail').value.trim();
+            const email = document.getElementById('authEmail').value;
             const pass = document.getElementById('authPassword').value;
             showError('');
 
-            if (!email) {
-                showError('Digite um e-mail válido.');
-                return;
-            }
             if (pass.length < 6) {
                 showError('A senha deve ter pelo menos 6 caracteres.');
                 return;
             }
 
             auth.createUserWithEmailAndPassword(email, pass).catch(err => {
-                if (err.code === 'auth/email-already-in-use') {
-                    showError('Este e-mail já está cadastrado. Clique em "Entrar".');
-                } else if (err.code === 'auth/invalid-email') {
-                    showError('Formato de e-mail inválido.');
-                } else {
-                    showError('Erro ao cadastrar: ' + err.message);
-                }
+                showError('Erro ao cadastrar: ' + err.message);
             });
         }
 
