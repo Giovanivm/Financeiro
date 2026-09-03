@@ -22,7 +22,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <style>
-        /* Transição suave ao trocar de tema */
         body, header, div, input, select, button {
             transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
@@ -61,6 +60,22 @@
         </div>
     </div>
 
+    <!-- Modal: Configuração de Conexão do Casal (Engrenagem) -->
+    <div id="configModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4 text-slate-800">
+            <h3 class="font-bold border-b pb-2 text-base">Conectar Celulares (Código do Casal)</h3>
+            <p class="text-xs text-slate-500">Insira um código exclusivo para o casal. O parceiro deve usar exatamente o mesmo código no aparelho dele para sincronizarem os dados.</p>
+            <div>
+                <label class="text-xs font-semibold text-slate-600 block mb-1">Código do Casal</label>
+                <input type="text" id="pairCodeInput" class="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold uppercase" placeholder="EX: NOSSO-CASAL-123">
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" onclick="closeConfigModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
+                <button type="button" onclick="savePairCode()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Conectar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Interface Principal do Aplicativo -->
     <div id="appScreen" class="hidden">
         <!-- Topo / Cabeçalho -->
@@ -71,13 +86,19 @@
                     <p id="userEmailDisplay" class="text-xs opacity-80"></p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <!-- Seletor de Temas Visuais -->
+                    <!-- Botão de Conexão (Engrenagem) -->
+                    <button onclick="openConfigModal()" title="Conectar Casal" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
+                        <i class="fa-solid fa-gear text-xs"></i>
+                    </button>
+
+                    <!-- Seletor de Temas -->
                     <select id="themeSelector" onchange="changeTheme(this.value)" class="bg-white/20 text-white text-xs font-bold rounded-xl px-2 py-1.5 outline-none cursor-pointer border border-white/20">
                         <option value="clean" class="text-slate-800">✨ Clean</option>
                         <option value="dark" class="text-slate-800">🌙 Dark</option>
                         <option value="warm" class="text-slate-800">☕ Warm</option>
                     </select>
                     
+                    <!-- Botão Sair -->
                     <button onclick="handleLogout()" title="Sair da conta" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
                         <i class="fa-solid fa-right-from-bracket text-xs"></i>
                     </button>
@@ -129,7 +150,7 @@
 
     <!-- Script Principal -->
     <script>
-        // Firebase Config
+        // Configuração do Firebase
         const firebaseConfig = { 
             databaseURL: "https://sucesso-financeiro-c3cbe-default-rtdb.firebaseio.com" 
         };
@@ -140,6 +161,7 @@
         
         let currentUser = null;
         let dbRef = null;
+        let pairCode = localStorage.getItem('casal_pair_code') || 'casal-demo-123';
         let currentTheme = localStorage.getItem('appTheme') || 'clean';
 
         // Monitor de Estado de Login
@@ -153,8 +175,7 @@
                 authScreen.classList.add('hidden');
                 appScreen.classList.remove('hidden');
                 
-                dbRef = db.ref('users/' + user.uid + '/financeiro');
-                listenToData();
+                connectDatabase();
                 applyTheme(currentTheme);
             } else {
                 currentUser = null;
@@ -164,7 +185,36 @@
             }
         });
 
-        // Gerenciamento de Temas Visuais
+        // Conecta ao cofre compartilhado do casal baseado no Código
+        function connectDatabase() {
+            if (dbRef) dbRef.off();
+            dbRef = db.ref('casais/' + pairCode);
+            listenToData();
+        }
+
+        // Modal de Configuração do Código do Casal
+        function openConfigModal() {
+            document.getElementById('pairCodeInput').value = pairCode;
+            document.getElementById('configModal').classList.remove('hidden');
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').classList.add('hidden');
+        }
+
+        function savePairCode() {
+            const newCode = document.getElementById('pairCodeInput').value.trim().toLowerCase().replace(/\s+/g, '-');
+            if (!newCode) {
+                alert('Digite um código válido!');
+                return;
+            }
+            pairCode = newCode;
+            localStorage.setItem('casal_pair_code', newCode);
+            closeConfigModal();
+            connectDatabase();
+        }
+
+        // Temas Visuais
         function changeTheme(themeName) {
             currentTheme = themeName;
             localStorage.setItem('appTheme', themeName);
@@ -194,7 +244,7 @@
                 addBtn.className = "w-full bg-amber-900 text-white font-bold py-3 rounded-xl text-sm shadow hover:bg-amber-800 transition";
                 micBtn.className = "bg-stone-200 text-amber-900 px-4 rounded-xl hover:bg-stone-300 transition";
                 meta.content = "#92400e";
-            } else { // Clean (Padrao)
+            } else { // Clean (Padrão)
                 body.className = "bg-slate-100 font-sans min-h-screen text-slate-800 pb-20";
                 header.className = "bg-indigo-600 text-white p-5 rounded-b-3xl shadow-lg";
                 formCard.className = "bg-white p-4 rounded-2xl shadow-sm space-y-3";
