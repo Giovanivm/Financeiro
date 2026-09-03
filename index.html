@@ -37,7 +37,7 @@
             </div>
             <div>
                 <h2 class="text-2xl font-bold text-slate-900">Sucesso Financeiro</h2>
-                <p class="text-xs text-slate-500 mt-1">Acesse sua conta para continuar</p>
+                <p class="text-xs text-slate-500 mt-1">Acesse ou crie sua conta para continuar</p>
             </div>
             
             <div class="space-y-3 text-left">
@@ -51,12 +51,16 @@
                 </div>
             </div>
 
-            <!-- Caixinha para avisar erros na tela -->
-            <div id="authError" class="hidden p-3 rounded-xl bg-rose-50 text-rose-600 text-xs font-semibold text-left"></div>
+            <!-- Caixa de Alertas e Mensagens de Erro/Sucesso -->
+            <div id="authError" class="hidden p-3 rounded-xl text-xs font-semibold text-left"></div>
 
-            <div class="space-y-2">
-                <button onclick="handleLogin()" id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm shadow-lg transition">Entrar</button>
-                <button onclick="handleSignUp()" id="btnSignup" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm transition">Criar Nova Conta</button>
+            <div class="space-y-2 pt-2">
+                <button onclick="handleLogin()" id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-3.5 rounded-xl text-sm shadow-lg transition">
+                    Entrar na Conta
+                </button>
+                <button onclick="handleSignUp()" id="btnSignup" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-3.5 rounded-xl text-sm shadow-md transition">
+                    Criar Nova Conta
+                </button>
             </div>
         </div>
     </div>
@@ -79,7 +83,6 @@
 
     <!-- Interface Principal do Aplicativo -->
     <div id="appScreen" class="hidden">
-        <!-- Topo / Cabeçalho -->
         <header id="appHeader" class="bg-indigo-600 text-white p-5 rounded-b-3xl shadow-lg">
             <div class="flex justify-between items-center max-w-md mx-auto">
                 <div>
@@ -87,26 +90,20 @@
                     <p id="userEmailDisplay" class="text-xs opacity-80"></p>
                 </div>
                 <div class="flex items-center gap-2">
-                    <!-- Engrenagem -->
                     <button onclick="openConfigModal()" title="Conectar Casal" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
                         <i class="fa-solid fa-gear text-xs"></i>
                     </button>
-
-                    <!-- Seletor de Temas -->
                     <select id="themeSelector" onchange="changeTheme(this.value)" class="bg-white/20 text-white text-xs font-bold rounded-xl px-2 py-1.5 outline-none cursor-pointer border border-white/20">
                         <option value="clean" class="text-slate-800">✨ Clean</option>
                         <option value="dark" class="text-slate-800">🌙 Dark</option>
                         <option value="warm" class="text-slate-800">☕ Warm</option>
                     </select>
-                    
-                    <!-- Botão Sair -->
                     <button onclick="handleLogout()" title="Sair da conta" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
                         <i class="fa-solid fa-right-from-bracket text-xs"></i>
                     </button>
                 </div>
             </div>
             
-            <!-- Resumo Financeiro -->
             <div id="summaryCard" class="mt-6 bg-white/10 backdrop-blur-md rounded-2xl p-4 max-w-md mx-auto flex justify-between items-center">
                 <div>
                     <span class="text-xs uppercase font-semibold block opacity-80">Saldo Atual</span>
@@ -119,7 +116,6 @@
             </div>
         </header>
 
-        <!-- Formulário de Lançamento -->
         <main class="max-w-md mx-auto p-4 space-y-4">
             <div id="formCard" class="bg-white p-4 rounded-2xl shadow-sm space-y-3">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Novo Lançamento</h3>
@@ -139,24 +135,23 @@
                 <button onclick="addTransaction()" id="addBtn" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm shadow hover:bg-slate-800 transition">Adicionar</button>
             </div>
 
-            <!-- Lista de Extrato -->
             <div class="space-y-2">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Lançamentos Recentes</h3>
-                <div id="transactionList" class="space-y-2">
-                    <!-- Registros em tempo real -->
-                </div>
+                <div id="transactionList" class="space-y-2"></div>
             </div>
         </main>
     </div>
 
     <!-- Script Principal -->
     <script>
-        // Configuração do Firebase
         const firebaseConfig = { 
-            databaseURL: "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/" 
+            databaseURL: "https://financeiro-de-sucesso-default-rtdb.firebaseio.com" 
         };
         
-        firebase.initializeApp(firebaseConfig);
+        // Inicializa o Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const auth = firebase.auth();
         const db = firebase.database();
         
@@ -165,7 +160,6 @@
         let pairCode = localStorage.getItem('casal_pair_code') || 'casal-demo-123';
         let currentTheme = localStorage.getItem('appTheme') || 'clean';
 
-        // Monitor de Estado de Login
         auth.onAuthStateChanged(user => {
             const authScreen = document.getElementById('authScreen');
             const appScreen = document.getElementById('appScreen');
@@ -187,14 +181,12 @@
             }
         });
 
-        // Conecta ao cofre compartilhado do casal
         function connectDatabase() {
             if (dbRef) dbRef.off();
             dbRef = db.ref('casais/' + pairCode);
             listenToData();
         }
 
-        // Modal de Configuração do Código do Casal
         function openConfigModal() {
             document.getElementById('pairCodeInput').value = pairCode;
             document.getElementById('configModal').classList.remove('hidden');
@@ -216,7 +208,6 @@
             connectDatabase();
         }
 
-        // Temas Visuais
         function changeTheme(themeName) {
             currentTheme = themeName;
             localStorage.setItem('appTheme', themeName);
@@ -246,7 +237,7 @@
                 addBtn.className = "w-full bg-amber-900 text-white font-bold py-3 rounded-xl text-sm shadow hover:bg-amber-800 transition";
                 micBtn.className = "bg-stone-200 text-amber-900 px-4 rounded-xl hover:bg-stone-300 transition";
                 meta.content = "#92400e";
-            } else { // Clean
+            } else {
                 body.className = "bg-slate-100 font-sans min-h-screen text-slate-800 pb-20";
                 header.className = "bg-indigo-600 text-white p-5 rounded-b-3xl shadow-lg";
                 formCard.className = "bg-white p-4 rounded-2xl shadow-sm space-y-3";
@@ -260,26 +251,28 @@
             }
         }
 
-        // Ações de Autenticação com MENSAGENS CLARAS DE ERRO
         function handleLogin() {
             const email = document.getElementById('authEmail').value.trim();
             const pass = document.getElementById('authPassword').value;
-            showError('');
+            showError('', 'info');
 
             if (!email || !pass) {
-                showError('Preencha o e-mail e a senha.');
+                showError('Digite o e-mail e a senha.', 'error');
                 return;
             }
 
+            document.getElementById('btnLogin').innerText = 'Entrando...';
+
             auth.signInWithEmailAndPassword(email, pass).catch(err => {
+                document.getElementById('btnLogin').innerText = 'Entrar na Conta';
                 if (err.code === 'auth/user-not-found') {
-                    showError('Usuário não encontrado. Clique em "Criar Nova Conta".');
+                    showError('E-mail não cadastrado. Clique no botão verde "Criar Nova Conta".', 'error');
                 } else if (err.code === 'auth/wrong-password') {
-                    showError('Senha incorreta.');
+                    showError('Senha incorreta.', 'error');
                 } else if (err.code === 'auth/invalid-email') {
-                    showError('E-mail em formato inválido.');
+                    showError('Formato de e-mail inválido.', 'error');
                 } else {
-                    showError('Erro ao entrar: ' + err.message);
+                    showError('Erro ao entrar: ' + err.message, 'error');
                 }
             });
         }
@@ -287,24 +280,27 @@
         function handleSignUp() {
             const email = document.getElementById('authEmail').value.trim();
             const pass = document.getElementById('authPassword').value;
-            showError('');
+            showError('', 'info');
 
             if (!email) {
-                showError('Digite seu e-mail.');
+                showError('Digite um e-mail válido.', 'error');
                 return;
             }
             if (pass.length < 6) {
-                showError('A senha precisa ter pelo menos 6 caracteres.');
+                showError('A senha precisa ter pelo menos 6 caracteres.', 'error');
                 return;
             }
 
+            document.getElementById('btnSignup').innerText = 'Criando conta...';
+
             auth.createUserWithEmailAndPassword(email, pass).catch(err => {
+                document.getElementById('btnSignup').innerText = 'Criar Nova Conta';
                 if (err.code === 'auth/email-already-in-use') {
-                    showError('Este e-mail já está cadastrado. Tente o botão "Entrar".');
+                    showError('Este e-mail já existe! Clique no botão azul "Entrar na Conta".', 'error');
                 } else if (err.code === 'auth/invalid-email') {
-                    showError('E-mail em formato inválido.');
+                    showError('E-mail em formato inválido.', 'error');
                 } else {
-                    showError('Erro ao cadastrar: ' + err.message);
+                    showError('Erro ao cadastrar: ' + err.message, 'error');
                 }
             });
         }
@@ -313,17 +309,21 @@
             auth.signOut();
         }
 
-        function showError(msg) {
+        function showError(msg, type) {
             const errEl = document.getElementById('authError');
             if (msg) {
                 errEl.innerText = msg;
                 errEl.classList.remove('hidden');
+                if (type === 'error') {
+                    errEl.className = "p-3 rounded-xl text-xs font-semibold text-left bg-rose-100 text-rose-700 border border-rose-200";
+                } else {
+                    errEl.className = "p-3 rounded-xl text-xs font-semibold text-left bg-blue-100 text-blue-700 border border-blue-200";
+                }
             } else {
                 errEl.classList.add('hidden');
             }
         }
 
-        // Banco de Dados
         function listenToData() {
             if (!dbRef) return;
             dbRef.on('value', snapshot => {
@@ -408,7 +408,6 @@
             document.getElementById('totalExpense').innerText = `- R$ ${totalOut.toFixed(2).replace('.', ',')}`;
         }
 
-        // Voz
         function startVoiceRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
