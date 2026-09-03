@@ -1,951 +1,354 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finanças & Lembretes do Casal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-
-  <style>
-    @keyframes mic-pulse {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.8); }
-      70% { transform: scale(1.15); box-shadow: 0 0 0 18px rgba(225, 29, 72, 0); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
-    }
-    .mic-recording {
-      animation: mic-pulse 1.2s infinite !important;
-      background-color: #e11d48 !important;
-      color: #ffffff !important;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sucesso Financeiro</title>
+    
+    <!-- Configuração PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" id="themeMeta" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2845/2845724.png">
+    
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- SDKs do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        /* Transição suave ao trocar de tema */
+        body, header, div, input, select, button {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+    </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen pb-24">
+<body id="appBody" class="bg-slate-100 font-sans min-h-screen text-slate-800 pb-20">
 
-  <div class="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-xl">
-  
-    <!-- Header -->
-    <header class="bg-slate-900 text-white p-5 rounded-b-2xl shadow-md sticky top-0 z-20 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-          <i class="fa-solid fa-heart text-rose-400"></i>
-        </div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight">Finanças & Lembretes</h1>
-          <p class="text-xs text-slate-400">Sincronizado em tempo real</p>
-        </div>
-      </div>
-      <button onclick="openConfigModal()" class="text-slate-400 hover:text-white p-2" title="Configurar Sincronização">
-        <i class="fa-solid fa-gear text-lg"></i>
-      </button>
-    </header>
-
-    <!-- Navegação de Mês/Ano -->
-    <div class="bg-slate-800 text-white px-4 py-2.5 flex justify-between items-center text-sm font-semibold shadow-inner">
-      <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><i class="fa-solid fa-chevron-left"></i></button>
-      <span id="currentMonthLabel" class="capitalize tracking-wide">Mês do Ano</span>
-      <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
-    </div>
-
-    <!-- Navegação em Abas -->
-    <div class="flex border-b border-slate-200 bg-white sticky top-[76px] z-10 shadow-sm">
-      <button id="tabExpensesBtn" onclick="switchTab('expenses')" class="flex-1 py-3 text-center text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 flex justify-center items-center gap-2">
-        <i class="fa-solid fa-wallet"></i> Despesas
-      </button>
-      <button id="tabRemindersBtn" onclick="switchTab('reminders')" class="flex-1 py-3 text-center text-sm font-bold text-slate-400 border-b-2 border-transparent flex justify-center items-center gap-2">
-        <i class="fa-solid fa-bell"></i> Lembretes
-      </button>
-    </div>
-
-    <!-- Conteúdo da Aba Despesas -->
-    <main id="expensesView" class="flex-1 p-4 space-y-4">
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Resumo do Mês Selecionado</h2>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-            <span class="text-xs text-emerald-700 font-medium block">Renda Total</span>
-            <span id="totalIncome" class="text-lg font-bold text-emerald-800">R$ 0,00</span>
-          </div>
-          <div class="bg-rose-50 p-3 rounded-xl border border-rose-100">
-            <span class="text-xs text-rose-700 font-medium block">Despesas da Casa</span>
-            <span id="totalExpenses" class="text-lg font-bold text-rose-800">R$ 0,00</span>
-          </div>
-        </div>
-        <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center">
-          <div>
-            <span class="text-xs text-indigo-700 font-medium block">Saldo Restante</span>
-            <span id="netBalance" class="text-xl font-black text-indigo-900">R$ 0,00</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bloco de Rendas e Nomes -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <div class="flex justify-between items-center">
-          <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rendas Individuais</h2>
-          <button type="button" onclick="openIncomeModal()" class="text-xs text-indigo-600 font-bold hover:underline">
-            <i class="fa-solid fa-pen-to-square"></i> Editar Nomes / Rendas
-          </button>
-        </div>
-        <div class="grid grid-cols-2 gap-2 text-sm pt-1">
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <p id="p1NameDisplay" class="font-bold text-slate-700 truncate">Parceiro 1</p>
-            <p id="p1IncomeVal" class="text-xs text-indigo-600 font-extrabold mt-1">R$ 0,00</p>
-          </div>
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <p id="p2NameDisplay" class="font-bold text-slate-700 truncate">Parceiro 2</p>
-            <p id="p2IncomeVal" class="text-xs text-teal-600 font-extrabold mt-1">R$ 0,00</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Lista de Despesas -->
-      <div class="space-y-3">
-        <h2 class="text-sm font-bold text-slate-700">Despesas Compartilhadas do Mês</h2>
-        <div id="transactionsList" class="space-y-2"></div>
-      </div>
-    </main>
-
-    <!-- Conteúdo da Aba Lembretes -->
-    <main id="remindersView" class="flex-1 p-4 space-y-4 hidden">
-      <div class="flex justify-between items-center">
-        <h2 class="text-sm font-bold text-slate-700">Lista de Lembretes do Mês</h2>
-      </div>
-      <div id="remindersList" class="space-y-2"></div>
-    </main>
-
-    <!-- Botões de Ação Inferiores -->
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3">
-      <button type="button" id="mainAddBtn" onclick="openExpenseModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-full shadow-lg flex items-center gap-2 text-sm active:scale-95 transition-transform">
-        <i class="fa-solid fa-plus text-base"></i> Nova Despesa
-      </button>
-
-      <!-- Botão de Voz -->
-      <button type="button" id="voiceBtn" onclick="toggleVoiceRecognition()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold p-3 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all w-12 h-12 shrink-0" title="Lançar por voz">
-        <i class="fa-solid fa-microphone text-lg"></i>
-      </button>
-    </div>
-
-  </div>
-
-  <!-- Modal: Nova Despesa -->
-  <div id="expenseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-      <h3 id="modalExpenseTitle" class="font-bold text-slate-800 text-base border-b pb-2">Nova Despesa</h3>
-      <div class="space-y-3">
-        <input type="hidden" id="expId">
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Descrição</label>
-          <input type="text" id="expDesc" class="w-full p-3 border border-slate-300 rounded-xl text-sm" placeholder="Ex: Supermercado, Luz...">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Valor (R$)</label>
-          <input type="number" step="0.01" id="expAmount" class="w-full p-3 border border-slate-300 rounded-xl text-base font-semibold" placeholder="0.00">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Data da Despesa</label>
-          <input type="date" id="expDate" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
-        </div>
-
-        <!-- Anexo de Comprovante/Nota Fiscal -->
-        <div class="pt-2 border-t">
-          <label class="text-xs font-semibold text-slate-600 block mb-2">Comprovante / Nota Fiscal</label>
-          
-          <button type="button" onclick="openCameraModal()" class="w-full bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl p-3 text-slate-600 text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-200">
-            <i class="fa-solid fa-camera text-indigo-600 text-base"></i> Capturar ou Anexar Nota Fiscal
-          </button>
-
-          <div id="receiptPreviewContainer" class="mt-2 hidden">
-            <div class="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-100 max-h-40 flex items-center justify-center">
-              <img id="receiptPreviewImg" src="" class="max-h-40 object-contain">
-              <button type="button" onclick="removeReceipt()" class="absolute top-2 right-2 bg-rose-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow">
-                <i class="fa-solid fa-xmark text-xs"></i>
-              </button>
+    <!-- Tela de Autenticação / Login -->
+    <div id="authScreen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-5 text-center">
+            <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-2xl">
+                <i class="fa-solid fa-wallet"></i>
             </div>
-          </div>
-        </div>
-
-      </div>
-      <div class="flex gap-2 pt-2">
-        <button type="button" onclick="closeExpenseModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-        <button type="button" onclick="saveExpense()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Salvar Despesa</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal da Câmera (Com os Modos de Captura) -->
-  <div id="cameraModal" class="fixed inset-0 bg-black z-50 flex flex-col hidden">
-    <div class="bg-slate-900 text-white p-4 flex justify-between items-center z-10">
-      <h4 class="text-sm font-bold">Capturar Nota Fiscal</h4>
-      <button type="button" onclick="closeCameraModal()" class="text-slate-400 hover:text-white p-1">
-        <i class="fa-solid fa-xmark text-xl"></i>
-      </button>
-    </div>
-
-    <!-- Seletor de Modo -->
-    <div class="bg-slate-800 p-2 flex justify-around text-xs font-bold text-slate-300 border-b border-slate-700">
-      <button type="button" id="modeSingleBtn" onclick="setCamMode('single')" class="py-1 px-3 rounded-lg bg-indigo-600 text-white">1 Foto</button>
-      <button type="button" id="modeMultiBtn" onclick="setCamMode('multi')" class="py-1 px-3 rounded-lg hover:bg-slate-700">Múltiplas Fotos</button>
-      <button type="button" id="modePanoBtn" onclick="setCamMode('pano')" class="py-1 px-3 rounded-lg hover:bg-slate-700">Panorâmica</button>
-      <button type="button" id="modeQrBtn" onclick="setCamMode('qr')" class="py-1 px-3 rounded-lg hover:bg-slate-700">QR Code</button>
-    </div>
-
-    <!-- Viewfinder -->
-    <div class="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
-      <video id="cameraVideo" autoplay playsinline class="w-full h-full object-cover"></video>
-      <canvas id="photoCanvas" class="hidden"></canvas>
-
-      <!-- Guia Visual para QR Code -->
-      <div id="qrOverlay" class="absolute inset-0 border-2 border-dashed border-indigo-400 m-12 rounded-2xl pointer-events-none hidden flex items-center justify-center">
-        <span class="bg-black/60 text-white text-xs px-3 py-1.5 rounded-full">Aponte para o QR Code</span>
-      </div>
-
-      <!-- Indicador de Fotos Acumuladas no modo Multi -->
-      <div id="multiCounter" class="absolute top-4 left-4 bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-full hidden">
-        <span id="capturedCount">0</span> foto(s) capturada(s)
-      </div>
-    </div>
-
-    <!-- Controles Inferiores da Câmera -->
-    <div class="bg-slate-900 p-4 flex flex-col items-center gap-3">
-      <div id="instructionText" class="text-xs text-slate-400 text-center">Tire 1 foto do comprovante completo.</div>
-
-      <div class="flex items-center gap-6">
-        <input type="file" id="fallbackFileInput" accept="image/*" capture="environment" class="hidden" onchange="handleFileFallback(event)">
-
-        <button type="button" onclick="triggerNativeCamera()" class="text-slate-400 text-xs flex flex-col items-center gap-1">
-          <i class="fa-solid fa-folder-open text-lg"></i>
-          <span>Galeria</span>
-        </button>
-
-        <button type="button" onclick="captureCurrentMode()" class="w-16 h-16 rounded-full bg-white border-4 border-slate-300 flex items-center justify-center active:scale-95 transition-transform shadow-lg">
-          <div class="w-12 h-12 rounded-full bg-indigo-600"></div>
-        </button>
-
-        <button type="button" id="finishMultiBtn" onclick="finishMultiCapture()" class="text-emerald-400 text-xs font-bold flex flex-col items-center gap-1 opacity-50 pointer-events-none">
-          <i class="fa-solid fa-check text-lg"></i>
-          <span>Concluir</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Visualizador de Nota Fiscal em Tela Cheia -->
-  <div id="receiptViewerModal" class="fixed inset-0 bg-slate-950/90 z-50 flex flex-col hidden backdrop-blur-sm">
-    <div class="p-4 flex justify-between items-center text-white border-b border-slate-800">
-      <h4 id="viewerTitle" class="text-sm font-bold">Comprovante Anexo</h4>
-      <div class="flex items-center gap-3">
-        <a id="downloadReceiptBtn" href="" download="nota-fiscal.png" class="text-slate-300 hover:text-white text-base" title="Salvar Imagem">
-          <i class="fa-solid fa-download"></i>
-        </a>
-        <button type="button" onclick="closeReceiptViewer()" class="text-slate-300 hover:text-white text-xl">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-    </div>
-    <div class="flex-1 p-4 flex items-center justify-center overflow-auto">
-      <img id="fullReceiptImg" src="" class="max-w-full max-h-full object-contain rounded-lg shadow-2xl">
-    </div>
-  </div>
-
-  <!-- Modal: Editar Nomes e Rendas -->
-  <div id="incomeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4">
-      <h3 class="font-bold text-slate-800 text-base border-b pb-2">Editar Nomes e Rendas</h3>
-      <div class="space-y-3">
-        <div class="p-3 bg-indigo-50/50 rounded-xl space-y-2 border border-indigo-100">
-          <div>
-            <label class="text-xs font-bold text-indigo-900 block mb-1">Nome do Parceiro 1</label>
-            <input type="text" id="inputNameP1" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-sm font-medium">
-          </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-600 block mb-1">Renda Mensal (R$)</label>
-            <input type="number" step="0.01" id="inputIncomeP1" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-base font-semibold">
-          </div>
-        </div>
-        <div class="p-3 bg-teal-50/50 rounded-xl space-y-2 border border-teal-100">
-          <div>
-            <label class="text-xs font-bold text-teal-900 block mb-1">Nome do Parceiro 2</label>
-            <input type="text" id="inputNameP2" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-sm font-medium">
-          </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-600 block mb-1">Renda Mensal (R$)</label>
-            <input type="number" step="0.01" id="inputIncomeP2" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-base font-semibold">
-          </div>
-        </div>
-      </div>
-      <div class="flex gap-2 pt-2">
-        <button type="button" onclick="closeIncomeModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-        <button type="button" onclick="saveIncomeAndNames()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Novo Lembrete -->
-  <div id="reminderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4">
-      <h3 class="font-bold text-slate-800 text-base border-b pb-2">Novo Lembrete</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Descrição do Lembrete</label>
-          <input type="text" id="remText" class="w-full p-3 border border-slate-300 rounded-xl text-sm" placeholder="Ex: Comprar ração, Pagar conta...">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Data do Lembrete</label>
-          <input type="date" id="remDate" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
-        </div>
-      </div>
-      <div class="flex gap-2 pt-2">
-        <button type="button" onclick="closeReminderModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-        <button type="button" onclick="saveReminder()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Salvar Lembrete</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Configuração de Sincronização -->
-  <div id="configModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4">
-      <h3 class="font-bold text-slate-800 text-base border-b pb-2">Conectar Celulares (Sincronização)</h3>
-      <p class="text-xs text-slate-500">Insira um código de casal exclusivo. O parceiro deve usar o mesmo código no aparelho dele.</p>
-      <div>
-        <label class="text-xs font-semibold text-slate-600 block mb-1">Código do Casal</label>
-        <input type="text" id="pairCodeInput" class="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold uppercase" placeholder="EX: NOSSO-CASAL-123">
-      </div>
-      <div class="flex gap-2 pt-2">
-        <button type="button" onclick="closeConfigModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-        <button type="button" onclick="savePairCode()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Conectar</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const firebaseConfig = { databaseURL: "https://sucesso-financeiro-c3cbe-default-rtdb.firebaseio.com" };
-    let dbRef = null;
-    let pairCode = localStorage.getItem('casal_pair_code') || 'casal-demo-123';
-    let selectedDate = new Date();
-    let currentReceiptBase64 = null;
-
-    try {
-      firebase.initializeApp(firebaseConfig);
-      dbRef = firebase.database().ref('casais/' + pairCode);
-      listenToFirebase();
-    } catch(e) { console.log("Modo offline."); }
-
-    let currentTab = 'expenses';
-    let state = JSON.parse(localStorage.getItem('casal_app_data')) || { 
-      p1Name: "Parceiro 1", p2Name: "Parceiro 2", p1: 0, p2: 0, expenses: [], reminders: []
-    };
-
-    function listenToFirebase() {
-      if (!dbRef) return;
-      dbRef.on('value', (snapshot) => {
-        const val = snapshot.val();
-        if (val) {
-          state = val;
-          if (!state.expenses) state.expenses = [];
-          if (!state.reminders) state.reminders = [];
-          saveToStorage(false);
-          updateUI();
-        }
-      });
-    }
-
-    function saveToStorage(syncFirebase = true) {
-      localStorage.setItem('casal_app_data', JSON.stringify(state));
-      if (syncFirebase && dbRef) dbRef.set(state);
-    }
-
-    function getISODateString(d = new Date()) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    function formatDisplayDate(dateStr) {
-      if (!dateStr) return '';
-      const parts = dateStr.split('-');
-      return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : dateStr;
-    }
-
-    function changeMonth(delta) {
-      selectedDate.setMonth(selectedDate.getMonth() + delta);
-      updateUI();
-    }
-
-    function switchTab(tab) {
-      currentTab = tab;
-      const expView = document.getElementById("expensesView");
-      const remView = document.getElementById("remindersView");
-      const btnExp = document.getElementById("tabExpensesBtn");
-      const btnRem = document.getElementById("tabRemindersBtn");
-      const mainAddBtn = document.getElementById("mainAddBtn");
-
-      if (tab === 'expenses') {
-        expView.classList.remove("hidden");
-        remView.classList.add("hidden");
-        btnExp.className = "flex-1 py-3 text-center text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 flex justify-center items-center gap-2";
-        btnRem.className = "flex-1 py-3 text-center text-sm font-bold text-slate-400 border-b-2 border-transparent flex justify-center items-center gap-2";
-        mainAddBtn.innerHTML = '<i class="fa-solid fa-plus text-base"></i> Nova Despesa';
-        mainAddBtn.setAttribute("onclick", "openExpenseModal()");
-      } else {
-        expView.classList.add("hidden");
-        remView.classList.remove("hidden");
-        btnRem.className = "flex-1 py-3 text-center text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 flex justify-center items-center gap-2";
-        btnExp.className = "flex-1 py-3 text-center text-sm font-bold text-slate-400 border-b-2 border-transparent flex justify-center items-center gap-2";
-        mainAddBtn.innerHTML = '<i class="fa-solid fa-plus text-base"></i> Novo Lembrete';
-        mainAddBtn.setAttribute("onclick", "openReminderModal()");
-      }
-    }
-
-    function updateUI() {
-      const year = selectedDate.getFullYear();
-      const month = selectedDate.getMonth();
-      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-      document.getElementById("currentMonthLabel").innerText = `${monthNames[month]} de ${year}`;
-
-      const filteredExpenses = (state.expenses || []).filter(item => {
-        const d = new Date(item.date + "T00:00:00");
-        return d.getFullYear() === year && d.getMonth() === month;
-      });
-
-      const filteredReminders = (state.reminders || []).filter(item => {
-        const d = new Date(item.date + "T00:00:00");
-        return d.getFullYear() === year && d.getMonth() === month;
-      });
-
-      const totalInc = (state.p1 || 0) + (state.p2 || 0);
-      const totalExp = filteredExpenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-      const balance = totalInc - totalExp;
-
-      document.getElementById("totalIncome").innerText = formatBRL(totalInc);
-      document.getElementById("totalExpenses").innerText = formatBRL(totalExp);
-      document.getElementById("netBalance").innerText = formatBRL(balance);
-
-      document.getElementById("p1NameDisplay").innerText = state.p1Name || "Parceiro 1";
-      document.getElementById("p2NameDisplay").innerText = state.p2Name || "Parceiro 2";
-      document.getElementById("p1IncomeVal").innerText = formatBRL(state.p1);
-      document.getElementById("p2IncomeVal").innerText = formatBRL(state.p2);
-
-      const list = document.getElementById("transactionsList");
-      if (filteredExpenses.length === 0) {
-        list.innerHTML = '<div class="bg-white p-6 rounded-2xl border border-slate-200 text-center"><p class="text-xs text-slate-400">Nenhuma despesa para este mês.</p></div>';
-      } else {
-        list.innerHTML = filteredExpenses.map(item => `
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm">
             <div>
-              <div class="flex items-center gap-1.5">
-                <span class="font-bold text-sm text-slate-800 block">${escapeHtml(item.desc)}</span>
-                ${item.receipt ? `<button type="button" onclick="openReceiptViewer('${item.id}')" class="text-indigo-600 hover:text-indigo-800" title="Ver Nota Fiscal"><i class="fa-solid fa-paperclip text-xs"></i></button>` : ''}
-              </div>
-              <div class="flex items-center gap-2 text-xs">
-                <span class="font-bold text-rose-600">-${formatBRL(item.amount)}</span>
-                <span class="text-slate-400">• ${formatDisplayDate(item.date)}</span>
-              </div>
+                <h2 class="text-2xl font-bold text-slate-900">Sucesso Financeiro</h2>
+                <p class="text-xs text-slate-500 mt-1">Acesse sua conta para continuar</p>
             </div>
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="openExpenseModal('${item.id}')" class="text-slate-400 hover:text-indigo-600 p-2"><i class="fa-solid fa-pen text-xs"></i></button>
-              <button type="button" onclick="deleteExpense('${item.id}')" class="text-slate-400 hover:text-rose-600 p-2"><i class="fa-solid fa-trash text-xs"></i></button>
+            
+            <div class="space-y-3 text-left">
+                <div>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1">E-mail</label>
+                    <input type="email" id="authEmail" class="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="seu@email.com">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600 block mb-1">Senha</label>
+                    <input type="password" id="authPassword" class="w-full p-3 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="••••••••">
+                </div>
             </div>
-          </div>
-        `).join("");
-      }
 
-      const remList = document.getElementById("remindersList");
-      if (filteredReminders.length === 0) {
-        remList.innerHTML = '<div class="bg-white p-6 rounded-2xl border border-slate-200 text-center"><p class="text-xs text-slate-400">Nenhum lembrete para este mês.</p></div>';
-      } else {
-        remList.innerHTML = filteredReminders.map(item => `
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm ${item.done ? 'opacity-50' : ''}">
-            <div class="flex items-center gap-3">
-              <button type="button" onclick="toggleReminderDone('${item.id}')" class="text-lg ${item.done ? 'text-emerald-500' : 'text-slate-300'}">
-                <i class="fa-solid ${item.done ? 'fa-circle-check' : 'fa-circle'}"></i>
-              </button>
-              <div>
-                <span class="font-semibold text-sm ${item.done ? 'line-through text-slate-400' : 'text-slate-800'} block">${escapeHtml(item.text)}</span>
-                <span class="text-xs text-slate-400">${formatDisplayDate(item.date)}</span>
-              </div>
+            <p id="authError" class="text-xs text-rose-500 hidden font-medium"></p>
+
+            <div class="space-y-2">
+                <button onclick="handleLogin()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-sm shadow-lg transition">Entrar</button>
+                <button onclick="handleSignUp()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm transition">Criar Nova Conta</button>
             </div>
-            <button type="button" onclick="deleteReminder('${item.id}')" class="text-slate-400 hover:text-rose-600 p-2"><i class="fa-solid fa-trash text-xs"></i></button>
-          </div>
-        `).join("");
-      }
-    }
+        </div>
+    </div>
 
-    function formatBRL(val) {
-      return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
+    <!-- Interface Principal do Aplicativo -->
+    <div id="appScreen" class="hidden">
+        <!-- Topo / Cabeçalho -->
+        <header id="appHeader" class="bg-indigo-600 text-white p-5 rounded-b-3xl shadow-lg">
+            <div class="flex justify-between items-center max-w-md mx-auto">
+                <div>
+                    <h1 class="text-lg font-bold">Finanças do Casal</h1>
+                    <p id="userEmailDisplay" class="text-xs opacity-80"></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <!-- Seletor de Temas Visuais -->
+                    <select id="themeSelector" onchange="changeTheme(this.value)" class="bg-white/20 text-white text-xs font-bold rounded-xl px-2 py-1.5 outline-none cursor-pointer border border-white/20">
+                        <option value="clean" class="text-slate-800">✨ Clean</option>
+                        <option value="dark" class="text-slate-800">🌙 Dark</option>
+                        <option value="warm" class="text-slate-800">☕ Warm</option>
+                    </select>
+                    
+                    <button onclick="handleLogout()" title="Sair da conta" class="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition">
+                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Resumo Financeiro -->
+            <div id="summaryCard" class="mt-6 bg-white/10 backdrop-blur-md rounded-2xl p-4 max-w-md mx-auto flex justify-between items-center">
+                <div>
+                    <span class="text-xs uppercase font-semibold block opacity-80">Saldo Atual</span>
+                    <span id="totalBalance" class="text-2xl font-black">R$ 0,00</span>
+                </div>
+                <div class="text-right space-y-1">
+                    <span id="totalIncome" class="text-xs text-emerald-300 font-bold block">+ R$ 0,00</span>
+                    <span id="totalExpense" class="text-xs text-rose-300 font-bold block">- R$ 0,00</span>
+                </div>
+            </div>
+        </header>
 
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
-    }
+        <!-- Formulário de Lançamento -->
+        <main class="max-w-md mx-auto p-4 space-y-4">
+            <div id="formCard" class="bg-white p-4 rounded-2xl shadow-sm space-y-3">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Novo Lançamento</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="descInput" placeholder="Descrição (ex: Mercado)" class="w-full p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500">
+                    <button onclick="startVoiceRecognition()" id="micBtn" class="bg-indigo-50 text-indigo-600 px-4 rounded-xl hover:bg-indigo-100 transition" title="Lançar por Voz">
+                        <i class="fa-solid fa-microphone"></i>
+                    </button>
+                </div>
+                <div class="flex gap-2">
+                    <input type="number" id="valueInput" step="0.01" placeholder="Valor (R$)" class="w-1/2 p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500">
+                    <select id="typeInput" class="w-1/2 p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 font-semibold text-slate-600">
+                        <option value="despesa">🔴 Despesa</option>
+                        <option value="receita">🟢 Receita</option>
+                    </select>
+                </div>
+                <button onclick="addTransaction()" id="addBtn" class="w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm shadow hover:bg-slate-800 transition">Adicionar</button>
+            </div>
 
-    function openIncomeModal() {
-      document.getElementById("inputNameP1").value = state.p1Name || "Parceiro 1";
-      document.getElementById("inputNameP2").value = state.p2Name || "Parceiro 2";
-      document.getElementById("inputIncomeP1").value = state.p1 || "";
-      document.getElementById("inputIncomeP2").value = state.p2 || "";
-      document.getElementById("incomeModal").classList.remove("hidden");
-    }
-    function closeIncomeModal() { document.getElementById("incomeModal").classList.add("hidden"); }
+            <!-- Lista de Extrato -->
+            <div class="space-y-2">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Lançamentos Recentes</h3>
+                <div id="transactionList" class="space-y-2">
+                    <!-- Registros em tempo real -->
+                </div>
+            </div>
+        </main>
+    </div>
 
-    function saveIncomeAndNames() {
-      state.p1Name = document.getElementById("inputNameP1").value.trim() || "Parceiro 1";
-      state.p2Name = document.getElementById("inputNameP2").value.trim() || "Parceiro 2";
-      state.p1 = parseFloat(document.getElementById("inputIncomeP1").value) || 0;
-      state.p2 = parseFloat(document.getElementById("inputIncomeP2").value) || 0;
-      saveToStorage();
-      closeIncomeModal();
-      updateUI();
-    }
-
-    function openExpenseModal(id = null) {
-      currentReceiptBase64 = null;
-      document.getElementById("receiptPreviewContainer").classList.add("hidden");
-
-      if (id) {
-        const item = state.expenses.find(x => x.id === id);
-        if (item) {
-          document.getElementById("expId").value = item.id;
-          document.getElementById("expDesc").value = item.desc;
-          document.getElementById("expAmount").value = item.amount;
-          document.getElementById("expDate").value = item.date || getISODateString();
-          if (item.receipt) {
-            currentReceiptBase64 = item.receipt;
-            document.getElementById("receiptPreviewImg").src = item.receipt;
-            document.getElementById("receiptPreviewContainer").classList.remove("hidden");
-          }
-        }
-      } else {
-        document.getElementById("expId").value = "";
-        document.getElementById("expDesc").value = "";
-        document.getElementById("expAmount").value = "";
-        document.getElementById("expDate").value = getISODateString();
-      }
-      document.getElementById("expenseModal").classList.remove("hidden");
-    }
-    function closeExpenseModal() { document.getElementById("expenseModal").classList.add("hidden"); }
-
-    function saveExpense() {
-      const id = document.getElementById("expId").value;
-      const desc = document.getElementById("expDesc").value.trim();
-      const amount = parseFloat(document.getElementById("expAmount").value) || 0;
-      const date = document.getElementById("expDate").value || getISODateString();
-
-      if (!desc) return alert("Digite a descrição.");
-
-      if (id) {
-        const item = state.expenses.find(x => x.id === id);
-        if (item) { 
-          item.desc = desc; 
-          item.amount = amount; 
-          item.date = date; 
-          item.receipt = currentReceiptBase64; 
-        }
-      } else {
-        state.expenses.unshift({ id: Date.now().toString(), desc, amount, date, receipt: currentReceiptBase64 });
-      }
-
-      selectedDate = new Date(date + "T00:00:00");
-      saveToStorage();
-      closeExpenseModal();
-      updateUI();
-    }
-
-    function removeReceipt() {
-      currentReceiptBase64 = null;
-      document.getElementById("receiptPreviewContainer").classList.add("hidden");
-    }
-
-    function openReceiptViewer(id) {
-      const item = state.expenses.find(x => x.id === id);
-      if (item && item.receipt) {
-        document.getElementById("viewerTitle").innerText = item.desc;
-        document.getElementById("fullReceiptImg").src = item.receipt;
-        document.getElementById("downloadReceiptBtn").href = item.receipt;
-        document.getElementById("receiptViewerModal").classList.remove("hidden");
-      }
-    }
-    function closeReceiptViewer() { document.getElementById("receiptViewerModal").classList.add("hidden"); }
-
-    function deleteExpense(id) {
-      if (confirm("Apagar esta despesa?")) {
-        state.expenses = state.expenses.filter(x => x.id !== id);
-        saveToStorage();
-        updateUI();
-      }
-    }
-
-    // --- GERENCIAMENTO DE CÂMERA E MÚLTIPLOS MODOS DE CAPTURA ---
-    let cameraStream = null;
-    let currentCamMode = 'single';
-    let capturedImagesList = [];
-
-    function openCameraModal() {
-      document.getElementById("cameraModal").classList.remove("hidden");
-      capturedImagesList = [];
-      setCamMode('single');
-      startCameraStream();
-    }
-
-    function closeCameraModal() {
-      stopCameraStream();
-      document.getElementById("cameraModal").classList.add("hidden");
-    }
-
-    function startCameraStream() {
-      const video = document.getElementById("cameraVideo");
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-          .then(stream => {
-            cameraStream = stream;
-            video.srcObject = stream;
-          })
-          .catch(err => {
-            console.log("Câmera direta indisponível. Utilize a opção de Galeria/Arquivo.");
-          });
-      }
-    }
-
-    function stopCameraStream() {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
-      }
-    }
-
-    function setCamMode(mode) {
-      currentCamMode = mode;
-      const modes = ['single', 'multi', 'pano', 'qr'];
-      modes.forEach(m => {
-        const btn = document.getElementById(`mode${m.charAt(0).toUpperCase() + m.slice(1)}Btn`);
-        if (m === mode) {
-          btn.className = "py-1 px-3 rounded-lg bg-indigo-600 text-white font-bold";
-        } else {
-          btn.className = "py-1 px-3 rounded-lg hover:bg-slate-700 text-slate-300 font-bold";
-        }
-      });
-
-      const qrOverlay = document.getElementById("qrOverlay");
-      const multiCounter = document.getElementById("multiCounter");
-      const finishBtn = document.getElementById("finishMultiBtn");
-      const instruction = document.getElementById("instructionText");
-
-      qrOverlay.classList.add("hidden");
-      multiCounter.classList.add("hidden");
-      finishBtn.classList.add("opacity-50", "pointer-events-none");
-
-      if (mode === 'single') {
-        instruction.innerText = "Tire 1 foto do comprovante completo.";
-      } else if (mode === 'multi') {
-        instruction.innerText = "Tire fotos sequenciais (topo, meio e fim). Clique em Concluir para juntar.";
-        multiCounter.classList.remove("hidden");
-        document.getElementById("capturedCount").innerText = capturedImagesList.length;
-        if (capturedImagesList.length > 0) {
-          finishBtn.classList.remove("opacity-50", "pointer-events-none");
-        }
-      } else if (mode === 'pano') {
-        instruction.innerText = "Modo Panorâmico: Enquadre a nota de ponta a ponta e clique para capturar.";
-      } else if (mode === 'qr') {
-        instruction.innerText = "Aponte a câmera diretamente para o QR Code do cupom fiscal.";
-        qrOverlay.classList.remove("hidden");
-      }
-    }
-
-    function captureCurrentMode() {
-      const video = document.getElementById("cameraVideo");
-      const canvas = document.getElementById("photoCanvas");
-      
-      if (!video.videoWidth) {
-        triggerNativeCamera();
-        return;
-      }
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const base64Img = canvas.toDataURL('image/jpeg', 0.85);
-
-      if (currentCamMode === 'single' || currentCamMode === 'pano' || currentCamMode === 'qr') {
-        currentReceiptBase64 = base64Img;
-        document.getElementById("receiptPreviewImg").src = base64Img;
-        document.getElementById("receiptPreviewContainer").classList.remove("hidden");
-        closeCameraModal();
-      } else if (currentCamMode === 'multi') {
-        capturedImagesList.push(base64Img);
-        document.getElementById("capturedCount").innerText = capturedImagesList.length;
-        const finishBtn = document.getElementById("finishMultiBtn");
-        finishBtn.classList.remove("opacity-50", "pointer-events-none");
-      }
-    }
-
-    function finishMultiCapture() {
-      if (capturedImagesList.length === 0) return;
-
-      const loadedImgs = [];
-      let loadedCount = 0;
-
-      capturedImagesList.forEach((src, index) => {
-        const img = new Image();
-        img.onload = () => {
-          loadedImgs[index] = img;
-          loadedCount++;
-          if (loadedCount === capturedImagesList.length) {
-            stitchVerticalImages(loadedImgs);
-          }
+    <!-- Script Principal -->
+    <script>
+        // Firebase Config
+        const firebaseConfig = { 
+            databaseURL: "https://sucesso-financeiro-c3cbe-default-rtdb.firebaseio.com" 
         };
-        img.src = src;
-      });
-    }
-
-    function stitchVerticalImages(images) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      const targetWidth = images[0].width;
-      let totalHeight = 0;
-
-      images.forEach(img => {
-        const scale = targetWidth / img.width;
-        totalHeight += img.height * scale;
-      });
-
-      canvas.width = targetWidth;
-      canvas.height = totalHeight;
-
-      let currentY = 0;
-      images.forEach(img => {
-        const scale = targetWidth / img.width;
-        const drawHeight = img.height * scale;
-        ctx.drawImage(img, 0, currentY, targetWidth, drawHeight);
-        currentY += drawHeight;
-      });
-
-      const stitchedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-      currentReceiptBase64 = stitchedBase64;
-      document.getElementById("receiptPreviewImg").src = stitchedBase64;
-      document.getElementById("receiptPreviewContainer").classList.remove("hidden");
-      closeCameraModal();
-    }
-
-    function triggerNativeCamera() {
-      document.getElementById("fallbackFileInput").click();
-    }
-
-    function handleFileFallback(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        currentReceiptBase64 = e.target.result;
-        document.getElementById("receiptPreviewImg").src = currentReceiptBase64;
-        document.getElementById("receiptPreviewContainer").classList.remove("hidden");
-        closeCameraModal();
-      };
-      reader.readAsDataURL(file);
-    }
-
-    // --- RECONHECIMENTO DE VOZ COMPATÍVEL COM CELULAR ---
-    let recognition = null;
-    let isListening = false;
-
-    function initSpeechRecognition() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return null;
-
-      const rec = new SpeechRecognition();
-      rec.lang = 'pt-BR';
-      rec.continuous = false;
-      rec.interimResults = false;
-
-      rec.onstart = function() {
-        isListening = true;
-        document.getElementById("voiceBtn").classList.add("mic-recording");
-      };
-
-      rec.onend = function() {
-        isListening = false;
-        document.getElementById("voiceBtn").classList.remove("mic-recording");
-      };
-
-      rec.onerror = function(event) {
-        isListening = false;
-        document.getElementById("voiceBtn").classList.remove("mic-recording");
-      };
-
-      rec.onresult = function(event) {
-        const transcript = event.results[0][0].transcript.toLowerCase();
-        parseVoiceCommand(transcript);
-      };
-
-      return rec;
-    }
-
-    function toggleVoiceRecognition() {
-      if (!recognition) recognition = initSpeechRecognition();
-      if (!recognition) return alert("Navegador sem suporte a comando por voz ou sem conexão HTTPS.");
-
-      if (isListening) {
-        recognition.stop();
-      } else {
-        try { recognition.start(); } catch(err) { recognition.stop(); setTimeout(() => { recognition.start(); }, 200); }
-      }
-    }
-
-    function extractDateFromSpeech(text) {
-      const months = {
-        'janeiro': '01', 'fevereiro': '02', 'março': '03', 'marco': '03', 'abril': '04',
-        'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08', 'setembro': '09',
-        'outubro': '10', 'novembro': '11', 'dezembro': '12'
-      };
-
-      let detectedDate = getISODateString();
-      let cleanText = text;
-
-      const numDateMatch = text.match(/dia\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/i);
-      if (numDateMatch) {
-        let day = numDateMatch[1].padStart(2, '0');
-        let month = numDateMatch[2].padStart(2, '0');
-        let year = numDateMatch[3] ? (numDateMatch[3].length === 2 ? '20' + numDateMatch[3] : numDateMatch[3]) : new Date().getFullYear();
-        detectedDate = `${year}-${month}-${day}`;
-        cleanText = text.replace(numDateMatch[0], '').trim();
-        return { date: detectedDate, text: cleanText };
-      }
-
-      const textDateMatch = text.match(/(?:dia\s+)?(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/i);
-      if (textDateMatch) {
-        let day = textDateMatch[1].padStart(2, '0');
-        let monthName = textDateMatch[2].toLowerCase();
-        let year = textDateMatch[3] || new Date().getFullYear();
-
-        if (months[monthName]) {
-          detectedDate = `${year}-${months[monthName]}-${day}`;
-          cleanText = text.replace(textDateMatch[0], '').trim();
-          return { date: detectedDate, text: cleanText };
-        }
-      }
-
-      return { date: detectedDate, text: cleanText };
-    }
-
-    function extractAmountFromSpeech(text) {
-      const thousandMatch = text.match(/(\d+(?:[.,]\d+)?)\s*mil\b/i);
-      if (thousandMatch) {
-        let baseNum = parseFloat(thousandMatch[1].replace(',', '.'));
-        if (!isNaN(baseNum)) return { amount: baseNum * 1000, matchedText: thousandMatch[0] };
-      }
-
-      const standardMatch = text.match(/(\d+(?:[.,]\d+)?)/);
-      if (standardMatch) {
-        let num = parseFloat(standardMatch[1].replace(',', '.'));
-        if (!isNaN(num)) return { amount: num, matchedText: standardMatch[0] };
-      }
-
-      return null;
-    }
-
-    function parseVoiceCommand(text) {
-      const isReminderCommand = /^(lembra\s+de|lembrar\s+de|lembrar|lembrete)\s+/i.test(text);
-
-      if (isReminderCommand || currentTab === 'reminders') {
-        let rawText = text.replace(/^(lembra\s+de|lembrar\s+de|lembrar|lembrete)\s+/i, '').trim();
-        const extracted = extractDateFromSpeech(rawText);
-        let reminderText = extracted.text.charAt(0).toUpperCase() + extracted.text.slice(1);
         
-        if (!state.reminders) state.reminders = [];
-        state.reminders.unshift({ id: Date.now().toString(), text: reminderText, done: false, date: extracted.date });
-        selectedDate = new Date(extracted.date + "T00:00:00");
-        saveToStorage();
-        updateUI();
-        switchTab('reminders');
-        return;
-      }
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.database();
+        
+        let currentUser = null;
+        let dbRef = null;
+        let currentTheme = localStorage.getItem('appTheme') || 'clean';
 
-      const parsedAmount = extractAmountFromSpeech(text);
-      if (parsedAmount) {
-        let amount = parsedAmount.amount;
-        let cleanText = text.replace(/^(adicionar|lançar|nova despesa|cadastrar)\s+/i, '').trim();
-        const parts = cleanText.split(parsedAmount.matchedText);
-        let rawDesc = parts[0] ? parts[0].replace(/\b(de|reais|real)\b/g, '').trim() : '';
-        let extraText = parts[1] || '';
+        // Monitor de Estado de Login
+        auth.onAuthStateChanged(user => {
+            const authScreen = document.getElementById('authScreen');
+            const appScreen = document.getElementById('appScreen');
+            
+            if (user) {
+                currentUser = user;
+                document.getElementById('userEmailDisplay').innerText = user.email;
+                authScreen.classList.add('hidden');
+                appScreen.classList.remove('hidden');
+                
+                dbRef = db.ref('users/' + user.uid + '/financeiro');
+                listenToData();
+                applyTheme(currentTheme);
+            } else {
+                currentUser = null;
+                dbRef = null;
+                authScreen.classList.remove('hidden');
+                appScreen.classList.add('hidden');
+            }
+        });
 
-        const extractedDate = extractDateFromSpeech(extraText.length > 0 ? extraText : rawDesc);
-        if (!rawDesc && parts[1]) rawDesc = extractedDate.text;
-        if (!rawDesc) rawDesc = "Despesa Diversa";
-
-        let desc = rawDesc.charAt(0).toUpperCase() + rawDesc.slice(1);
-
-        state.expenses.unshift({ id: Date.now().toString(), desc, amount, date: extractedDate.date });
-        selectedDate = new Date(extractedDate.date + "T00:00:00");
-        saveToStorage();
-        updateUI();
-        switchTab('expenses');
-        return;
-      }
-
-      alert(`Não foi possível processar.\n• Para despesa: "Aluguel 15 mil reais"\n• Para lembrete: "Lembra de pagar a luz dia 15"\n\n(Ouvi: "${text}")`);
-    }
-
-    function openReminderModal() {
-      document.getElementById("remText").value = "";
-      document.getElementById("remDate").value = getISODateString();
-      document.getElementById("reminderModal").classList.remove("hidden");
-    }
-    function closeReminderModal() { document.getElementById("reminderModal").classList.add("hidden"); }
-
-    function saveReminder() {
-      const text = document.getElementById("remText").value.trim();
-      const date = document.getElementById("remDate").value || getISODateString();
-      if (!text) return alert("Digite o lembrete.");
-      if (!state.reminders) state.reminders = [];
-      
-      state.reminders.unshift({ id: Date.now().toString(), text, done: false, date });
-      selectedDate = new Date(date + "T00:00:00");
-      saveToStorage();
-      closeReminderModal();
-      updateUI();
-    }
-
-    function toggleReminderDone(id) {
-      const item = state.reminders.find(x => x.id === id);
-      if (item) { item.done = !item.done; saveToStorage(); updateUI(); }
-    }
-
-    function deleteReminder(id) {
-      state.reminders = state.reminders.filter(x => x.id !== id);
-      saveToStorage();
-      updateUI();
-    }
-
-    function openConfigModal() {
-      document.getElementById("pairCodeInput").value = pairCode;
-      document.getElementById("configModal").classList.remove("hidden");
-    }
-    function closeConfigModal() { document.getElementById("configModal").classList.add("hidden"); }
-
-    function savePairCode() {
-      const code = document.getElementById("pairCodeInput").value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-');
-      if (code) {
-        pairCode = code;
-        localStorage.setItem('casal_pair_code', pairCode);
-        if (firebase.apps.length) {
-          if (dbRef) dbRef.off();
-          dbRef = firebase.database().ref('casais/' + pairCode);
-          listenToFirebase();
+        // Gerenciamento de Temas Visuais
+        function changeTheme(themeName) {
+            currentTheme = themeName;
+            localStorage.setItem('appTheme', themeName);
+            applyTheme(themeName);
         }
-        closeConfigModal();
-        alert("Sincronização atualizada para: " + pairCode);
-      }
-    }
 
-    updateUI();
-  </script>
+        function applyTheme(theme) {
+            document.getElementById('themeSelector').value = theme;
+            const body = document.getElementById('appBody');
+            const header = document.getElementById('appHeader');
+            const formCard = document.getElementById('formCard');
+            const addBtn = document.getElementById('addBtn');
+            const micBtn = document.getElementById('micBtn');
+            const meta = document.getElementById('themeMeta');
+
+            if (theme === 'dark') {
+                body.className = "bg-slate-950 font-sans min-h-screen text-slate-100 pb-20";
+                header.className = "bg-slate-900 text-white p-5 rounded-b-3xl shadow-lg border-b border-slate-800";
+                formCard.className = "bg-slate-900 p-4 rounded-2xl shadow-sm space-y-3 border border-slate-800";
+                addBtn.className = "w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-sm shadow hover:bg-emerald-500 transition";
+                micBtn.className = "bg-slate-800 text-emerald-400 px-4 rounded-xl hover:bg-slate-700 transition";
+                meta.content = "#0f172a";
+            } else if (theme === 'warm') {
+                body.className = "bg-stone-100 font-sans min-h-screen text-stone-800 pb-20";
+                header.className = "bg-amber-800 text-amber-50 p-5 rounded-b-3xl shadow-lg";
+                formCard.className = "bg-stone-50 p-4 rounded-2xl shadow-sm space-y-3 border border-stone-200";
+                addBtn.className = "w-full bg-amber-900 text-white font-bold py-3 rounded-xl text-sm shadow hover:bg-amber-800 transition";
+                micBtn.className = "bg-stone-200 text-amber-900 px-4 rounded-xl hover:bg-stone-300 transition";
+                meta.content = "#92400e";
+            } else { // Clean (Padrao)
+                body.className = "bg-slate-100 font-sans min-h-screen text-slate-800 pb-20";
+                header.className = "bg-indigo-600 text-white p-5 rounded-b-3xl shadow-lg";
+                formCard.className = "bg-white p-4 rounded-2xl shadow-sm space-y-3";
+                addBtn.className = "w-full bg-slate-900 text-white font-bold py-3 rounded-xl text-sm shadow hover:bg-slate-800 transition";
+                micBtn.className = "bg-indigo-50 text-indigo-600 px-4 rounded-xl hover:bg-indigo-100 transition";
+                meta.content = "#4f46e5";
+            }
+            
+            if (currentUser && dbRef) {
+                dbRef.once('value', snapshot => renderApp(snapshot.val() || {}));
+            }
+        }
+
+        // Ações de Autenticação
+        function handleLogin() {
+            const email = document.getElementById('authEmail').value;
+            const pass = document.getElementById('authPassword').value;
+            showError('');
+
+            auth.signInWithEmailAndPassword(email, pass).catch(() => {
+                showError('E-mail ou senha incorretos.');
+            });
+        }
+
+        function handleSignUp() {
+            const email = document.getElementById('authEmail').value;
+            const pass = document.getElementById('authPassword').value;
+            showError('');
+
+            if (pass.length < 6) {
+                showError('A senha deve ter no mínimo 6 caracteres.');
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, pass).catch(err => {
+                showError('Erro ao cadastrar: ' + err.message);
+            });
+        }
+
+        function handleLogout() {
+            auth.signOut();
+        }
+
+        function showError(msg) {
+            const errEl = document.getElementById('authError');
+            if (msg) {
+                errEl.innerText = msg;
+                errEl.classList.remove('hidden');
+            } else {
+                errEl.classList.add('hidden');
+            }
+        }
+
+        // Banco de Dados
+        function listenToData() {
+            if (!dbRef) return;
+            dbRef.on('value', snapshot => {
+                renderApp(snapshot.val() || {});
+            });
+        }
+
+        function addTransaction() {
+            const desc = document.getElementById('descInput').value.trim();
+            const val = parseFloat(document.getElementById('valueInput').value);
+            const type = document.getElementById('typeInput').value;
+
+            if (!desc || isNaN(val) || val <= 0) {
+                alert('Informe uma descrição e um valor válido!');
+                return;
+            }
+
+            dbRef.child('items').push({
+                desc: desc,
+                val: val,
+                type: type,
+                date: new Date().toLocaleDateString('pt-BR')
+            });
+
+            document.getElementById('descInput').value = '';
+            document.getElementById('valueInput').value = '';
+        }
+
+        function deleteTransaction(key) {
+            if (confirm('Deseja excluir este registro?')) {
+                dbRef.child('items/' + key).remove();
+            }
+        }
+
+        function renderApp(data) {
+            const listEl = document.getElementById('transactionList');
+            listEl.innerHTML = '';
+            
+            let totalIn = 0;
+            let totalOut = 0;
+
+            const items = data.items || {};
+            const keys = Object.keys(items).reverse();
+
+            const isDark = currentTheme === 'dark';
+            const cardBg = isDark ? 'bg-slate-900 border border-slate-800' : 'bg-white';
+            const textMain = isDark ? 'text-slate-100' : 'text-slate-800';
+            const textSub = isDark ? 'text-slate-500' : 'text-slate-400';
+
+            if (keys.length === 0) {
+                listEl.innerHTML = `<div class="${cardBg} p-6 rounded-2xl text-center ${textSub} text-sm">Nenhum lançamento cadastrado.</div>`;
+            }
+
+            keys.forEach(key => {
+                const item = items[key];
+                if (item.type === 'receita') totalIn += item.val;
+                if (item.type === 'despesa') totalOut += item.val;
+
+                const isIncome = item.type === 'receita';
+                const colorClass = isIncome ? 'text-emerald-500' : 'text-rose-500';
+                const sign = isIncome ? '+' : '-';
+
+                listEl.innerHTML += `
+                    <div class="${cardBg} p-4 rounded-2xl shadow-sm flex justify-between items-center">
+                        <div>
+                            <p class="font-bold ${textMain} text-sm">${item.desc}</p>
+                            <p class="text-xs ${textSub}">${item.date}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="font-extrabold text-sm ${colorClass}">${sign} R$ ${item.val.toFixed(2).replace('.', ',')}</span>
+                            <button onclick="deleteTransaction('${key}')" class="${textSub} hover:text-rose-500 transition">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            const balance = totalIn - totalOut;
+            document.getElementById('totalBalance').innerText = `R$ ${balance.toFixed(2).replace('.', ',')}`;
+            document.getElementById('totalIncome').innerText = `+ R$ ${totalIn.toFixed(2).replace('.', ',')}`;
+            document.getElementById('totalExpense').innerText = `- R$ ${totalOut.toFixed(2).replace('.', ',')}`;
+        }
+
+        // Voz
+        function startVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert('Voz não suportada neste navegador.');
+                return;
+            }
+
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'pt-BR';
+            recognition.start();
+
+            recognition.onresult = (event) => {
+                document.getElementById('descInput').value = event.results[0][0].transcript;
+            };
+        }
+    </script>
 </body>
 </html>
