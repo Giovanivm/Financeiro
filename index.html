@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Controle Financeiro & Gestão Nutricional</title>
+  <title>Controle Financeiro do Casal</title>
 
   <!-- Leitor de QR Code -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <!-- Leitor de Texto em Imagens (OCR para Comprovantes de Maquininha) -->
+  <!-- Leitor de Texto em Imagens (OCR) -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <style>
@@ -42,6 +42,13 @@
       font-size: 1.25rem;
       border-bottom: 2px solid #edf2f7;
       padding-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      color: #2d3748;
+      margin-top: 15px;
+      margin-bottom: 10px;
     }
 
     .form-group {
@@ -88,9 +95,10 @@
     .btn-primary { background-color: #3182ce; color: white; }
     .btn-success { background-color: #38a169; color: white; }
     .btn-secondary { background-color: #718096; color: white; margin-top: 8px; }
+    .btn-policia { background-color: #2d3748; color: #f7fafc; }
 
-    /* Lista de Despesas */
-    .item-despesa {
+    /* Lista de Despesas e Rendas */
+    .item-registro {
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -99,9 +107,6 @@
       border-radius: 8px;
       border: 1px solid #e2e8f0;
       background-color: #ffffff;
-      user-select: none;
-      -webkit-user-select: none;
-      transition: all 0.2s ease;
     }
 
     /* Destaque Amarelo Fluorescente para Despesas Não Pagas */
@@ -123,7 +128,18 @@
       margin-top: 4px;
     }
 
-    /* Badges das Formas de Pagamento */
+    /* Badges de Usuários e Pagamentos */
+    .badge-usuario {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background-color: #edf2f7;
+      color: #2d3748;
+      margin-bottom: 4px;
+    }
+
     .badge-pagamento {
       display: inline-block;
       font-size: 0.75rem;
@@ -138,7 +154,7 @@
     .badge-debito { background-color: #e8f4fd; color: #0056b3; border: 1px solid #b8daff; }
     .badge-dinheiro { background-color: #eafaf1; color: #1e7e34; border: 1px solid #c3e6cb; }
 
-    /* Área da Câmera / Leitor */
+    /* Modal Câmera */
     #cameraModal {
       display: none;
       position: fixed;
@@ -158,10 +174,69 @@
 <div class="container">
 
   <!-- ==================================================== -->
-  <!-- MÓDULO ROSÂNGELA: CADASTRO DE PACIENTES              -->
+  <!-- PAINEL GERAL DO CASAL                                -->
   <!-- ==================================================== -->
-  <section class="card">
-    <h2 style="color: #2b6cb0;">Atendimentos Nutricionais - Rosângela</h2>
+  <section class="card" style="background: linear-gradient(135deg, #1a202c, #2d3748); color: white;">
+    <h2 style="color: white; border-bottom: 1px solid rgba(255,255,255,0.2);">Resumo do Casal</h2>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+      <div>
+        <small style="opacity: 0.8; display: block;">Despesas Pagas</small>
+        <span id="totalGeralDespesas" style="font-size: 1.2rem; font-weight: bold; color: #feb2b2;">R$ 0,00</span>
+      </div>
+      <div style="text-align: right;">
+        <small style="opacity: 0.8; display: block;">Renda Total do Casal</small>
+        <span id="totalRendaCasal" style="font-size: 1.2rem; font-weight: bold; color: #68d391;">R$ 0,00</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 15px; pt-10; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; font-size: 0.85rem;">
+      <span>👮‍♂️ Sua Renda: <strong id="totalMinhaRenda" style="color: #9ae6b4;">R$ 0,00</strong></span>
+      <span>🥗 Renda Rosângela: <strong id="totalNutriIncomeGeral" style="color: #9ae6b4;">R$ 0,00</strong></span>
+    </div>
+  </section>
+
+
+  <!-- ==================================================== -->
+  <!-- MÓDULO POLICIAL PENAL: SUAS RENDAS & HORAS EXTRAS    -->
+  <!-- ==================================================== -->
+  <section class="card" style="border-top: 4px solid #2d3748;">
+    <h2 style="color: #2d3748;">👮‍♂️ Sua Renda (Polícia Penal)</h2>
+    
+    <form id="policeIncomeForm">
+      <div class="form-group">
+        <label for="incomeType">Tipo de Receita</label>
+        <select id="incomeType" required>
+          <option value="Vencimento / Salário">Vencimento / Salário Base</option>
+          <option value="Horas Extras / AC4">Horas Extras / AC4</option>
+          <option value="Outras Receitas">Outras Receitas</option>
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="flex: 1;">
+          <label for="incomeAmount">Valor Líquido (R$)</label>
+          <input type="number" id="incomeAmount" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label for="incomeDate">Mês / Data</label>
+          <input type="date" id="incomeDate" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-policia">Lançar Rendimento</button>
+    </form>
+
+    <h3>Histórico de Vencimentos e Extras</h3>
+    <div id="policeIncomeList"></div>
+  </section>
+
+
+  <!-- ==================================================== -->
+  <!-- MÓDULO ROSÂNGELA: ATENDIMENTOS NUTRICIONAIS          -->
+  <!-- ==================================================== -->
+  <section class="card" style="border-top: 4px solid #38a169;">
+    <h2 style="color: #276749;">🥗 Atendimentos Nutricionais - Rosângela</h2>
     
     <form id="patientForm">
       <div class="form-group">
@@ -175,38 +250,46 @@
           <input type="number" id="paymentAmount" step="0.01" placeholder="150.00" required>
         </div>
         <div class="form-group" style="flex: 1;">
-          <label for="paymentDate">Data do Pagamento</label>
+          <label for="paymentDate">Data</label>
           <input type="date" id="paymentDate" required>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-success">Salvar Paciente</button>
+      <button type="submit" class="btn btn-success">Salvar Consulta</button>
     </form>
 
-    <div style="padding: 12px; background-color: #f0fff4; border-left: 4px solid #38a169; border-radius: 6px; margin: 15px 0;">
-      <strong>Total Recebido das Consultas: </strong>
-      <span id="totalNutriIncome" style="font-size: 1.1rem; color: #276749; font-weight: bold;">R$ 0,00</span>
-    </div>
-
-    <h3>Pacientes Cadastrados</h3>
+    <h3>Consultas Recebidas</h3>
     <div id="patientsListContainer"></div>
   </section>
 
 
   <!-- ==================================================== -->
-  <!-- MÓDULO DE DESPESAS DA CASA / PESSOAL                -->
+  <!-- MÓDULO DE DESPESAS DO CASAL                          -->
   <!-- ==================================================== -->
-  <section class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-      <h2>Despesas</h2>
-      <div style="text-align: right;">
-        <small style="color: #718096; display: block;">Total Gasto (PAGO)</small>
-        <span id="totalDespesasExibido" style="font-size: 1.3rem; font-weight: bold; color: #e53e3e;">R$ 0,00</span>
-      </div>
-    </div>
+  <section class="card" style="border-top: 4px solid #3182ce;">
+    <h2>💳 Lançamento de Despesas do Casal</h2>
 
-    <!-- Formulário de Cadastro de Despesa -->
     <form id="expenseForm" style="margin-bottom: 20px;">
+      <div class="form-row">
+        <div class="form-group" style="flex: 1;">
+          <label for="expUser">Responsável</label>
+          <select id="expUser" required>
+            <option value="Giovani">Giovani</option>
+            <option value="Rosângela">Rosângela</option>
+            <option value="Casal">Casal (Compartilhado)</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label for="expPaymentMethod">Pagamento</label>
+          <select id="expPaymentMethod" required>
+            <option value="Pix">Pix</option>
+            <option value="Cartão de Crédito">Cartão de Crédito</option>
+            <option value="Cartão de Débito">Cartão de Débito</option>
+            <option value="Dinheiro">Dinheiro</option>
+          </select>
+        </div>
+      </div>
+
       <div class="form-group">
         <label for="expDesc">Descrição da Despesa</label>
         <input type="text" id="expDesc" placeholder="Ex: Mercado 1/3 ou Combustível" required>
@@ -218,19 +301,9 @@
           <input type="number" id="expAmount" step="0.01" placeholder="0.00" required>
         </div>
         <div class="form-group" style="flex: 1;">
-          <label for="expPaymentMethod">Forma de Pagamento</label>
-          <select id="expPaymentMethod" required>
-            <option value="Pix">Pix</option>
-            <option value="Cartão de Crédito">Cartão de Crédito</option>
-            <option value="Cartão de Débito">Cartão de Débito</option>
-            <option value="Dinheiro">Dinheiro</option>
-          </select>
+          <label for="expDate">Data</label>
+          <input type="date" id="expDate" required>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label for="expDate">Data</label>
-        <input type="date" id="expDate" required>
       </div>
 
       <div class="form-row">
@@ -240,15 +313,16 @@
     </form>
 
     <p style="font-size: 0.8rem; color: #718096; text-align: center;">
-      💡 <b>Dica:</b> Pressione e segure o dedo sobre uma despesa para marcá-la como <b>NÃO PAGA</b> (grifa em amarelo e retira do total).
+      💡 Pressione e segure o dedo sobre uma despesa para marcá-la como <b>NÃO PAGA</b> (grifa em amarelo).
     </p>
 
+    <h3>Lista de Despesas</h3>
     <div id="listaDespesas"></div>
   </section>
 
 </div>
 
-<!-- MODAL DA CÂMERA (LEITOR QR E COMPROVANTES) -->
+<!-- MODAL CÂMERA -->
 <div id="cameraModal">
   <div id="qrReader"></div>
   <button class="btn btn-secondary" onclick="fecharCameraModal()" style="width: 200px; margin-top: 15px;">Cancelar</button>
@@ -259,9 +333,9 @@
 <!-- LÓGICA JAVASCRIPT                                    -->
 <!-- ==================================================== -->
 <script>
-  // Altere para a URL do seu servidor hospedado no Render
   const API_SEFAZ_URL = "https://seu-servidor-sefaz.onrender.com/consultar-sefaz";
 
+  let rendasPolicia = JSON.parse(localStorage.getItem('rendas_policia')) || [];
   let pacientesNutri = JSON.parse(localStorage.getItem('nutri_patients')) || [];
   let minhasDespesas = JSON.parse(localStorage.getItem('minhas_despesas')) || [];
   let qrScanner = null;
@@ -269,16 +343,73 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     const hoje = new Date().toISOString().substring(0, 10);
+    document.getElementById('incomeDate').value = hoje;
     document.getElementById('paymentDate').value = hoje;
     document.getElementById('expDate').value = hoje;
 
+    renderizarMinhasRendas();
     renderizarPacientes();
     renderizarDespesas();
+    atualizarResumoGeral();
   });
 
 
   // ==========================================
-  // 1. LÓGICA DOS PACIENTES DA ROSÂNGELA
+  // 1. SUA RENDA (POLÍCIA PENAL)
+  // ==========================================
+  document.getElementById('policeIncomeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const tipo = document.getElementById('incomeType').value;
+    const valor = parseFloat(document.getElementById('incomeAmount').value);
+    const data = document.getElementById('incomeDate').value;
+
+    if (isNaN(valor) || !data) return;
+
+    rendasPolicia.push({ id: Date.now(), tipo, valor, data });
+    localStorage.setItem('rendas_policia', JSON.stringify(rendasPolicia));
+    
+    renderizarMinhasRendas();
+    atualizarResumoGeral();
+
+    document.getElementById('incomeAmount').value = '';
+  });
+
+  function renderizarMinhasRendas() {
+    const container = document.getElementById('policeIncomeList');
+    container.innerHTML = '';
+
+    rendasPolicia.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    rendasPolicia.forEach(item => {
+      const dataFmt = item.data.split('-').reverse().join('/');
+      const div = document.createElement('div');
+      div.className = 'item-registro';
+      div.innerHTML = `
+        <div>
+          <strong>${item.tipo}</strong>
+          <small style="display: block; color: #718096;">📅 ${dataFmt}</small>
+        </div>
+        <div>
+          <strong style="color: #2b6cb0; margin-right: 10px;">+ R$ ${item.valor.toFixed(2).replace('.', ',')}</strong>
+          <button onclick="removerRendaPolicia(${item.id})" style="background: none; border: none; color: #e53e3e; cursor: pointer;">✕</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function removerRendaPolicia(id) {
+    if (confirm('Remover este lançamento de renda?')) {
+      rendasPolicia = rendasPolicia.filter(r => r.id !== id);
+      localStorage.setItem('rendas_policia', JSON.stringify(rendasPolicia));
+      renderizarMinhasRendas();
+      atualizarResumoGeral();
+    }
+  }
+
+
+  // ==========================================
+  // 2. PACIENTES DA ROSÂNGELA
   // ==========================================
   document.getElementById('patientForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -289,61 +420,55 @@
     if (!nome || isNaN(valor) || !data) return;
 
     pacientesNutri.push({ id: Date.now(), nome, valor, data });
-    salvarERenderizarPacientes();
+    localStorage.setItem('nutri_patients', JSON.stringify(pacientesNutri));
+
+    renderizarPacientes();
+    atualizarResumoGeral();
 
     document.getElementById('patientName').value = '';
     document.getElementById('paymentAmount').value = '';
-    document.getElementById('paymentDate').value = new Date().toISOString().substring(0, 10);
   });
-
-  function salvarERenderizarPacientes() {
-    localStorage.setItem('nutri_patients', JSON.stringify(pacientesNutri));
-    renderizarPacientes();
-  }
 
   function renderizarPacientes() {
     const container = document.getElementById('patientsListContainer');
-    const totalDisplay = document.getElementById('totalNutriIncome');
     container.innerHTML = '';
-    let totalRecebido = 0;
 
     pacientesNutri.sort((a, b) => new Date(b.data) - new Date(a.data));
 
     pacientesNutri.forEach((item) => {
-      totalRecebido += item.valor;
       const dataFmt = item.data.split('-').reverse().join('/');
-
       const div = document.createElement('div');
-      div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #edf2f7;';
+      div.className = 'item-registro';
       div.innerHTML = `
         <div>
           <strong>${item.nome}</strong>
           <small style="display: block; color: #718096;">📅 ${dataFmt}</small>
         </div>
         <div>
-          <strong style="color: #2f855a; margin-right: 10px;">R$ ${item.valor.toFixed(2).replace('.', ',')}</strong>
-          <button onclick="removerPaciente(${item.id})" style="background: none; border: none; color: #e53e3e; cursor: pointer; font-weight: bold;">✕</button>
+          <strong style="color: #2f855a; margin-right: 10px;">+ R$ ${item.valor.toFixed(2).replace('.', ',')}</strong>
+          <button onclick="removerPaciente(${item.id})" style="background: none; border: none; color: #e53e3e; cursor: pointer;">✕</button>
         </div>
       `;
       container.appendChild(div);
     });
-
-    totalDisplay.innerText = `R$ ${totalRecebido.toFixed(2).replace('.', ',')}`;
   }
 
   function removerPaciente(id) {
-    if (confirm('Deseja remover este registro de paciente?')) {
+    if (confirm('Deseja remover este registro?')) {
       pacientesNutri = pacientesNutri.filter(p => p.id !== id);
-      salvarERenderizarPacientes();
+      localStorage.setItem('nutri_patients', JSON.stringify(pacientesNutri));
+      renderizarPacientes();
+      atualizarResumoGeral();
     }
   }
 
 
   // ==========================================
-  // 2. LÓGICA DAS DESPESAS & PARCELAMENTO
+  // 3. DESPESAS DO CASAL & USUÁRIOS
   // ==========================================
   document.getElementById('expenseForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    const usuario = document.getElementById('expUser').value;
     const desc = document.getElementById('expDesc').value.trim();
     const valor = parseFloat(document.getElementById('expAmount').value);
     const forma = document.getElementById('expPaymentMethod').value;
@@ -351,7 +476,6 @@
 
     if (!desc || isNaN(valor) || !data) return;
 
-    // Processa se houver indicação de parcelas (ex: 1/3)
     const regexParcela = /(\d+)\/(\d+)/;
     const match = desc.match(regexParcela);
 
@@ -369,6 +493,7 @@
 
         minhasDespesas.push({
           id: Date.now() + i,
+          usuario: usuario,
           descricao: `${textoBase} ${numParcela}/${totalParcelas}`,
           valor: valorParcela,
           formaPagamento: forma,
@@ -379,6 +504,7 @@
     } else {
       minhasDespesas.push({
         id: Date.now(),
+        usuario: usuario,
         descricao: desc,
         valor: valor,
         formaPagamento: forma,
@@ -395,9 +521,9 @@
   function salvarERenderizarDespesas() {
     localStorage.setItem('minhas_despesas', JSON.stringify(minhasDespesas));
     renderizarDespesas();
+    atualizarResumoGeral();
   }
 
-  // Toque longo para grifar em Amarelo Fluorescente e retirar do Total
   function aplicarEventoToqueLongo(elemento, idDespesa) {
     const iniciar = () => {
       timerToque = setTimeout(() => {
@@ -435,28 +561,25 @@
 
   function renderizarDespesas() {
     const container = document.getElementById("listaDespesas");
-    const totalDisplay = document.getElementById("totalDespesasExibido");
     container.innerHTML = "";
-    let totalGastoPago = 0;
 
     minhasDespesas.sort((a, b) => new Date(b.data) - new Date(a.data));
 
     minhasDespesas.forEach(item => {
       const div = document.createElement("div");
-      div.className = "item-despesa";
+      div.className = "item-registro item-despesa";
 
       if (item.pago === false) {
         div.classList.add("pendente");
-      } else {
-        totalGastoPago += item.valor;
       }
 
       const dataFmt = item.data ? item.data.split('-').reverse().join('/') : '';
+      const dono = item.usuario || 'Giovani';
 
       div.innerHTML = `
         <div>
-          <strong style="font-size: 0.95rem;">${item.descricao}</strong>
-          <br>
+          <span class="badge-usuario">👤 ${dono}</span><br>
+          <strong style="font-size: 0.95rem;">${item.descricao}</strong><br>
           ${obterBadgeFormaPagamento(item.formaPagamento)}
           ${item.pago === false ? '<br><span class="badge-nao-pago">NÃO PAGO</span>' : ''}
           <small style="display: block; color: ${item.pago === false ? '#000' : '#718096'}; margin-top: 2px;">📅 ${dataFmt}</small>
@@ -464,8 +587,7 @@
         <div style="text-align: right;">
           <span style="font-size: 1.1rem; font-weight: bold;">
             R$ ${parseFloat(item.valor).toFixed(2).replace('.', ',')}
-          </span>
-          <br>
+          </span><br>
           <button onclick="removerDespesa(${item.id})" style="background: none; border: none; color: #a0aec0; cursor: pointer; margin-top: 5px;">🗑️</button>
         </div>
       `;
@@ -473,8 +595,6 @@
       aplicarEventoToqueLongo(div, item.id);
       container.appendChild(div);
     });
-
-    totalDisplay.innerText = `R$ ${totalGastoPago.toFixed(2).replace('.', ',')}`;
   }
 
   function removerDespesa(id) {
@@ -486,7 +606,26 @@
 
 
   // ==========================================
-  // 3. CÂMERA (LEITOR QR E COMPROVANTES OCR)
+  // 4. CÁLCULO DOS RESUMOS GERAIS
+  // ==========================================
+  function atualizarResumoGeral() {
+    const totalSuaRenda = rendasPolicia.reduce((acc, cur) => acc + cur.valor, 0);
+    const totalRendaNutri = pacientesNutri.reduce((acc, cur) => acc + cur.valor, 0);
+    const totalDespesasPagas = minhasDespesas
+      .filter(d => d.pago !== false)
+      .reduce((acc, cur) => acc + cur.valor, 0);
+
+    const rendaTotal = totalSuaRenda + totalRendaNutri;
+
+    document.getElementById('totalMinhaRenda').innerText = `R$ ${totalSuaRenda.toFixed(2).replace('.', ',')}`;
+    document.getElementById('totalNutriIncomeGeral').innerText = `R$ ${totalRendaNutri.toFixed(2).replace('.', ',')}`;
+    document.getElementById('totalRendaCasal').innerText = `R$ ${rendaTotal.toFixed(2).replace('.', ',')}`;
+    document.getElementById('totalGeralDespesas').innerText = `R$ ${totalDespesasPagas.toFixed(2).replace('.', ',')}`;
+  }
+
+
+  // ==========================================
+  // 5. CÂMERA (QR CODE E OCR)
   // ==========================================
   function abrirCameraScanner() {
     document.getElementById('cameraModal').style.display = 'flex';
@@ -522,7 +661,6 @@
   async function processarLeituraCamera(conteudo) {
     document.getElementById("expDesc").value = "Consultando...";
 
-    // 1. Se for QR Code da Sefaz
     if (conteudo.startsWith("http://") || conteudo.startsWith("https://")) {
       try {
         const response = await fetch(API_SEFAZ_URL, {
@@ -540,7 +678,6 @@
         document.getElementById("expDesc").value = "Nota Fiscal";
       }
     } else {
-      // 2. Se for texto/imagem de comprovante (OCR)
       try {
         const result = await Tesseract.recognize(conteudo, 'por');
         const match = result.data.text.match(/(?:TOTAL|VALOR|R\$)\s*:?\s*R?\$?\s*([\d.]+[,\.]\d{2})/i);
@@ -550,7 +687,7 @@
           document.getElementById("expAmount").value = parseFloat(valorFormatado).toFixed(2);
           document.getElementById("expDesc").value = "Comprovante Cartão";
         } else {
-          alert("Valor não identificado automaticamente no comprovante.");
+          alert("Valor não identificado no comprovante.");
           document.getElementById("expDesc").value = "Despesa Cartão";
         }
       } catch (err) {
