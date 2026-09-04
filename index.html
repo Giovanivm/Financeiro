@@ -236,9 +236,9 @@
 
   <script>
     // Configuração Pública de Conexão Firebase
-    https://financeiro-de-sucesso-default-rtdb.firebaseio.com/
-:
-null
+    const firebaseConfig = {
+  databaseURL: "https://SEU-PROJETO-default-rtdb.firebaseio.com"
+};
     
     let dbRef = null;
     let pairCode = localStorage.getItem('casal_pair_code') || 'casal-demo-123';
