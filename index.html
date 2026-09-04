@@ -3,1195 +3,562 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finanças & Lembretes do Casal</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <title>Controle Financeiro & Gestão Nutricional</title>
 
-  <!-- Biblioteca para Leitura de QR Code / Nota Fiscal -->
+  <!-- Leitor de QR Code -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
-  <!-- Bibliotecas para Geração de PDF e Captura de Elementos -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Leitor de Texto em Imagens (OCR para Comprovantes de Maquininha) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <style>
-    @keyframes mic-pulse {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.8); }
-      70% { transform: scale(1.15); box-shadow: 0 0 0 18px rgba(225, 29, 72, 0); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-    .mic-recording {
-      animation: mic-pulse 1.2s infinite !important;
-      background-color: #e11d48 !important;
-      color: #ffffff !important;
+
+    body {
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 15px;
+      color: #333;
     }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #1a252f;
+      font-size: 1.25rem;
+      border-bottom: 2px solid #edf2f7;
+      padding-bottom: 8px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+      color: #4a5568;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: #3182ce;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-primary { background-color: #3182ce; color: white; }
+    .btn-success { background-color: #38a169; color: white; }
+    .btn-secondary { background-color: #718096; color: white; margin-top: 8px; }
+
+    /* Lista de Despesas */
+    .item-despesa {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background-color: #ffffff;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: all 0.2s ease;
+    }
+
+    /* Destaque Amarelo Fluorescente para Despesas Não Pagas */
+    .item-despesa.pendente {
+      background-color: #ccff00 !important;
+      border: 2px solid #a3cc00 !important;
+      color: #000000 !important;
+      box-shadow: 0 0 8px rgba(204, 255, 0, 0.8);
+    }
+
+    .badge-nao-pago {
+      display: inline-block;
+      background: #000000;
+      color: #ccff00;
+      font-size: 0.7rem;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+
+    /* Badges das Formas de Pagamento */
+    .badge-pagamento {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-top: 4px;
+    }
+
+    .badge-pix { background-color: #e6f7f5; color: #008771; border: 1px solid #a3e0d8; }
+    .badge-credito { background-color: #fff0f0; color: #c82333; border: 1px solid #f5c6cb; }
+    .badge-debito { background-color: #e8f4fd; color: #0056b3; border: 1px solid #b8daff; }
+    .badge-dinheiro { background-color: #eafaf1; color: #1e7e34; border: 1px solid #c3e6cb; }
+
+    /* Área da Câmera / Leitor */
+    #cameraModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    #qrReader { width: 300px; background: #fff; border-radius: 8px; overflow: hidden; }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 antialiased min-h-screen pb-24">
+<body>
 
-  <div class="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-xl">
-  
-    <!-- Header -->
-    <header class="bg-slate-900 text-white p-5 rounded-b-2xl shadow-md sticky top-0 z-20 flex justify-between items-center">
-      <div class="flex items-center gap-2">
-        <div class="w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-          <i class="fa-solid fa-heart text-rose-400"></i>
-        </div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight">Finanças & Lembretes</h1>
-          <p class="text-xs text-slate-400">Sincronizado em tempo real</p>
-        </div>
-      </div>
-      <button onclick="openConfigModal()" class="text-slate-400 hover:text-white p-2" title="Configurar Sincronização">
-        <i class="fa-solid fa-gear text-lg"></i>
-      </button>
-    </header>
+<div class="container">
 
-    <!-- Navegação de Mês/Ano -->
-    <div class="bg-slate-800 text-white px-4 py-2.5 flex justify-between items-center text-sm font-semibold shadow-inner">
-      <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><i class="fa-solid fa-chevron-left"></i></button>
-      <span id="currentMonthLabel" class="capitalize tracking-wide">Mês do Ano</span>
-      <button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-700 rounded-lg transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
-    </div>
-
-    <!-- Navegação em Abas -->
-    <div class="flex border-b border-slate-200 bg-white sticky top-[76px] z-10 shadow-sm">
-      <button id="tabExpensesBtn" onclick="switchTab('expenses')" class="flex-1 py-3 text-center text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 flex justify-center items-center gap-2">
-        <i class="fa-solid fa-wallet"></i> Despesas
-      </button>
-      <button id="tabRemindersBtn" onclick="switchTab('reminders')" class="flex-1 py-3 text-center text-sm font-bold text-slate-400 border-b-2 border-transparent flex justify-center items-center gap-2">
-        <i class="fa-solid fa-bell"></i> Lembretes
-      </button>
-    </div>
-
-    <!-- Conteúdo da Aba Despesas -->
-    <main id="expensesView" class="flex-1 p-4 space-y-4">
-      <!-- Resumo Financeiro -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Resumo do Mês Selecionado</h2>
-        
-        <div class="grid grid-cols-2 gap-3">
-          <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-            <span class="text-xs text-emerald-700 font-medium block">Renda Total</span>
-            <span id="totalIncome" class="text-lg font-bold text-emerald-800">R$ 0,00</span>
-          </div>
-          <div class="bg-rose-50 p-3 rounded-xl border border-rose-100">
-            <span class="text-xs text-rose-700 font-medium block">Despesas da Casa</span>
-            <span id="totalExpenses" class="text-lg font-bold text-rose-800">R$ 0,00</span>
-          </div>
-        </div>
-
-        <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center">
-          <div>
-            <span class="text-xs text-indigo-700 font-medium block">Saldo Restante</span>
-            <span id="netBalance" class="text-xl font-black text-indigo-900">R$ 0,00</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bloco de Rendas e Nomes -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-        <div class="flex justify-between items-center">
-          <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rendas Individuais</h2>
-          <button type="button" onclick="openIncomeModal()" class="text-xs text-indigo-600 font-bold hover:underline">
-            <i class="fa-solid fa-pen-to-square"></i> Editar Nomes / Rendas
-          </button>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 text-sm pt-1">
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <p id="p1NameDisplay" class="font-bold text-slate-700 truncate">Parceiro 1</p>
-            <p id="p1IncomeVal" class="text-xs text-indigo-600 font-extrabold mt-1">R$ 0,00</p>
-          </div>
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
-            <p id="p2NameDisplay" class="font-bold text-slate-700 truncate">Parceiro 2</p>
-            <p id="p2IncomeVal" class="text-xs text-teal-600 font-extrabold mt-1">R$ 0,00</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Lista de Despesas -->
-      <div class="space-y-3">
-        <h2 class="text-sm font-bold text-slate-700">Despesas Compartilhadas do Mês</h2>
-        <div id="transactionsList" class="space-y-2"></div>
-      </div>
-    </main>
-
-    <!-- Conteúdo da Aba Lembretes -->
-    <main id="remindersView" class="flex-1 p-4 space-y-4 hidden">
-      <div class="flex justify-between items-center">
-        <h2 class="text-sm font-bold text-slate-700">Lista de Lembretes do Mês</h2>
-      </div>
-      <div id="remindersList" class="space-y-2"></div>
-    </main>
-
-    <!-- Botões de Ação Inferiores -->
-    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3">
-      <button type="button" id="mainAddBtn" onclick="openExpenseModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-full shadow-lg flex items-center gap-2 text-sm active:scale-95 transition-transform">
-        <i class="fa-solid fa-plus text-base"></i> Nova Despesa
-      </button>
-
-      <!-- Botão de Voz -->
-      <button type="button" id="voiceBtn" onclick="toggleVoiceRecognition()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold p-3 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all w-12 h-12 shrink-0" title="Lançar por voz">
-        <i class="fa-solid fa-microphone text-lg"></i>
-      </button>
-
-      <!-- Botão de Câmera Global -->
-      <button type="button" onclick="openCameraModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold p-3 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all w-12 h-12 shrink-0" title="Capturar Comprovante">
-        <i class="fa-solid fa-camera text-lg"></i>
-      </button>
-    </div>
-
-  </div>
-
-  <!-- Modal: Editar Nomes e Rendas -->
-  <div id="incomeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4">
-      <h3 class="font-bold text-slate-800 text-base border-b pb-2">Editar Nomes e Rendas</h3>
-      <div class="space-y-3">
-        <div class="p-3 bg-indigo-50/50 rounded-xl space-y-2 border border-indigo-100">
-          <div>
-            <label class="text-xs font-bold text-indigo-900 block mb-1">Nome do Parceiro 1</label>
-            <input type="text" id="inputNameP1" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-sm font-medium">
-          </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-600 block mb-1">Renda Mensal (R$)</label>
-            <input type="number" step="0.01" id="inputIncomeP1" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-base font-semibold">
-          </div>
-        </div>
-
-        <div class="p-3 bg-teal-50/50 rounded-xl space-y-2 border border-teal-100">
-          <div>
-            <label class="text-xs font-bold text-teal-900 block mb-1">Nome do Parceiro 2</label>
-            <input type="text" id="inputNameP2" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-sm font-medium">
-          </div>
-          <div>
-            <label class="text-xs font-semibold text-slate-600 block mb-1">Renda Mensal (R$)</label>
-            <input type="number" step="0.01" id="inputIncomeP2" class="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-base font-semibold">
-          </div>
-        </div>
-      </div>
-      <div class="flex gap-2 pt-2">
-        <button type="button" onclick="closeIncomeModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-        <button type="button" onclick="saveIncomeAndNames()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Nova Despesa -->
-  <div id="expenseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
-      <h3 id="modalExpenseTitle" class="font-bold text-slate-800 text-base border-b pb-2">Nova Despesa</h3>
-      <div class="space-y-3">
-        <input type="hidden" id="expId">
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Descrição</label>
-          <input type="text" id="expDesc" class="w-full p-3 border border-slate-300 rounded-xl text-sm" placeholder="Ex: Supermercado, Luz...">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Valor (R$)</label>
-          <input type="number" step="0.01" id="expAmount" class="w-full p-3 border border-slate-300 rounded-xl text-base font-semibold" placeholder="0.00">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Data da Despesa</label>
-          <input type="date" id="expDate" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
-        </div>
-
-        <div class="pt-2">
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Comprovante / Recibo</label>
-          <div id="receiptPreviewContainer" class="hidden mb-2">
-            <img id="receiptPreviewImg" src="" class="w-full h-32 object-cover rounded-xl border border-slate-200">
-            <button type="button" onclick="removeReceiptFromModal()" class="text-xs text-rose-600 font-bold mt-1 hover:underline"><i class="fa-solid fa-trash"></i> Remover Imagem</button>
-          </div>
-          <button type="button" onclick="openCameraModalFromExpense()" class="w-full py-2.5 bg-slate-100 border border-slate-300 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 hover:bg-slate-200">
-            <i class="fa-solid fa-camera text-slate-500"></i> Escanear / Anexar Comprovante
-          </button>
-        </div>
-
-      </div>
-      <div class="flex gap-2 pt-2">
-        <button type="button" onclick="closeExpenseModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-        <button type="button" onclick="saveExpense()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Salvar Despesa</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Câmera Multifuncional -->
-  <div id="cameraModal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-3 hidden">
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-      
-      <div class="p-4 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
-        <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-camera text-indigo-400"></i> Captura de Comprovante</h3>
-        <button onclick="closeCameraModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-      </div>
-
-      <div class="flex bg-slate-800 text-xs font-semibold text-slate-300 border-b border-slate-700">
-        <button id="camModeQrBtn" onclick="setCameraMode('qr')" class="flex-1 py-2.5 text-center text-indigo-400 border-b-2 border-indigo-500">QR Code</button>
-        <button id="camModeSingleBtn" onclick="setCameraMode('single')" class="flex-1 py-2.5 text-center">Única</button>
-        <button id="camModeMosaicBtn" onclick="setCameraMode('mosaic')" class="flex-1 py-2.5 text-center">Mosaico</button>
-        <button id="camModePanoBtn" onclick="setCameraMode('pano')" class="flex-1 py-2.5 text-center">Panorâmica</button>
-      </div>
-
-      <div class="relative bg-black flex-1 min-h-[260px] flex items-center justify-center overflow-hidden">
-        <div id="qrReader" class="w-full h-full"></div>
-        <video id="cameraVideo" class="w-full h-full object-cover hidden" autoplay playsinline></video>
-        <canvas id="cameraCanvas" class="hidden"></canvas>
-        <div id="panoGuide" class="absolute inset-x-4 top-2 bottom-2 border-2 border-dashed border-yellow-400/70 pointer-events-none hidden flex items-center justify-center">
-          <span class="text-[10px] bg-slate-900/80 text-yellow-300 px-2 py-1 rounded">Posicione o cupom no centro</span>
-        </div>
-      </div>
-
-      <div class="p-4 bg-slate-900 text-white space-y-3">
-        <p id="camHintText" class="text-[11px] text-slate-400 text-center">Aponte a câmera para o QR Code do cupom fiscal.</p>
-        <div id="capturesPreviewRow" class="flex gap-2 overflow-x-auto py-1 hidden"></div>
-
-        <div class="flex items-center justify-between gap-2 pt-1">
-          <button id="snapPhotoBtn" onclick="capturePhotoStep()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 hidden">
-            <i class="fa-solid fa-circle text-rose-500 text-sm"></i> Tirar Foto
-          </button>
-          
-          <button id="finishCapturesBtn" onclick="finishCameraCapture()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-xs hidden">
-            <i class="fa-solid fa-check"></i> Concluir
-          </button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Modal: Visualizar e Compartlhar Comprovante / PDF -->
-  <div id="viewReceiptModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-4 rounded-2xl shadow-xl space-y-3 flex flex-col max-h-[90vh]">
-      <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-          <i class="fa-solid fa-file-invoice text-indigo-600"></i> Comprovante da Despesa
-        </h3>
-        <button onclick="closeViewReceiptModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
-      </div>
-
-      <!-- Área do Comprovante Visual -->
-      <div id="receiptPDFArea" class="flex-1 overflow-auto bg-slate-100 rounded-xl p-3 flex flex-col items-center justify-center space-y-2">
-        <div class="w-full bg-white p-3 rounded-lg border border-slate-200 text-xs space-y-1">
-          <p class="font-bold text-sm text-slate-800" id="receiptModalDesc">Descrição</p>
-          <p class="text-rose-600 font-extrabold text-base" id="receiptModalAmount">R$ 0,00</p>
-          <p class="text-slate-400" id="receiptModalDate">Data: --/--/----</p>
-        </div>
-        <img id="viewReceiptImg" src="" class="max-w-full max-h-[50vh] object-contain rounded-lg shadow-sm border border-slate-200">
-      </div>
-
-      <!-- Opções de Ação e Compartilhamento -->
-      <div class="grid grid-cols-2 gap-2 pt-1">
-        <button type="button" onclick="shareReceiptPDF('whatsapp')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow">
-          <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
-        </button>
-        <button type="button" onclick="shareReceiptPDF('email')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow">
-          <i class="fa-solid fa-envelope text-sm"></i> E-mail / PDF
-        </button>
-      </div>
-
-      <button type="button" onclick="closeViewReceiptModal()" class="w-full bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-xs">Fechar</button>
-    </div>
-  </div>
-
-  <!-- Modal: Novo Lembrete -->
-  <div id="reminderModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4">
-      <h3 class="font-bold text-slate-800 text-base border-b pb-2">Novo Lembrete</h3>
-      <div class="space-y-3">
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Descrição do Lembrete</label>
-          <input type="text" id="remText" class="w-full p-3 border border-slate-300 rounded-xl text-sm" placeholder="Ex: Comprar ração, Pagar conta...">
-        </div>
-        <div>
-          <label class="text-xs font-semibold text-slate-600 block mb-1">Data do Lembrete</label>
-          <input type="date" id="remDate" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
-        </div>
-      </div>
-      <div class="flex gap-2 pt-2">
-        <button type="button" onclick="closeReminderModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-        <button type="button" onclick="saveReminder()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Salvar Lembrete</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Configuração de Sincronização -->
-  <div id="configModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4">
-      <h3 class="font-bold text-slate-800 text-base border-b pb-2">Conectar Celulares (Sincronização)</h3>
-      <p class="text-xs text-slate-500">Insira um código de casal exclusivo. O parceiro deve usar o mesmo código no aparelho dele.</p>
-      <div>
-        <label class="text-xs font-semibold text-slate-600 block mb-1">Código do Casal</label>
-        <input type="text" id="pairCodeInput" class="w-full p-3 border border-slate-300 rounded-xl text-sm font-bold uppercase" placeholder="EX: NOSSO-CASAL-123">
-      </div>
-      <div class="flex gap-2 pt-2">
-        <button type="button" onclick="closeConfigModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
-        <button type="button" onclick="savePairCode()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Conectar</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const firebaseConfig = { databaseURL: "https://sucesso-financeiro-c3cbe-default-rtdb.firebaseio.com" };
+  <!-- ==================================================== -->
+  <!-- MÓDULO ROSÂNGELA: CADASTRO DE PACIENTES              -->
+  <!-- ==================================================== -->
+  <section class="card">
+    <h2 style="color: #2b6cb0;">Atendimentos Nutricionais - Rosângela</h2>
     
-    let dbRef = null;
-    let pairCode = localStorage.getItem('casal_pair_code') || 'casal-demo-123';
-    let selectedDate = new Date();
-    let tempCapturedImage = null;
-    let pendingExpenseAttachmentId = null;
-    let activeExpenseForReceipt = null;
+    <form id="patientForm">
+      <div class="form-group">
+        <label for="patientName">Nome do Paciente</label>
+        <input type="text" id="patientName" placeholder="Ex: Maria Silva" required>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group" style="flex: 1;">
+          <label for="paymentAmount">Valor Pago (R$)</label>
+          <input type="number" id="paymentAmount" step="0.01" placeholder="150.00" required>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label for="paymentDate">Data do Pagamento</label>
+          <input type="date" id="paymentDate" required>
+        </div>
+      </div>
 
-    try {
-      firebase.initializeApp(firebaseConfig);
-      dbRef = firebase.database().ref('casais/' + pairCode);
-      listenToFirebase();
-    } catch(e) {
-      console.log("Modo offline ativado.");
+      <button type="submit" class="btn btn-success">Salvar Paciente</button>
+    </form>
+
+    <div style="padding: 12px; background-color: #f0fff4; border-left: 4px solid #38a169; border-radius: 6px; margin: 15px 0;">
+      <strong>Total Recebido das Consultas: </strong>
+      <span id="totalNutriIncome" style="font-size: 1.1rem; color: #276749; font-weight: bold;">R$ 0,00</span>
+    </div>
+
+    <h3>Pacientes Cadastrados</h3>
+    <div id="patientsListContainer"></div>
+  </section>
+
+
+  <!-- ==================================================== -->
+  <!-- MÓDULO DE DESPESAS DA CASA / PESSOAL                -->
+  <!-- ==================================================== -->
+  <section class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h2>Despesas</h2>
+      <div style="text-align: right;">
+        <small style="color: #718096; display: block;">Total Gasto (PAGO)</small>
+        <span id="totalDespesasExibido" style="font-size: 1.3rem; font-weight: bold; color: #e53e3e;">R$ 0,00</span>
+      </div>
+    </div>
+
+    <!-- Formulário de Cadastro de Despesa -->
+    <form id="expenseForm" style="margin-bottom: 20px;">
+      <div class="form-group">
+        <label for="expDesc">Descrição da Despesa</label>
+        <input type="text" id="expDesc" placeholder="Ex: Mercado 1/3 ou Combustível" required>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" style="flex: 1;">
+          <label for="expAmount">Valor (R$)</label>
+          <input type="number" id="expAmount" step="0.01" placeholder="0.00" required>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label for="expPaymentMethod">Forma de Pagamento</label>
+          <select id="expPaymentMethod" required>
+            <option value="Pix">Pix</option>
+            <option value="Cartão de Crédito">Cartão de Crédito</option>
+            <option value="Cartão de Débito">Cartão de Débito</option>
+            <option value="Dinheiro">Dinheiro</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="expDate">Data</label>
+        <input type="date" id="expDate" required>
+      </div>
+
+      <div class="form-row">
+        <button type="submit" class="btn btn-primary" style="flex: 2;">Adicionar Despesa</button>
+        <button type="button" class="btn btn-secondary" onclick="abrirCameraScanner()" style="flex: 1; margin-top: 0;">📷 Câmera</button>
+      </div>
+    </form>
+
+    <p style="font-size: 0.8rem; color: #718096; text-align: center;">
+      💡 <b>Dica:</b> Pressione e segure o dedo sobre uma despesa para marcá-la como <b>NÃO PAGA</b> (grifa em amarelo e retira do total).
+    </p>
+
+    <div id="listaDespesas"></div>
+  </section>
+
+</div>
+
+<!-- MODAL DA CÂMERA (LEITOR QR E COMPROVANTES) -->
+<div id="cameraModal">
+  <div id="qrReader"></div>
+  <button class="btn btn-secondary" onclick="fecharCameraModal()" style="width: 200px; margin-top: 15px;">Cancelar</button>
+</div>
+
+
+<!-- ==================================================== -->
+<!-- LÓGICA JAVASCRIPT                                    -->
+<!-- ==================================================== -->
+<script>
+  // Altere para a URL do seu servidor hospedado no Render
+  const API_SEFAZ_URL = "https://seu-servidor-sefaz.onrender.com/consultar-sefaz";
+
+  let pacientesNutri = JSON.parse(localStorage.getItem('nutri_patients')) || [];
+  let minhasDespesas = JSON.parse(localStorage.getItem('minhas_despesas')) || [];
+  let qrScanner = null;
+  let timerToque = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const hoje = new Date().toISOString().substring(0, 10);
+    document.getElementById('paymentDate').value = hoje;
+    document.getElementById('expDate').value = hoje;
+
+    renderizarPacientes();
+    renderizarDespesas();
+  });
+
+
+  // ==========================================
+  // 1. LÓGICA DOS PACIENTES DA ROSÂNGELA
+  // ==========================================
+  document.getElementById('patientForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const nome = document.getElementById('patientName').value.trim();
+    const valor = parseFloat(document.getElementById('paymentAmount').value);
+    const data = document.getElementById('paymentDate').value;
+
+    if (!nome || isNaN(valor) || !data) return;
+
+    pacientesNutri.push({ id: Date.now(), nome, valor, data });
+    salvarERenderizarPacientes();
+
+    document.getElementById('patientName').value = '';
+    document.getElementById('paymentAmount').value = '';
+    document.getElementById('paymentDate').value = new Date().toISOString().substring(0, 10);
+  });
+
+  function salvarERenderizarPacientes() {
+    localStorage.setItem('nutri_patients', JSON.stringify(pacientesNutri));
+    renderizarPacientes();
+  }
+
+  function renderizarPacientes() {
+    const container = document.getElementById('patientsListContainer');
+    const totalDisplay = document.getElementById('totalNutriIncome');
+    container.innerHTML = '';
+    let totalRecebido = 0;
+
+    pacientesNutri.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    pacientesNutri.forEach((item) => {
+      totalRecebido += item.valor;
+      const dataFmt = item.data.split('-').reverse().join('/');
+
+      const div = document.createElement('div');
+      div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #edf2f7;';
+      div.innerHTML = `
+        <div>
+          <strong>${item.nome}</strong>
+          <small style="display: block; color: #718096;">📅 ${dataFmt}</small>
+        </div>
+        <div>
+          <strong style="color: #2f855a; margin-right: 10px;">R$ ${item.valor.toFixed(2).replace('.', ',')}</strong>
+          <button onclick="removerPaciente(${item.id})" style="background: none; border: none; color: #e53e3e; cursor: pointer; font-weight: bold;">✕</button>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+
+    totalDisplay.innerText = `R$ ${totalRecebido.toFixed(2).replace('.', ',')}`;
+  }
+
+  function removerPaciente(id) {
+    if (confirm('Deseja remover este registro de paciente?')) {
+      pacientesNutri = pacientesNutri.filter(p => p.id !== id);
+      salvarERenderizarPacientes();
+    }
+  }
+
+
+  // ==========================================
+  // 2. LÓGICA DAS DESPESAS & PARCELAMENTO
+  // ==========================================
+  document.getElementById('expenseForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const desc = document.getElementById('expDesc').value.trim();
+    const valor = parseFloat(document.getElementById('expAmount').value);
+    const forma = document.getElementById('expPaymentMethod').value;
+    const data = document.getElementById('expDate').value;
+
+    if (!desc || isNaN(valor) || !data) return;
+
+    // Processa se houver indicação de parcelas (ex: 1/3)
+    const regexParcela = /(\d+)\/(\d+)/;
+    const match = desc.match(regexParcela);
+
+    if (match) {
+      const parcelaAtual = parseInt(match[1]);
+      const totalParcelas = parseInt(match[2]);
+      const valorParcela = valor / (totalParcelas - parcelaAtual + 1);
+      const textoBase = desc.replace(regexParcela, '').trim();
+      const dataBase = new Date(data + 'T00:00:00');
+
+      for (let i = 0; i < (totalParcelas - parcelaAtual + 1); i++) {
+        const numParcela = parcelaAtual + i;
+        const dataParcela = new Date(dataBase);
+        dataParcela.setMonth(dataBase.getMonth() + i);
+
+        minhasDespesas.push({
+          id: Date.now() + i,
+          descricao: `${textoBase} ${numParcela}/${totalParcelas}`,
+          valor: valorParcela,
+          formaPagamento: forma,
+          data: dataParcela.toISOString().substring(0, 10),
+          pago: true
+        });
+      }
+    } else {
+      minhasDespesas.push({
+        id: Date.now(),
+        descricao: desc,
+        valor: valor,
+        formaPagamento: forma,
+        data: data,
+        pago: true
+      });
     }
 
-    let currentTab = 'expenses';
-    let state = JSON.parse(localStorage.getItem('casal_app_data')) || { 
-      p1Name: "Parceiro 1", 
-      p2Name: "Parceiro 2", 
-      p1: 0, 
-      p2: 0, 
-      expenses: [],
-      reminders: []
+    salvarERenderizarDespesas();
+    document.getElementById('expDesc').value = '';
+    document.getElementById('expAmount').value = '';
+  });
+
+  function salvarERenderizarDespesas() {
+    localStorage.setItem('minhas_despesas', JSON.stringify(minhasDespesas));
+    renderizarDespesas();
+  }
+
+  // Toque longo para grifar em Amarelo Fluorescente e retirar do Total
+  function aplicarEventoToqueLongo(elemento, idDespesa) {
+    const iniciar = () => {
+      timerToque = setTimeout(() => {
+        alternarStatusPagamento(idDespesa);
+      }, 500);
     };
 
-    function listenToFirebase() {
-      if (!dbRef) return;
-      dbRef.on('value', (snapshot) => {
-        const val = snapshot.val();
-        if (val) {
-          state = val;
-          if (!state.expenses) state.expenses = [];
-          if (!state.reminders) state.reminders = [];
-          saveToStorage(false);
-          updateUI();
-        }
+    const cancelar = () => clearTimeout(timerToque);
+
+    elemento.addEventListener('touchstart', iniciar);
+    elemento.addEventListener('touchend', cancelar);
+    elemento.addEventListener('touchmove', cancelar);
+    elemento.addEventListener('mousedown', iniciar);
+    elemento.addEventListener('mouseup', cancelar);
+    elemento.addEventListener('mouseleave', cancelar);
+  }
+
+  function alternarStatusPagamento(id) {
+    const item = minhasDespesas.find(d => d.id === id);
+    if (item) {
+      item.pago = !item.pago;
+      salvarERenderizarDespesas();
+    }
+  }
+
+  function obterBadgeFormaPagamento(forma) {
+    switch (forma) {
+      case 'Pix': return `<span class="badge-pagamento badge-pix">⚡ PIX</span>`;
+      case 'Cartão de Crédito': return `<span class="badge-pagamento badge-credito">💳 C. CRÉDITO</span>`;
+      case 'Cartão de Débito': return `<span class="badge-pagamento badge-debito">🏦 C. DÉBITO</span>`;
+      case 'Dinheiro': return `<span class="badge-pagamento badge-dinheiro">💵 DINHEIRO</span>`;
+      default: return `<span class="badge-pagamento badge-pix">${forma}</span>`;
+    }
+  }
+
+  function renderizarDespesas() {
+    const container = document.getElementById("listaDespesas");
+    const totalDisplay = document.getElementById("totalDespesasExibido");
+    container.innerHTML = "";
+    let totalGastoPago = 0;
+
+    minhasDespesas.sort((a, b) => new Date(b.data) - new Date(a.data));
+
+    minhasDespesas.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "item-despesa";
+
+      if (item.pago === false) {
+        div.classList.add("pendente");
+      } else {
+        totalGastoPago += item.valor;
+      }
+
+      const dataFmt = item.data ? item.data.split('-').reverse().join('/') : '';
+
+      div.innerHTML = `
+        <div>
+          <strong style="font-size: 0.95rem;">${item.descricao}</strong>
+          <br>
+          ${obterBadgeFormaPagamento(item.formaPagamento)}
+          ${item.pago === false ? '<br><span class="badge-nao-pago">NÃO PAGO</span>' : ''}
+          <small style="display: block; color: ${item.pago === false ? '#000' : '#718096'}; margin-top: 2px;">📅 ${dataFmt}</small>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 1.1rem; font-weight: bold;">
+            R$ ${parseFloat(item.valor).toFixed(2).replace('.', ',')}
+          </span>
+          <br>
+          <button onclick="removerDespesa(${item.id})" style="background: none; border: none; color: #a0aec0; cursor: pointer; margin-top: 5px;">🗑️</button>
+        </div>
+      `;
+
+      aplicarEventoToqueLongo(div, item.id);
+      container.appendChild(div);
+    });
+
+    totalDisplay.innerText = `R$ ${totalGastoPago.toFixed(2).replace('.', ',')}`;
+  }
+
+  function removerDespesa(id) {
+    if (confirm('Deseja excluir esta despesa?')) {
+      minhasDespesas = minhasDespesas.filter(d => d.id !== id);
+      salvarERenderizarDespesas();
+    }
+  }
+
+
+  // ==========================================
+  // 3. CÂMERA (LEITOR QR E COMPROVANTES OCR)
+  // ==========================================
+  function abrirCameraScanner() {
+    document.getElementById('cameraModal').style.display = 'flex';
+    qrScanner = new Html5Qrcode("qrReader");
+
+    qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      async (decodedText) => {
+        fecharCameraModal();
+        processarLeituraCamera(decodedText);
+      },
+      (error) => {}
+    ).catch(err => {
+      alert("Permita o acesso à câmera para continuar.");
+      fecharCameraModal();
+    });
+  }
+
+  function fecharCameraModal() {
+    if (qrScanner) {
+      qrScanner.stop().then(() => {
+        qrScanner.clear();
+        document.getElementById('cameraModal').style.display = 'none';
+      }).catch(() => {
+        document.getElementById('cameraModal').style.display = 'none';
       });
+    } else {
+      document.getElementById('cameraModal').style.display = 'none';
     }
+  }
 
-    function saveToStorage(syncFirebase = true) {
-      localStorage.setItem('casal_app_data', JSON.stringify(state));
-      if (syncFirebase && dbRef) {
-        dbRef.set(state);
-      }
-    }
+  async function processarLeituraCamera(conteudo) {
+    document.getElementById("expDesc").value = "Consultando...";
 
-    function getISODateString(d = new Date()) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    function formatDisplayDate(dateStr) {
-      if (!dateStr) return '';
-      const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`;
-      }
-      return dateStr;
-    }
-
-    function changeMonth(delta) {
-      selectedDate.setMonth(selectedDate.getMonth() + delta);
-      updateUI();
-    }
-
-    function switchTab(tab) {
-      currentTab = tab;
-      const expView = document.getElementById("expensesView");
-      const remView = document.getElementById("remindersView");
-      const btnExp = document.getElementById("tabExpensesBtn");
-      const btnRem = document.getElementById("tabRemindersBtn");
-      const mainAddBtn = document.getElementById("mainAddBtn");
-
-      if (tab === 'expenses') {
-        expView.classList.remove("hidden");
-        remView.classList.add("hidden");
-        btnExp.className = "flex-1 py-3 text-center text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 flex justify-center items-center gap-2";
-        btnRem.className = "flex-1 py-3 text-center text-sm font-bold text-slate-400 border-b-2 border-transparent flex justify-center items-center gap-2";
-        mainAddBtn.innerHTML = '<i class="fa-solid fa-plus text-base"></i> Nova Despesa';
-        mainAddBtn.setAttribute("onclick", "openExpenseModal()");
-      } else {
-        expView.classList.add("hidden");
-        remView.classList.remove("hidden");
-        btnRem.className = "flex-1 py-3 text-center text-sm font-bold text-indigo-600 border-b-2 border-indigo-600 flex justify-center items-center gap-2";
-        btnExp.className = "flex-1 py-3 text-center text-sm font-bold text-slate-400 border-b-2 border-transparent flex justify-center items-center gap-2";
-        mainAddBtn.innerHTML = '<i class="fa-solid fa-plus text-base"></i> Novo Lembrete';
-        mainAddBtn.setAttribute("onclick", "openReminderModal()");
-      }
-    }
-
-    function updateUI() {
-      const year = selectedDate.getFullYear();
-      const month = selectedDate.getMonth();
-
-      const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-      document.getElementById("currentMonthLabel").innerText = `${monthNames[month]} de ${year}`;
-
-      const filteredExpenses = (state.expenses || []).filter(item => {
-        const d = new Date(item.date + "T00:00:00");
-        return d.getFullYear() === year && d.getMonth() === month;
-      });
-
-      const filteredReminders = (state.reminders || []).filter(item => {
-        const d = new Date(item.date + "T00:00:00");
-        return d.getFullYear() === year && d.getMonth() === month;
-      });
-
-      const totalInc = (state.p1 || 0) + (state.p2 || 0);
-      const totalExp = filteredExpenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-      const balance = totalInc - totalExp;
-
-      document.getElementById("totalIncome").innerText = formatBRL(totalInc);
-      document.getElementById("totalExpenses").innerText = formatBRL(totalExp);
-      document.getElementById("netBalance").innerText = formatBRL(balance);
-
-      document.getElementById("p1NameDisplay").innerText = state.p1Name || "Parceiro 1";
-      document.getElementById("p2NameDisplay").innerText = state.p2Name || "Parceiro 2";
-      document.getElementById("p1IncomeVal").innerText = formatBRL(state.p1);
-      document.getElementById("p2IncomeVal").innerText = formatBRL(state.p2);
-
-      // Renderiza despesas
-      const list = document.getElementById("transactionsList");
-      if (filteredExpenses.length === 0) {
-        list.innerHTML = '<div class="bg-white p-6 rounded-2xl border border-slate-200 text-center"><p class="text-xs text-slate-400">Nenhuma despesa para este mês.</p></div>';
-      } else {
-        list.innerHTML = filteredExpenses.map(item => `
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm">
-            <div class="flex items-center gap-3">
-              ${item.receipt ? `
-                <button type="button" onclick="viewReceipt('${item.id}')" class="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100 relative group" title="Visualizar Nota">
-                  <img src="${item.receipt}" class="w-full h-full object-cover">
-                  <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition-opacity"><i class="fa-solid fa-eye"></i></div>
-                </button>
-              ` : `
-                <button type="button" onclick="openCameraToAttachAfter('${item.id}')" class="w-10 h-10 rounded-lg border border-dashed border-slate-300 text-slate-400 flex items-center justify-center shrink-0 hover:border-indigo-500 hover:text-indigo-600" title="Anexar Comprovante">
-                  <i class="fa-solid fa-paperclip text-xs"></i>
-                </button>
-              `}
-              <div>
-                <span class="font-bold text-sm text-slate-800 block">${escapeHtml(item.desc)}</span>
-                <div class="flex items-center gap-2 text-xs">
-                  <span class="font-bold text-rose-600">-${formatBRL(item.amount)}</span>
-                  <span class="text-slate-400">• ${formatDisplayDate(item.date)}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="flex items-center gap-1">
-              ${item.receipt ? `
-                <button type="button" onclick="viewReceipt('${item.id}')" class="text-indigo-600 hover:text-indigo-800 p-2" title="Visualizar Nota">
-                  <i class="fa-solid fa-eye text-xs"></i>
-                </button>
-                <button type="button" onclick="prepareAndShareReceipt('${item.id}')" class="text-emerald-600 hover:text-emerald-800 p-2" title="Gerar PDF / Compartilhar">
-                  <i class="fa-solid fa-share-nodes text-xs"></i>
-                </button>
-              ` : ''}
-              <button type="button" onclick="openExpenseModal('${item.id}')" class="text-slate-400 hover:text-indigo-600 p-2" title="Editar"><i class="fa-solid fa-pen text-xs"></i></button>
-              <button type="button" onclick="deleteExpense('${item.id}')" class="text-slate-400 hover:text-rose-600 p-2" title="Apagar"><i class="fa-solid fa-trash text-xs"></i></button>
-            </div>
-          </div>
-        `).join("");
-      }
-
-      // Renderiza lembretes
-      const remList = document.getElementById("remindersList");
-      if (filteredReminders.length === 0) {
-        remList.innerHTML = '<div class="bg-white p-6 rounded-2xl border border-slate-200 text-center"><p class="text-xs text-slate-400">Nenhum lembrete para este mês.</p></div>';
-      } else {
-        remList.innerHTML = filteredReminders.map(item => `
-          <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm ${item.done ? 'opacity-50' : ''}">
-            <div class="flex items-center gap-3">
-              <button type="button" onclick="toggleReminderDone('${item.id}')" class="text-lg ${item.done ? 'text-emerald-500' : 'text-slate-300'}">
-                <i class="fa-solid ${item.done ? 'fa-circle-check' : 'fa-circle'}"></i>
-              </button>
-              <div>
-                <span class="font-semibold text-sm ${item.done ? 'line-through text-slate-400' : 'text-slate-800'} block">${escapeHtml(item.text)}</span>
-                <span class="text-xs text-slate-400">${formatDisplayDate(item.date)}</span>
-              </div>
-            </div>
-            <button type="button" onclick="deleteReminder('${item.id}')" class="text-slate-400 hover:text-rose-600 p-2"><i class="fa-solid fa-trash text-xs"></i></button>
-          </div>
-        `).join("");
-      }
-    }
-
-    function formatBRL(val) {
-      return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-
-    function escapeHtml(str) {
-      return (str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
-    }
-
-    function openIncomeModal() {
-      document.getElementById("inputNameP1").value = state.p1Name || "Parceiro 1";
-      document.getElementById("inputNameP2").value = state.p2Name || "Parceiro 2";
-      document.getElementById("inputIncomeP1").value = state.p1 || "";
-      document.getElementById("inputIncomeP2").value = state.p2 || "";
-      document.getElementById("incomeModal").classList.remove("hidden");
-    }
-    function closeIncomeModal() { document.getElementById("incomeModal").classList.add("hidden"); }
-
-    function saveIncomeAndNames() {
-      state.p1Name = document.getElementById("inputNameP1").value.trim() || "Parceiro 1";
-      state.p2Name = document.getElementById("inputNameP2").value.trim() || "Parceiro 2";
-      state.p1 = parseFloat(document.getElementById("inputIncomeP1").value) || 0;
-      state.p2 = parseFloat(document.getElementById("inputIncomeP2").value) || 0;
-      saveToStorage();
-      closeIncomeModal();
-      updateUI();
-    }
-
-    function openExpenseModal(id = null) {
-      tempCapturedImage = null;
-      document.getElementById("receiptPreviewContainer").classList.add("hidden");
-
-      if (id) {
-        const item = state.expenses.find(x => x.id === id);
-        if (item) {
-          document.getElementById("expId").value = item.id;
-          document.getElementById("expDesc").value = item.desc;
-          document.getElementById("expAmount").value = item.amount;
-          document.getElementById("expDate").value = item.date || getISODateString();
-          if (item.receipt) {
-            tempCapturedImage = item.receipt;
-            document.getElementById("receiptPreviewImg").src = item.receipt;
-            document.getElementById("receiptPreviewContainer").classList.remove("hidden");
-          }
-        }
-      } else {
-        document.getElementById("expId").value = "";
-        document.getElementById("expDesc").value = "";
-        document.getElementById("expAmount").value = "";
-        document.getElementById("expDate").value = getISODateString();
-      }
-      document.getElementById("expenseModal").classList.remove("hidden");
-    }
-
-    function closeExpenseModal() { document.getElementById("expenseModal").classList.add("hidden"); }
-
-    function removeReceiptFromModal() {
-      tempCapturedImage = null;
-      document.getElementById("receiptPreviewContainer").classList.add("hidden");
-    }
-
-    function saveExpense() {
-      const id = document.getElementById("expId").value;
-      const desc = document.getElementById("expDesc").value.trim();
-      const amount = parseFloat(document.getElementById("expAmount").value) || 0;
-      const date = document.getElementById("expDate").value || getISODateString();
-
-      if (!desc) return alert("Digite a descrição.");
-
-      if (id) {
-        const item = state.expenses.find(x => x.id === id);
-        if (item) { 
-          item.desc = desc; 
-          item.amount = amount; 
-          item.date = date; 
-          item.receipt = tempCapturedImage;
-        }
-      } else {
-        state.expenses.unshift({ 
-          id: Date.now().toString(), 
-          desc, 
-          amount, 
-          date,
-          receipt: tempCapturedImage 
-        });
-      }
-
-      const targetDate = new Date(date + "T00:00:00");
-      selectedDate = targetDate;
-
-      saveToStorage();
-      closeExpenseModal();
-      updateUI();
-    }
-
-    function deleteExpense(id) {
-      if (confirm("Apagar esta despesa?")) {
-        state.expenses = state.expenses.filter(x => x.id !== id);
-        saveToStorage();
-        updateUI();
-      }
-    }
-
-    function openReminderModal() {
-      document.getElementById("remText").value = "";
-      document.getElementById("remDate").value = getISODateString();
-      document.getElementById("reminderModal").classList.remove("hidden");
-    }
-    function closeReminderModal() { document.getElementById("reminderModal").classList.add("hidden"); }
-
-    function saveReminder() {
-      const text = document.getElementById("remText").value.trim();
-      const date = document.getElementById("remDate").value || getISODateString();
-
-      if (!text) return alert("Digite o lembrete.");
-      if (!state.reminders) state.reminders = [];
-      
-      state.reminders.unshift({ id: Date.now().toString(), text, done: false, date });
-
-      const targetDate = new Date(date + "T00:00:00");
-      selectedDate = targetDate;
-
-      saveToStorage();
-      closeReminderModal();
-      updateUI();
-    }
-
-    function toggleReminderDone(id) {
-      const item = state.reminders.find(x => x.id === id);
-      if (item) {
-        item.done = !item.done;
-        saveToStorage();
-        updateUI();
-      }
-    }
-
-    function deleteReminder(id) {
-      state.reminders = state.reminders.filter(x => x.id !== id);
-      saveToStorage();
-      updateUI();
-    }
-
-    function openConfigModal() {
-      document.getElementById("pairCodeInput").value = pairCode;
-      document.getElementById("configModal").classList.remove("hidden");
-    }
-    function closeConfigModal() { document.getElementById("configModal").classList.add("hidden"); }
-
-    function savePairCode() {
-      const code = document.getElementById("pairCodeInput").value
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9_-]/g, '-');
-
-      if (code) {
-        pairCode = code;
-        localStorage.setItem('casal_pair_code', pairCode);
-        if (firebase.apps.length) {
-          if (dbRef) dbRef.off();
-          dbRef = firebase.database().ref('casais/' + pairCode);
-          listenToFirebase();
-        }
-        closeConfigModal();
-        alert("Sincronização atualizada para o código: " + pairCode);
-      }
-    }
-
-    // --- CÂMERA ---
-    let cameraMode = 'qr';
-    let qrScanner = null;
-    let cameraStream = null;
-    let capturedParts = [];
-
-    function openCameraModal() {
-      pendingExpenseAttachmentId = null;
-      document.getElementById("cameraModal").classList.remove("hidden");
-      setCameraMode('qr');
-    }
-
-    function openCameraModalFromExpense() {
-      openCameraModal();
-    }
-
-    function openCameraToAttachAfter(expenseId) {
-      pendingExpenseAttachmentId = expenseId;
-      document.getElementById("cameraModal").classList.remove("hidden");
-      setCameraMode('single');
-    }
-
-    function closeCameraModal() {
-      stopCameraAndQr();
-      document.getElementById("cameraModal").classList.add("hidden");
-    }
-
-    function stopCameraAndQr() {
-      if (qrScanner) {
-        try { qrScanner.stop(); } catch(e){}
-        qrScanner = null;
-      }
-      if (cameraStream) {
-        cameraStream.getTracks().forEach(track => track.stop());
-        cameraStream = null;
-      }
-      const video = document.getElementById("cameraVideo");
-      video.pause();
-      video.srcObject = null;
-      capturedParts = [];
-      updatePreviewRow();
-    }
-
-    function setCameraMode(mode) {
-      stopCameraAndQr();
-      cameraMode = mode;
-
-      const modes = ['qr', 'single', 'mosaic', 'pano'];
-      modes.forEach(m => {
-        const btn = document.getElementById(`camMode${m.charAt(0).toUpperCase() + m.slice(1)}Btn`);
-        if (m === mode) {
-          btn.className = "flex-1 py-2.5 text-center text-indigo-400 border-b-2 border-indigo-500 font-bold";
-        } else {
-          btn.className = "flex-1 py-2.5 text-center text-slate-400 font-semibold";
-        }
-      });
-
-      const qrContainer = document.getElementById("qrReader");
-      const video = document.getElementById("cameraVideo");
-      const snapBtn = document.getElementById("snapPhotoBtn");
-      const finishBtn = document.getElementById("finishCapturesBtn");
-      const hint = document.getElementById("camHintText");
-      const panoGuide = document.getElementById("panoGuide");
-
-      qrContainer.classList.add("hidden");
-      video.classList.add("hidden");
-      snapBtn.classList.add("hidden");
-      finishBtn.classList.add("hidden");
-      panoGuide.classList.add("hidden");
-
-      if (mode === 'qr') {
-        qrContainer.classList.remove("hidden");
-        hint.innerText = "Aponte a câmera para o QR Code da Nota Fiscal/Cupom.";
-        startQrScanner();
-      } else {
-        video.classList.remove("hidden");
-        snapBtn.classList.remove("hidden");
-        startVideoCamera();
-
-        if (mode === 'single') {
-          hint.innerText = "Tire 1 foto completa do cupom.";
-        } else if (mode === 'mosaic') {
-          hint.innerText = "Tire várias fotos do cupom e clique em 'Concluir'.";
-          finishBtn.classList.remove("hidden");
-        } else if (mode === 'pano') {
-          hint.innerText = "Tire fotos de cima para baixo em sequência.";
-          finishBtn.classList.remove("hidden");
-          panoGuide.classList.remove("hidden");
-        }
-      }
-    }
-
-    function startQrScanner() {
-      qrScanner = new Html5Qrcode("qrReader");
-      qrScanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        (decodedText) => {
-          stopCameraAndQr();
-          closeCameraModal();
-          openExpenseModal();
-          document.getElementById("expDesc").value = "Nota Fiscal (QR Code)";
-          
-          const valMatch = decodedText.match(/(?:vNF|valor)=([0-9.]+)/i);
-          if (valMatch) {
-            document.getElementById("expAmount").value = parseFloat(valMatch[1]).toFixed(2);
-          }
-          alert("QR Code lido com sucesso!");
-        },
-        (error) => {}
-      ).catch(err => {
-        document.getElementById("camHintText").innerText = "Permita o acesso à câmera.";
-      });
-    }
-
-    async function startVideoCamera() {
+    // 1. Se for QR Code da Sefaz
+    if (conteudo.startsWith("http://") || conteudo.startsWith("https://")) {
       try {
-        cameraStream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: "environment" }, 
-          audio: false 
+        const response = await fetch(API_SEFAZ_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qrUrl: conteudo })
         });
-        const video = document.getElementById("cameraVideo");
-        video.srcObject = cameraStream;
-      } catch(err) {
-        alert("Erro ao acessar câmera.");
+        const data = await response.json();
+
+        document.getElementById("expDesc").value = data.nomeEstabelecimento || "Nota Fiscal";
+        document.getElementById("expAmount").value = data.valorTotal;
+        document.getElementById("expDate").value = data.dataEmissao || new Date().toISOString().substring(0, 10);
+      } catch (e) {
+        alert("Não foi possível consultar na Sefaz. Preencha o valor manualmente.");
+        document.getElementById("expDesc").value = "Nota Fiscal";
       }
-    }
+    } else {
+      // 2. Se for texto/imagem de comprovante (OCR)
+      try {
+        const result = await Tesseract.recognize(conteudo, 'por');
+        const match = result.data.text.match(/(?:TOTAL|VALOR|R\$)\s*:?\s*R?\$?\s*([\d.]+[,\.]\d{2})/i);
 
-    function capturePhotoStep() {
-      const video = document.getElementById("cameraVideo");
-      const canvas = document.getElementById("cameraCanvas");
-      const ctx = canvas.getContext("2d");
-
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-
-      if (cameraMode === 'single') {
-        applyCapturedReceipt(dataUrl);
-        closeCameraModal();
-      } else {
-        capturedParts.push(dataUrl);
-        updatePreviewRow();
-      }
-    }
-
-    function updatePreviewRow() {
-      const row = document.getElementById("capturesPreviewRow");
-      if (capturedParts.length === 0) {
-        row.classList.add("hidden");
-        row.innerHTML = "";
-      } else {
-        row.classList.remove("hidden");
-        row.innerHTML = capturedParts.map((img, idx) => `
-          <div class="relative shrink-0">
-            <img src="${img}" class="w-12 h-12 object-cover rounded-lg border border-indigo-400">
-            <span class="absolute top-0 right-0 bg-indigo-600 text-[9px] text-white px-1 rounded-bl">${idx+1}</span>
-          </div>
-        `).join("");
-      }
-    }
-
-    function finishCameraCapture() {
-      if (capturedParts.length === 0) return alert("Tire pelo menos uma foto.");
-
-      const canvas = document.getElementById("cameraCanvas");
-      const ctx = canvas.getContext("2d");
-
-      if (cameraMode === 'pano') {
-        const imgObjs = [];
-        let totalHeight = 0, maxWidth = 0, loaded = 0;
-
-        capturedParts.forEach((src, idx) => {
-          const img = new Image();
-          img.onload = () => {
-            imgObjs[idx] = img;
-            totalHeight += img.height;
-            if (img.width > maxWidth) maxWidth = img.width;
-            loaded++;
-
-            if (loaded === capturedParts.length) {
-              canvas.width = maxWidth;
-              canvas.height = totalHeight;
-              let currentY = 0;
-              imgObjs.forEach(i => {
-                ctx.drawImage(i, 0, currentY, maxWidth, i.height);
-                currentY += i.height;
-              });
-              applyCapturedReceipt(canvas.toDataURL("image/jpeg", 0.6));
-              closeCameraModal();
-            }
-          };
-          img.src = src;
-        });
-
-      } else if (cameraMode === 'mosaic') {
-        const count = capturedParts.length;
-        const cols = count > 1 ? 2 : 1;
-        const rows = Math.ceil(count / cols);
-        const imgObjs = [];
-        let loaded = 0;
-
-        capturedParts.forEach((src, idx) => {
-          const img = new Image();
-          img.onload = () => {
-            imgObjs[idx] = img;
-            loaded++;
-
-            if (loaded === capturedParts.length) {
-              const cellWidth = imgObjs[0].width;
-              const cellHeight = imgObjs[0].height;
-
-              canvas.width = cellWidth * cols;
-              canvas.height = cellHeight * rows;
-
-              imgObjs.forEach((i, index) => {
-                const c = index % cols;
-                const r = Math.floor(index / cols);
-                ctx.drawImage(i, c * cellWidth, r * cellHeight, cellWidth, cellHeight);
-              });
-
-              applyCapturedReceipt(canvas.toDataURL("image/jpeg", 0.6));
-              closeCameraModal();
-            }
-          };
-          img.src = src;
-        });
-      }
-    }
-
-    function applyCapturedReceipt(imageData) {
-      if (pendingExpenseAttachmentId) {
-        const item = state.expenses.find(x => x.id === pendingExpenseAttachmentId);
-        if (item) {
-          item.receipt = imageData;
-          saveToStorage();
-          updateUI();
-          alert("Comprovante anexado à despesa!");
+        if (match && match[1]) {
+          let valorFormatado = match[1].replace('.', '').replace(',', '.');
+          document.getElementById("expAmount").value = parseFloat(valorFormatado).toFixed(2);
+          document.getElementById("expDesc").value = "Comprovante Cartão";
+        } else {
+          alert("Valor não identificado automaticamente no comprovante.");
+          document.getElementById("expDesc").value = "Despesa Cartão";
         }
-        pendingExpenseAttachmentId = null;
-      } else {
-        tempCapturedImage = imageData;
-        document.getElementById("receiptPreviewImg").src = imageData;
-        document.getElementById("receiptPreviewContainer").classList.remove("hidden");
-        
-        const expModal = document.getElementById("expenseModal");
-        if (expModal.classList.contains("hidden")) {
-          openExpenseModal();
-          tempCapturedImage = imageData;
-          document.getElementById("receiptPreviewImg").src = imageData;
-          document.getElementById("receiptPreviewContainer").classList.remove("hidden");
-        }
+      } catch (err) {
+        document.getElementById("expDesc").value = "Despesa";
       }
     }
+  }
+</script>
 
-    // --- VISUALIZAÇÃO E GERADOR DE PDF / COMPARTILHAMENTO ---
-    function viewReceipt(expenseId) {
-      const item = state.expenses.find(x => x.id === expenseId);
-      if (item && item.receipt) {
-        activeExpenseForReceipt = item;
-        document.getElementById("receiptModalDesc").innerText = item.desc;
-        document.getElementById("receiptModalAmount").innerText = formatBRL(item.amount);
-        document.getElementById("receiptModalDate").innerText = "Data: " + formatDisplayDate(item.date);
-        document.getElementById("viewReceiptImg").src = item.receipt;
-        document.getElementById("viewReceiptModal").classList.remove("hidden");
-      }
-    }
-
-    function prepareAndShareReceipt(expenseId) {
-      viewReceipt(expenseId);
-    }
-
-    function closeViewReceiptModal() {
-      document.getElementById("viewReceiptModal").classList.add("hidden");
-    }
-
-    async function generateReceiptPDFBlob(expense) {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-
-      // Cabeçalho PDF
-      pdf.setFillColor(15, 23, 42); // slate-900
-      pdf.rect(0, 0, 210, 30, 'F');
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(16);
-      pdf.text("Comprovante de Despesa", 15, 18);
-
-      // Dados da Despesa
-      pdf.setTextColor(30, 41, 59);
-      pdf.setFontSize(12);
-      pdf.text(`Descrição: ${expense.desc}`, 15, 42);
-      pdf.text(`Valor: R$ ${expense.amount.toFixed(2).replace('.', ',')}`, 15, 50);
-      pdf.text(`Data da Despesa: ${formatDisplayDate(expense.date)}`, 15, 58);
-      pdf.text(`ID Transação: ${expense.id}`, 15, 66);
-
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(15, 72, 195, 72);
-
-      // Imagem do Comprovante
-      if (expense.receipt) {
-        const img = new Image();
-        img.src = expense.receipt;
-        await new Promise((resolve) => img.onload = resolve);
-
-        const maxWidth = 180;
-        const maxHeight = 190;
-        let imgWidth = img.width;
-        let imgHeight = img.height;
-
-        const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
-        imgWidth = imgWidth * ratio;
-        imgHeight = imgHeight * ratio;
-
-        pdf.addImage(expense.receipt, 'JPEG', 15, 80, imgWidth, imgHeight);
-      }
-
-      return pdf;
-    }
-
-    async function shareReceiptPDF(targetPlatform) {
-      if (!activeExpenseForReceipt) return;
-
-      const expense = activeExpenseForReceipt;
-      const pdf = await generateReceiptPDFBlob(expense);
-      const pdfBlob = pdf.output('blob');
-      const fileName = `Comprovante_${expense.desc.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-
-      const textMessage = `Comprovante de Despesa:\n• ${expense.desc}\n• Valor: R$ ${expense.amount.toFixed(2).replace('.', ',')}\n• Data: ${formatDisplayDate(expense.date)}`;
-
-      // Tenta acionar a API de compartilhamento nativo do dispositivo
-      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        try {
-          await navigator.share({
-            files: [pdfFile],
-            title: `Comprovante - ${expense.desc}`,
-            text: textMessage
-          });
-          return;
-        } catch (err) {
-          console.log("Compartilhamento nativo cancelado ou falhou, fallback em andamento.");
-        }
-      }
-
-      // Fallback: Baixa o PDF e abre a plataforma desejada
-      pdf.save(fileName);
-
-      if (targetPlatform === 'whatsapp') {
-        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMessage + "\n\n(O arquivo PDF foi baixado em seu dispositivo para anexo)")}`;
-        window.open(whatsappUrl, '_blank');
-      } else if (targetPlatform === 'email') {
-        const mailtoUrl = `mailto:?subject=${encodeURIComponent(`Comprovante - ${expense.desc}`)}&body=${encodeURIComponent(textMessage + "\n\n(O arquivo PDF foi baixado em seu dispositivo para anexo)")}`;
-        window.open(mailtoUrl, '_blank');
-      }
-    }
-
-    // --- VOZ ---
-    let recognition = null;
-    let isListening = false;
-
-    function initSpeechRecognition() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return null;
-
-      const rec = new SpeechRecognition();
-      rec.lang = 'pt-BR';
-      rec.continuous = false;
-      rec.interimResults = false;
-
-      rec.onstart = function() {
-        isListening = true;
-        document.getElementById("voiceBtn").classList.add("mic-recording");
-      };
-
-      rec.onend = function() {
-        isListening = false;
-        document.getElementById("voiceBtn").classList.remove("mic-recording");
-      };
-
-      rec.onerror = function() {
-        isListening = false;
-        document.getElementById("voiceBtn").classList.remove("mic-recording");
-      };
-
-      rec.onresult = function(event) {
-        const transcript = event.results[0][0].transcript.toLowerCase();
-        parseVoiceCommand(transcript);
-      };
-
-      return rec;
-    }
-
-    function toggleVoiceRecognition() {
-      if (!recognition) recognition = initSpeechRecognition();
-      if (!recognition) return alert("Voz não suportada neste navegador/dispositivo.");
-
-      if (isListening) {
-        recognition.stop();
-      } else {
-        try { recognition.start(); } catch(e) { recognition.stop(); setTimeout(() => recognition.start(), 200); }
-      }
-    }
-
-    function extractDateFromSpeech(text) {
-      const months = {
-        'janeiro': '01', 'fevereiro': '02', 'março': '03', 'marco': '03', 'abril': '04',
-        'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08', 'setembro': '09',
-        'outubro': '10', 'novembro': '11', 'dezembro': '12'
-      };
-
-      let detectedDate = getISODateString();
-      let cleanText = text;
-
-      const numDateMatch = text.match(/dia\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/i);
-      if (numDateMatch) {
-        let day = numDateMatch[1].padStart(2, '0');
-        let month = numDateMatch[2].padStart(2, '0');
-        let year = numDateMatch[3] ? (numDateMatch[3].length === 2 ? '20' + numDateMatch[3] : numDateMatch[3]) : new Date().getFullYear();
-        detectedDate = `${year}-${month}-${day}`;
-        cleanText = text.replace(numDateMatch[0], '').trim();
-        return { date: detectedDate, text: cleanText };
-      }
-
-      const textDateMatch = text.match(/(?:dia\s+)?(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/i);
-      if (textDateMatch) {
-        let day = textDateMatch[1].padStart(2, '0');
-        let monthName = textDateMatch[2].toLowerCase();
-        let year = textDateMatch[3] || new Date().getFullYear();
-
-        if (months[monthName]) {
-          detectedDate = `${year}-${months[monthName]}-${day}`;
-          cleanText = text.replace(textDateMatch[0], '').trim();
-          return { date: detectedDate, text: cleanText };
-        }
-      }
-
-      return { date: detectedDate, text: cleanText };
-    }
-
-    function parseVoiceCommand(text) {
-      const isReminderCommand = /^(lembra\s+de|lembrar\s+de|lembrar|lembrete)\s+/i.test(text);
-
-      if (isReminderCommand || currentTab === 'reminders') {
-        let rawText = text.replace(/^(lembra\s+de|lembrar\s+de|lembrar|lembrete)\s+/i, '').trim();
-        const extracted = extractDateFromSpeech(rawText);
-
-        let reminderText = extracted.text.charAt(0).toUpperCase() + extracted.text.slice(1);
-        
-        if (!state.reminders) state.reminders = [];
-        state.reminders.unshift({ 
-          id: Date.now().toString(), 
-          text: reminderText, 
-          done: false, 
-          date: extracted.date 
-        });
-
-        selectedDate = new Date(extracted.date + "T00:00:00");
-        saveToStorage();
-        updateUI();
-        switchTab('reminders');
-        return;
-      }
-
-      const match = text.match(/(.*?)\s+(?:de\s+)?(\d+(?:[.,]\d+)?)\s*(reais|real)?(?:\s+(.*))?$/i);
-      if (match) {
-        let rawDesc = match[1].replace(/^(adicionar|lançar|nova despesa|cadastrar)\s+/i, '').trim();
-        let amount = parseFloat(match[2].replace(',', '.'));
-        let extraText = match[4] || '';
-
-        const extracted = extractDateFromSpeech(extraText.length > 0 ? extraText : rawDesc);
-        
-        let desc = rawDesc;
-        if (extraText.length === 0 && extracted.text !== rawDesc) {
-          desc = extracted.text;
-        }
-
-        if (desc && !isNaN(amount)) {
-          desc = desc.charAt(0).toUpperCase() + desc.slice(1);
-          state.expenses.unshift({ 
-            id: Date.now().toString(), 
-            desc, 
-            amount, 
-            date: extracted.date,
-            receipt: null 
-          });
-
-          selectedDate = new Date(extracted.date + "T00:00:00");
-          saveToStorage();
-          updateUI();
-          switchTab('expenses');
-          return;
-        }
-      }
-
-      alert(`Não foi possível entender.\nExemplos:\n• "Mercado 120 reais dia 10"\n• "Lembra de pagar a conta dia 15"`);
-    }
-
-    updateUI();
-  </script>
 </body>
 </html>
