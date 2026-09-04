@@ -7,12 +7,18 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Firebase SDKs para Sincronização em Tempo Real -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
+  <!-- Biblioteca para Leitura de QR Code / Nota Fiscal -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <!-- Bibliotecas para Geração de PDF e Captura de Elementos -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
   <style>
-    /* Animação pulsante chamativa quando o microfone estiver gravando */
     @keyframes mic-pulse {
       0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.8); }
       70% { transform: scale(1.15); box-shadow: 0 0 0 18px rgba(225, 29, 72, 0); }
@@ -129,9 +135,14 @@
         <i class="fa-solid fa-plus text-base"></i> Nova Despesa
       </button>
 
-      <!-- Botão de Voz com Indicador Visual -->
+      <!-- Botão de Voz -->
       <button type="button" id="voiceBtn" onclick="toggleVoiceRecognition()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold p-3 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all w-12 h-12 shrink-0" title="Lançar por voz">
         <i class="fa-solid fa-microphone text-lg"></i>
+      </button>
+
+      <!-- Botão de Câmera Global -->
+      <button type="button" onclick="openCameraModal()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold p-3 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-all w-12 h-12 shrink-0" title="Capturar Comprovante">
+        <i class="fa-solid fa-camera text-lg"></i>
       </button>
     </div>
 
@@ -173,7 +184,7 @@
 
   <!-- Modal: Nova Despesa -->
   <div id="expenseModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4">
+    <div class="bg-white w-full max-w-md p-5 rounded-2xl shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
       <h3 id="modalExpenseTitle" class="font-bold text-slate-800 text-base border-b pb-2">Nova Despesa</h3>
       <div class="space-y-3">
         <input type="hidden" id="expId">
@@ -189,11 +200,100 @@
           <label class="text-xs font-semibold text-slate-600 block mb-1">Data da Despesa</label>
           <input type="date" id="expDate" class="w-full p-3 border border-slate-300 rounded-xl text-sm">
         </div>
+
+        <div class="pt-2">
+          <label class="text-xs font-semibold text-slate-600 block mb-1">Comprovante / Recibo</label>
+          <div id="receiptPreviewContainer" class="hidden mb-2">
+            <img id="receiptPreviewImg" src="" class="w-full h-32 object-cover rounded-xl border border-slate-200">
+            <button type="button" onclick="removeReceiptFromModal()" class="text-xs text-rose-600 font-bold mt-1 hover:underline"><i class="fa-solid fa-trash"></i> Remover Imagem</button>
+          </div>
+          <button type="button" onclick="openCameraModalFromExpense()" class="w-full py-2.5 bg-slate-100 border border-slate-300 text-slate-700 font-semibold rounded-xl text-xs flex items-center justify-center gap-2 hover:bg-slate-200">
+            <i class="fa-solid fa-camera text-slate-500"></i> Escanear / Anexar Comprovante
+          </button>
+        </div>
+
       </div>
       <div class="flex gap-2 pt-2">
         <button type="button" onclick="closeExpenseModal()" class="w-1/2 bg-slate-200 text-slate-700 font-bold py-3 rounded-xl text-sm">Cancelar</button>
         <button type="button" onclick="saveExpense()" class="w-1/2 bg-indigo-600 text-white font-bold py-3 rounded-xl text-sm shadow">Salvar Despesa</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal: Câmera Multifuncional -->
+  <div id="cameraModal" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      
+      <div class="p-4 bg-slate-900 text-white flex justify-between items-center border-b border-slate-800">
+        <h3 class="font-bold text-sm flex items-center gap-2"><i class="fa-solid fa-camera text-indigo-400"></i> Captura de Comprovante</h3>
+        <button onclick="closeCameraModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="flex bg-slate-800 text-xs font-semibold text-slate-300 border-b border-slate-700">
+        <button id="camModeQrBtn" onclick="setCameraMode('qr')" class="flex-1 py-2.5 text-center text-indigo-400 border-b-2 border-indigo-500">QR Code</button>
+        <button id="camModeSingleBtn" onclick="setCameraMode('single')" class="flex-1 py-2.5 text-center">Única</button>
+        <button id="camModeMosaicBtn" onclick="setCameraMode('mosaic')" class="flex-1 py-2.5 text-center">Mosaico</button>
+        <button id="camModePanoBtn" onclick="setCameraMode('pano')" class="flex-1 py-2.5 text-center">Panorâmica</button>
+      </div>
+
+      <div class="relative bg-black flex-1 min-h-[260px] flex items-center justify-center overflow-hidden">
+        <div id="qrReader" class="w-full h-full"></div>
+        <video id="cameraVideo" class="w-full h-full object-cover hidden" autoplay playsinline></video>
+        <canvas id="cameraCanvas" class="hidden"></canvas>
+        <div id="panoGuide" class="absolute inset-x-4 top-2 bottom-2 border-2 border-dashed border-yellow-400/70 pointer-events-none hidden flex items-center justify-center">
+          <span class="text-[10px] bg-slate-900/80 text-yellow-300 px-2 py-1 rounded">Posicione o cupom no centro</span>
+        </div>
+      </div>
+
+      <div class="p-4 bg-slate-900 text-white space-y-3">
+        <p id="camHintText" class="text-[11px] text-slate-400 text-center">Aponte a câmera para o QR Code do cupom fiscal.</p>
+        <div id="capturesPreviewRow" class="flex gap-2 overflow-x-auto py-1 hidden"></div>
+
+        <div class="flex items-center justify-between gap-2 pt-1">
+          <button id="snapPhotoBtn" onclick="capturePhotoStep()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 hidden">
+            <i class="fa-solid fa-circle text-rose-500 text-sm"></i> Tirar Foto
+          </button>
+          
+          <button id="finishCapturesBtn" onclick="finishCameraCapture()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-xs hidden">
+            <i class="fa-solid fa-check"></i> Concluir
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Visualizar e Compartlhar Comprovante / PDF -->
+  <div id="viewReceiptModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md p-4 rounded-2xl shadow-xl space-y-3 flex flex-col max-h-[90vh]">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+          <i class="fa-solid fa-file-invoice text-indigo-600"></i> Comprovante da Despesa
+        </h3>
+        <button onclick="closeViewReceiptModal()" class="text-slate-400 hover:text-slate-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <!-- Área do Comprovante Visual -->
+      <div id="receiptPDFArea" class="flex-1 overflow-auto bg-slate-100 rounded-xl p-3 flex flex-col items-center justify-center space-y-2">
+        <div class="w-full bg-white p-3 rounded-lg border border-slate-200 text-xs space-y-1">
+          <p class="font-bold text-sm text-slate-800" id="receiptModalDesc">Descrição</p>
+          <p class="text-rose-600 font-extrabold text-base" id="receiptModalAmount">R$ 0,00</p>
+          <p class="text-slate-400" id="receiptModalDate">Data: --/--/----</p>
+        </div>
+        <img id="viewReceiptImg" src="" class="max-w-full max-h-[50vh] object-contain rounded-lg shadow-sm border border-slate-200">
+      </div>
+
+      <!-- Opções de Ação e Compartilhamento -->
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" onclick="shareReceiptPDF('whatsapp')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow">
+          <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+        </button>
+        <button type="button" onclick="shareReceiptPDF('email')" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow">
+          <i class="fa-solid fa-envelope text-sm"></i> E-mail / PDF
+        </button>
+      </div>
+
+      <button type="button" onclick="closeViewReceiptModal()" class="w-full bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-xs">Fechar</button>
     </div>
   </div>
 
@@ -235,14 +335,14 @@
   </div>
 
   <script>
-    // Configuração Pública de Conexão Firebase
     const firebaseConfig = { databaseURL: "https://sucesso-financeiro-c3cbe-default-rtdb.firebaseio.com" };
     
     let dbRef = null;
     let pairCode = localStorage.getItem('casal_pair_code') || 'casal-demo-123';
-
-    // Mês/Ano selecionado (Padrão: Atual)
     let selectedDate = new Date();
+    let tempCapturedImage = null;
+    let pendingExpenseAttachmentId = null;
+    let activeExpenseForReceipt = null;
 
     try {
       firebase.initializeApp(firebaseConfig);
@@ -333,17 +433,14 @@
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth();
 
-      // Atualiza Label de Mês/Ano
       const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
       document.getElementById("currentMonthLabel").innerText = `${monthNames[month]} de ${year}`;
 
-      // Filtra despesas do mês selecionado
       const filteredExpenses = (state.expenses || []).filter(item => {
         const d = new Date(item.date + "T00:00:00");
         return d.getFullYear() === year && d.getMonth() === month;
       });
 
-      // Filtra lembretes do mês selecionado
       const filteredReminders = (state.reminders || []).filter(item => {
         const d = new Date(item.date + "T00:00:00");
         return d.getFullYear() === year && d.getMonth() === month;
@@ -369,16 +466,37 @@
       } else {
         list.innerHTML = filteredExpenses.map(item => `
           <div class="bg-white p-3.5 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm">
-            <div>
-              <span class="font-bold text-sm text-slate-800 block">${escapeHtml(item.desc)}</span>
-              <div class="flex items-center gap-2 text-xs">
-                <span class="font-bold text-rose-600">-${formatBRL(item.amount)}</span>
-                <span class="text-slate-400">• ${formatDisplayDate(item.date)}</span>
+            <div class="flex items-center gap-3">
+              ${item.receipt ? `
+                <button type="button" onclick="viewReceipt('${item.id}')" class="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 shrink-0 bg-slate-100 relative group" title="Visualizar Nota">
+                  <img src="${item.receipt}" class="w-full h-full object-cover">
+                  <div class="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs transition-opacity"><i class="fa-solid fa-eye"></i></div>
+                </button>
+              ` : `
+                <button type="button" onclick="openCameraToAttachAfter('${item.id}')" class="w-10 h-10 rounded-lg border border-dashed border-slate-300 text-slate-400 flex items-center justify-center shrink-0 hover:border-indigo-500 hover:text-indigo-600" title="Anexar Comprovante">
+                  <i class="fa-solid fa-paperclip text-xs"></i>
+                </button>
+              `}
+              <div>
+                <span class="font-bold text-sm text-slate-800 block">${escapeHtml(item.desc)}</span>
+                <div class="flex items-center gap-2 text-xs">
+                  <span class="font-bold text-rose-600">-${formatBRL(item.amount)}</span>
+                  <span class="text-slate-400">• ${formatDisplayDate(item.date)}</span>
+                </div>
               </div>
             </div>
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="openExpenseModal('${item.id}')" class="text-slate-400 hover:text-indigo-600 p-2"><i class="fa-solid fa-pen text-xs"></i></button>
-              <button type="button" onclick="deleteExpense('${item.id}')" class="text-slate-400 hover:text-rose-600 p-2"><i class="fa-solid fa-trash text-xs"></i></button>
+            
+            <div class="flex items-center gap-1">
+              ${item.receipt ? `
+                <button type="button" onclick="viewReceipt('${item.id}')" class="text-indigo-600 hover:text-indigo-800 p-2" title="Visualizar Nota">
+                  <i class="fa-solid fa-eye text-xs"></i>
+                </button>
+                <button type="button" onclick="prepareAndShareReceipt('${item.id}')" class="text-emerald-600 hover:text-emerald-800 p-2" title="Gerar PDF / Compartilhar">
+                  <i class="fa-solid fa-share-nodes text-xs"></i>
+                </button>
+              ` : ''}
+              <button type="button" onclick="openExpenseModal('${item.id}')" class="text-slate-400 hover:text-indigo-600 p-2" title="Editar"><i class="fa-solid fa-pen text-xs"></i></button>
+              <button type="button" onclick="deleteExpense('${item.id}')" class="text-slate-400 hover:text-rose-600 p-2" title="Apagar"><i class="fa-solid fa-trash text-xs"></i></button>
             </div>
           </div>
         `).join("");
@@ -411,7 +529,7 @@
     }
 
     function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+      return (str || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
     }
 
     function openIncomeModal() {
@@ -434,6 +552,9 @@
     }
 
     function openExpenseModal(id = null) {
+      tempCapturedImage = null;
+      document.getElementById("receiptPreviewContainer").classList.add("hidden");
+
       if (id) {
         const item = state.expenses.find(x => x.id === id);
         if (item) {
@@ -441,6 +562,11 @@
           document.getElementById("expDesc").value = item.desc;
           document.getElementById("expAmount").value = item.amount;
           document.getElementById("expDate").value = item.date || getISODateString();
+          if (item.receipt) {
+            tempCapturedImage = item.receipt;
+            document.getElementById("receiptPreviewImg").src = item.receipt;
+            document.getElementById("receiptPreviewContainer").classList.remove("hidden");
+          }
         }
       } else {
         document.getElementById("expId").value = "";
@@ -450,7 +576,13 @@
       }
       document.getElementById("expenseModal").classList.remove("hidden");
     }
+
     function closeExpenseModal() { document.getElementById("expenseModal").classList.add("hidden"); }
+
+    function removeReceiptFromModal() {
+      tempCapturedImage = null;
+      document.getElementById("receiptPreviewContainer").classList.add("hidden");
+    }
 
     function saveExpense() {
       const id = document.getElementById("expId").value;
@@ -462,12 +594,22 @@
 
       if (id) {
         const item = state.expenses.find(x => x.id === id);
-        if (item) { item.desc = desc; item.amount = amount; item.date = date; }
+        if (item) { 
+          item.desc = desc; 
+          item.amount = amount; 
+          item.date = date; 
+          item.receipt = tempCapturedImage;
+        }
       } else {
-        state.expenses.unshift({ id: Date.now().toString(), desc, amount, date });
+        state.expenses.unshift({ 
+          id: Date.now().toString(), 
+          desc, 
+          amount, 
+          date,
+          receipt: tempCapturedImage 
+        });
       }
 
-      // Sincroniza a tela para o mês da data da despesa cadastrada
       const targetDate = new Date(date + "T00:00:00");
       selectedDate = targetDate;
 
@@ -548,7 +690,367 @@
       }
     }
 
-    // --- RECONHECIMENTO DE VOZ COMPATÍVEL COM CELULAR ---
+    // --- CÂMERA ---
+    let cameraMode = 'qr';
+    let qrScanner = null;
+    let cameraStream = null;
+    let capturedParts = [];
+
+    function openCameraModal() {
+      pendingExpenseAttachmentId = null;
+      document.getElementById("cameraModal").classList.remove("hidden");
+      setCameraMode('qr');
+    }
+
+    function openCameraModalFromExpense() {
+      openCameraModal();
+    }
+
+    function openCameraToAttachAfter(expenseId) {
+      pendingExpenseAttachmentId = expenseId;
+      document.getElementById("cameraModal").classList.remove("hidden");
+      setCameraMode('single');
+    }
+
+    function closeCameraModal() {
+      stopCameraAndQr();
+      document.getElementById("cameraModal").classList.add("hidden");
+    }
+
+    function stopCameraAndQr() {
+      if (qrScanner) {
+        try { qrScanner.stop(); } catch(e){}
+        qrScanner = null;
+      }
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+      const video = document.getElementById("cameraVideo");
+      video.pause();
+      video.srcObject = null;
+      capturedParts = [];
+      updatePreviewRow();
+    }
+
+    function setCameraMode(mode) {
+      stopCameraAndQr();
+      cameraMode = mode;
+
+      const modes = ['qr', 'single', 'mosaic', 'pano'];
+      modes.forEach(m => {
+        const btn = document.getElementById(`camMode${m.charAt(0).toUpperCase() + m.slice(1)}Btn`);
+        if (m === mode) {
+          btn.className = "flex-1 py-2.5 text-center text-indigo-400 border-b-2 border-indigo-500 font-bold";
+        } else {
+          btn.className = "flex-1 py-2.5 text-center text-slate-400 font-semibold";
+        }
+      });
+
+      const qrContainer = document.getElementById("qrReader");
+      const video = document.getElementById("cameraVideo");
+      const snapBtn = document.getElementById("snapPhotoBtn");
+      const finishBtn = document.getElementById("finishCapturesBtn");
+      const hint = document.getElementById("camHintText");
+      const panoGuide = document.getElementById("panoGuide");
+
+      qrContainer.classList.add("hidden");
+      video.classList.add("hidden");
+      snapBtn.classList.add("hidden");
+      finishBtn.classList.add("hidden");
+      panoGuide.classList.add("hidden");
+
+      if (mode === 'qr') {
+        qrContainer.classList.remove("hidden");
+        hint.innerText = "Aponte a câmera para o QR Code da Nota Fiscal/Cupom.";
+        startQrScanner();
+      } else {
+        video.classList.remove("hidden");
+        snapBtn.classList.remove("hidden");
+        startVideoCamera();
+
+        if (mode === 'single') {
+          hint.innerText = "Tire 1 foto completa do cupom.";
+        } else if (mode === 'mosaic') {
+          hint.innerText = "Tire várias fotos do cupom e clique em 'Concluir'.";
+          finishBtn.classList.remove("hidden");
+        } else if (mode === 'pano') {
+          hint.innerText = "Tire fotos de cima para baixo em sequência.";
+          finishBtn.classList.remove("hidden");
+          panoGuide.classList.remove("hidden");
+        }
+      }
+    }
+
+    function startQrScanner() {
+      qrScanner = new Html5Qrcode("qrReader");
+      qrScanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        (decodedText) => {
+          stopCameraAndQr();
+          closeCameraModal();
+          openExpenseModal();
+          document.getElementById("expDesc").value = "Nota Fiscal (QR Code)";
+          
+          const valMatch = decodedText.match(/(?:vNF|valor)=([0-9.]+)/i);
+          if (valMatch) {
+            document.getElementById("expAmount").value = parseFloat(valMatch[1]).toFixed(2);
+          }
+          alert("QR Code lido com sucesso!");
+        },
+        (error) => {}
+      ).catch(err => {
+        document.getElementById("camHintText").innerText = "Permita o acesso à câmera.";
+      });
+    }
+
+    async function startVideoCamera() {
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "environment" }, 
+          audio: false 
+        });
+        const video = document.getElementById("cameraVideo");
+        video.srcObject = cameraStream;
+      } catch(err) {
+        alert("Erro ao acessar câmera.");
+      }
+    }
+
+    function capturePhotoStep() {
+      const video = document.getElementById("cameraVideo");
+      const canvas = document.getElementById("cameraCanvas");
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+
+      if (cameraMode === 'single') {
+        applyCapturedReceipt(dataUrl);
+        closeCameraModal();
+      } else {
+        capturedParts.push(dataUrl);
+        updatePreviewRow();
+      }
+    }
+
+    function updatePreviewRow() {
+      const row = document.getElementById("capturesPreviewRow");
+      if (capturedParts.length === 0) {
+        row.classList.add("hidden");
+        row.innerHTML = "";
+      } else {
+        row.classList.remove("hidden");
+        row.innerHTML = capturedParts.map((img, idx) => `
+          <div class="relative shrink-0">
+            <img src="${img}" class="w-12 h-12 object-cover rounded-lg border border-indigo-400">
+            <span class="absolute top-0 right-0 bg-indigo-600 text-[9px] text-white px-1 rounded-bl">${idx+1}</span>
+          </div>
+        `).join("");
+      }
+    }
+
+    function finishCameraCapture() {
+      if (capturedParts.length === 0) return alert("Tire pelo menos uma foto.");
+
+      const canvas = document.getElementById("cameraCanvas");
+      const ctx = canvas.getContext("2d");
+
+      if (cameraMode === 'pano') {
+        const imgObjs = [];
+        let totalHeight = 0, maxWidth = 0, loaded = 0;
+
+        capturedParts.forEach((src, idx) => {
+          const img = new Image();
+          img.onload = () => {
+            imgObjs[idx] = img;
+            totalHeight += img.height;
+            if (img.width > maxWidth) maxWidth = img.width;
+            loaded++;
+
+            if (loaded === capturedParts.length) {
+              canvas.width = maxWidth;
+              canvas.height = totalHeight;
+              let currentY = 0;
+              imgObjs.forEach(i => {
+                ctx.drawImage(i, 0, currentY, maxWidth, i.height);
+                currentY += i.height;
+              });
+              applyCapturedReceipt(canvas.toDataURL("image/jpeg", 0.6));
+              closeCameraModal();
+            }
+          };
+          img.src = src;
+        });
+
+      } else if (cameraMode === 'mosaic') {
+        const count = capturedParts.length;
+        const cols = count > 1 ? 2 : 1;
+        const rows = Math.ceil(count / cols);
+        const imgObjs = [];
+        let loaded = 0;
+
+        capturedParts.forEach((src, idx) => {
+          const img = new Image();
+          img.onload = () => {
+            imgObjs[idx] = img;
+            loaded++;
+
+            if (loaded === capturedParts.length) {
+              const cellWidth = imgObjs[0].width;
+              const cellHeight = imgObjs[0].height;
+
+              canvas.width = cellWidth * cols;
+              canvas.height = cellHeight * rows;
+
+              imgObjs.forEach((i, index) => {
+                const c = index % cols;
+                const r = Math.floor(index / cols);
+                ctx.drawImage(i, c * cellWidth, r * cellHeight, cellWidth, cellHeight);
+              });
+
+              applyCapturedReceipt(canvas.toDataURL("image/jpeg", 0.6));
+              closeCameraModal();
+            }
+          };
+          img.src = src;
+        });
+      }
+    }
+
+    function applyCapturedReceipt(imageData) {
+      if (pendingExpenseAttachmentId) {
+        const item = state.expenses.find(x => x.id === pendingExpenseAttachmentId);
+        if (item) {
+          item.receipt = imageData;
+          saveToStorage();
+          updateUI();
+          alert("Comprovante anexado à despesa!");
+        }
+        pendingExpenseAttachmentId = null;
+      } else {
+        tempCapturedImage = imageData;
+        document.getElementById("receiptPreviewImg").src = imageData;
+        document.getElementById("receiptPreviewContainer").classList.remove("hidden");
+        
+        const expModal = document.getElementById("expenseModal");
+        if (expModal.classList.contains("hidden")) {
+          openExpenseModal();
+          tempCapturedImage = imageData;
+          document.getElementById("receiptPreviewImg").src = imageData;
+          document.getElementById("receiptPreviewContainer").classList.remove("hidden");
+        }
+      }
+    }
+
+    // --- VISUALIZAÇÃO E GERADOR DE PDF / COMPARTILHAMENTO ---
+    function viewReceipt(expenseId) {
+      const item = state.expenses.find(x => x.id === expenseId);
+      if (item && item.receipt) {
+        activeExpenseForReceipt = item;
+        document.getElementById("receiptModalDesc").innerText = item.desc;
+        document.getElementById("receiptModalAmount").innerText = formatBRL(item.amount);
+        document.getElementById("receiptModalDate").innerText = "Data: " + formatDisplayDate(item.date);
+        document.getElementById("viewReceiptImg").src = item.receipt;
+        document.getElementById("viewReceiptModal").classList.remove("hidden");
+      }
+    }
+
+    function prepareAndShareReceipt(expenseId) {
+      viewReceipt(expenseId);
+    }
+
+    function closeViewReceiptModal() {
+      document.getElementById("viewReceiptModal").classList.add("hidden");
+    }
+
+    async function generateReceiptPDFBlob(expense) {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+      // Cabeçalho PDF
+      pdf.setFillColor(15, 23, 42); // slate-900
+      pdf.rect(0, 0, 210, 30, 'F');
+      
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      pdf.text("Comprovante de Despesa", 15, 18);
+
+      // Dados da Despesa
+      pdf.setTextColor(30, 41, 59);
+      pdf.setFontSize(12);
+      pdf.text(`Descrição: ${expense.desc}`, 15, 42);
+      pdf.text(`Valor: R$ ${expense.amount.toFixed(2).replace('.', ',')}`, 15, 50);
+      pdf.text(`Data da Despesa: ${formatDisplayDate(expense.date)}`, 15, 58);
+      pdf.text(`ID Transação: ${expense.id}`, 15, 66);
+
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(15, 72, 195, 72);
+
+      // Imagem do Comprovante
+      if (expense.receipt) {
+        const img = new Image();
+        img.src = expense.receipt;
+        await new Promise((resolve) => img.onload = resolve);
+
+        const maxWidth = 180;
+        const maxHeight = 190;
+        let imgWidth = img.width;
+        let imgHeight = img.height;
+
+        const ratio = Math.min(maxWidth / imgWidth, maxHeight / imgHeight);
+        imgWidth = imgWidth * ratio;
+        imgHeight = imgHeight * ratio;
+
+        pdf.addImage(expense.receipt, 'JPEG', 15, 80, imgWidth, imgHeight);
+      }
+
+      return pdf;
+    }
+
+    async function shareReceiptPDF(targetPlatform) {
+      if (!activeExpenseForReceipt) return;
+
+      const expense = activeExpenseForReceipt;
+      const pdf = await generateReceiptPDFBlob(expense);
+      const pdfBlob = pdf.output('blob');
+      const fileName = `Comprovante_${expense.desc.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+      const textMessage = `Comprovante de Despesa:\n• ${expense.desc}\n• Valor: R$ ${expense.amount.toFixed(2).replace('.', ',')}\n• Data: ${formatDisplayDate(expense.date)}`;
+
+      // Tenta acionar a API de compartilhamento nativo do dispositivo
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        try {
+          await navigator.share({
+            files: [pdfFile],
+            title: `Comprovante - ${expense.desc}`,
+            text: textMessage
+          });
+          return;
+        } catch (err) {
+          console.log("Compartilhamento nativo cancelado ou falhou, fallback em andamento.");
+        }
+      }
+
+      // Fallback: Baixa o PDF e abre a plataforma desejada
+      pdf.save(fileName);
+
+      if (targetPlatform === 'whatsapp') {
+        const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(textMessage + "\n\n(O arquivo PDF foi baixado em seu dispositivo para anexo)")}`;
+        window.open(whatsappUrl, '_blank');
+      } else if (targetPlatform === 'email') {
+        const mailtoUrl = `mailto:?subject=${encodeURIComponent(`Comprovante - ${expense.desc}`)}&body=${encodeURIComponent(textMessage + "\n\n(O arquivo PDF foi baixado em seu dispositivo para anexo)")}`;
+        window.open(mailtoUrl, '_blank');
+      }
+    }
+
+    // --- VOZ ---
     let recognition = null;
     let isListening = false;
 
@@ -563,28 +1065,17 @@
 
       rec.onstart = function() {
         isListening = true;
-        const btn = document.getElementById("voiceBtn");
-        btn.classList.add("mic-recording");
+        document.getElementById("voiceBtn").classList.add("mic-recording");
       };
 
       rec.onend = function() {
         isListening = false;
-        const btn = document.getElementById("voiceBtn");
-        btn.classList.remove("mic-recording");
+        document.getElementById("voiceBtn").classList.remove("mic-recording");
       };
 
-      rec.onerror = function(event) {
+      rec.onerror = function() {
         isListening = false;
-        const btn = document.getElementById("voiceBtn");
-        btn.classList.remove("mic-recording");
-
-        if (event.error === 'not-allowed') {
-          alert("Permissão de microfone negada. Acesse as configurações do seu navegador no celular para permitir o microfone.");
-        } else if (event.error === 'no-speech') {
-          alert("Nenhuma fala detectada. Tente novamente.");
-        } else {
-          alert("Erro no microfone: " + event.error);
-        }
+        document.getElementById("voiceBtn").classList.remove("mic-recording");
       };
 
       rec.onresult = function(event) {
@@ -596,28 +1087,16 @@
     }
 
     function toggleVoiceRecognition() {
-      if (!recognition) {
-        recognition = initSpeechRecognition();
-      }
-
-      if (!recognition) {
-        alert("O seu navegador não possui suporte a comando por voz ou a página não está rodando sob um link seguro (HTTPS).");
-        return;
-      }
+      if (!recognition) recognition = initSpeechRecognition();
+      if (!recognition) return alert("Voz não suportada neste navegador/dispositivo.");
 
       if (isListening) {
         recognition.stop();
       } else {
-        try {
-          recognition.start();
-        } catch(err) {
-          recognition.stop();
-          setTimeout(() => { recognition.start(); }, 200);
-        }
+        try { recognition.start(); } catch(e) { recognition.stop(); setTimeout(() => recognition.start(), 200); }
       }
     }
 
-    // Função de extração de data falada por voz
     function extractDateFromSpeech(text) {
       const months = {
         'janeiro': '01', 'fevereiro': '02', 'março': '03', 'marco': '03', 'abril': '04',
@@ -625,10 +1104,9 @@
         'outubro': '10', 'novembro': '11', 'dezembro': '12'
       };
 
-      let detectedDate = getISODateString(); // Padrão: data atual
+      let detectedDate = getISODateString();
       let cleanText = text;
 
-      // Procura por formato numérico como "15/08/2026" ou "15/08"
       const numDateMatch = text.match(/dia\s+(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/i);
       if (numDateMatch) {
         let day = numDateMatch[1].padStart(2, '0');
@@ -639,7 +1117,6 @@
         return { date: detectedDate, text: cleanText };
       }
 
-      // Procura por extensão falada como "dia 15 de agosto de 2026" ou "15 de agosto"
       const textDateMatch = text.match(/(?:dia\s+)?(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?/i);
       if (textDateMatch) {
         let day = textDateMatch[1].padStart(2, '0');
@@ -674,7 +1151,6 @@
         });
 
         selectedDate = new Date(extracted.date + "T00:00:00");
-
         saveToStorage();
         updateUI();
         switchTab('reminders');
@@ -687,7 +1163,6 @@
         let amount = parseFloat(match[2].replace(',', '.'));
         let extraText = match[4] || '';
 
-        // Tenta extrair a data a partir da cauda da frase falada (ex: "dia 10 de maio")
         const extracted = extractDateFromSpeech(extraText.length > 0 ? extraText : rawDesc);
         
         let desc = rawDesc;
@@ -701,11 +1176,11 @@
             id: Date.now().toString(), 
             desc, 
             amount, 
-            date: extracted.date 
+            date: extracted.date,
+            receipt: null 
           });
 
           selectedDate = new Date(extracted.date + "T00:00:00");
-
           saveToStorage();
           updateUI();
           switchTab('expenses');
@@ -713,7 +1188,7 @@
         }
       }
 
-      alert(`Não foi possível processar.\n• Para lembrete: "Lembra de pagar a luz dia 15 de agosto"\n• Para despesa: "Mercado 150 reais dia 10/05"\n\n(Ouvi: "${text}")`);
+      alert(`Não foi possível entender.\nExemplos:\n• "Mercado 120 reais dia 10"\n• "Lembra de pagar a conta dia 15"`);
     }
 
     updateUI();
