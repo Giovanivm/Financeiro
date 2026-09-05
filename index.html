@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sucesso Financeiro</title>
     
-    <!-- Bibliotecas Firebase (Compatibilitate SDK v9+) -->
+    <!-- SDK Compatível Firebase v9 -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
@@ -488,14 +488,14 @@
                 <button id="btn-close-sync" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 12px;">
-                Insira o mesmo <b>Código da Sala</b> nos dois celulares.
+                Insira o mesmo <b>Código da Sala</b> e a mesma <b>URL do Firebase</b> nos dois celulares.
             </p>
             <div class="form-group">
-                <label>Código Único da Sala (Ex: familia2026)</label>
-                <input type="text" id="sync-room-id" class="form-control" placeholder="familia2026">
+                <label>Código Único da Sala (Ex: familiamesquita)</label>
+                <input type="text" id="sync-room-id" class="form-control" placeholder="familiamesquita">
             </div>
             <div class="form-group">
-                <label>URL do Firebase Realtime Database</label>
+                <label>URL do Realtime Database</label>
                 <input type="text" id="sync-db-url" class="form-control" placeholder="https://seu-projeto-default-rtdb.firebaseio.com">
             </div>
             <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue);">Conectar e Sincronizar</button>
@@ -584,33 +584,54 @@
                     localStorage.setItem('sf_app_data_v6', JSON.stringify(state));
                 } catch(e) {}
 
-                // Envia para o Firebase em tempo real se a conexão estiver configurada
                 if (syncToRemote && dbRef && !isRemoteUpdate) {
                     dbRef.set({
                         profiles: state.profiles,
                         items: state.items,
                         patients: state.patients
+                    }).catch(function(err) {
+                        alert('Erro ao enviar dados para a nuvem: ' + err.message);
                     });
                 }
             }
 
             function initFirebaseSync() {
                 var dot = document.getElementById('sync-status-dot');
-                if (!state.sync.roomId || !state.sync.dbUrl) {
+                
+                var dbUrl = (state.sync.dbUrl || '').trim();
+                var roomId = (state.sync.roomId || '').trim();
+
+                if (!roomId || !dbUrl) {
                     dot.classList.remove('sync-active');
                     return;
                 }
 
+                // Ajusta formatacao da URL se faltar o https://
+                if (!dbUrl.startsWith('http://') && !dbUrl.startsWith('https://')) {
+                    dbUrl = 'https://' + dbUrl;
+                }
+
                 try {
-                    // Inicializa o Firebase
-                    if (!firebase.apps.length) {
-                        firebase.initializeApp({ databaseURL: state.sync.dbUrl });
+                    if (firebase.apps.length > 0) {
+                        firebase.app().delete();
                     }
-                    
-                    var cleanRoom = state.sync.roomId.replace(/[^a-zA-Z0-9_-]/g, '');
+
+                    firebase.initializeApp({ databaseURL: dbUrl });
+
+                    var cleanRoom = roomId.replace(/[^a-zA-Z0-9_-]/g, '');
                     dbRef = firebase.database().ref('rooms/' + cleanRoom);
 
-                    // Escuta alterações na nuvem em tempo real
+                    // Escuta conexao ativa
+                    var connectedRef = firebase.database().ref('.info/connected');
+                    connectedRef.on('value', function(snap) {
+                        if (snap.val() === true) {
+                            dot.classList.add('sync-active');
+                        } else {
+                            dot.classList.remove('sync-active');
+                        }
+                    });
+
+                    // Escuta dados em tempo real
                     dbRef.on('value', function(snapshot) {
                         var data = snapshot.val();
                         if (data) {
@@ -626,11 +647,14 @@
                             renderPatients();
                             isRemoteUpdate = false;
                         }
+                    }, function(error) {
+                        dot.classList.remove('sync-active');
+                        alert('Falha na conexão do Firebase: ' + error.message + '\n\nVerifique se alterou as Regras do Realtime Database para true.');
                     });
 
-                    dot.classList.add('sync-active');
                 } catch(err) {
                     dot.classList.remove('sync-active');
+                    alert('Erro de configuração: ' + err.message);
                 }
             }
 
@@ -769,7 +793,7 @@
                 if (targetTab === 'patients') renderPatients();
             }
 
-            // MODAL ENGRENAGEM
+            // MODAL DE CONFIGURAÇÃO DA SINCRONIZAÇÃO
             var modalSync = document.getElementById('modal-sync');
             document.getElementById('btn-open-sync').addEventListener('click', function() {
                 document.getElementById('sync-room-id').value = state.sync.roomId || '';
@@ -787,7 +811,6 @@
                 saveData(false);
                 modalSync.classList.remove('active');
                 initFirebaseSync();
-                alert('Conexão configurada! Os dois celulares sincronizarão na mesma sala.');
             });
 
             // RECONHECIMENTO DE VOZ
@@ -800,7 +823,7 @@
                     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
                     if (!SpeechRecognition) {
-                        alert('Navegador sem suporte ao recurso de voz. Utilize o Chrome ou Safari.');
+                        alert('Navegador sem suporte ao recurso de voz. Utilize o Chrome.');
                         return;
                     }
 
@@ -837,9 +860,9 @@
                         btnVoice.classList.remove('listening');
                         voiceTitle.textContent = 'Lançamento por Voz';
                         if (event.error === 'not-allowed') {
-                            alert('Acesso ao microfone negado. Habilite nas configurações do navegador.');
+                            alert('Acesso ao microfone negado.');
                         } else {
-                            voiceDesc.textContent = 'Não foi possível ouvir. Tente novamente.';
+                            voiceDesc.textContent = 'Tente novamente.';
                         }
                     };
 
