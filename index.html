@@ -66,7 +66,7 @@
         }
 
         .tab-content.active {
-            display: block;
+            display: block !important;
         }
 
         .card {
@@ -490,23 +490,44 @@
             calculateReports();
         };
 
+        function getTodayString() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         function setTodayDates() {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getTodayString();
             document.getElementById('exp-date').value = today;
             document.getElementById('inc-date').value = today;
         }
 
         function switchTab(tabId, element) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById('tab-' + tabId).classList.add('active');
-            element.classList.add('active');
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
 
-            if(tabId === 'reports') calculateReports();
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('active');
+            });
+
+            const targetTab = document.getElementById('tab-' + tabId);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            if (element) {
+                element.classList.add('active');
+            }
+
+            if (tabId === 'reports') {
+                calculateReports();
+            }
         }
 
-        // COMANDO DE VOZ
         function startVoiceRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const btn = document.getElementById('btn-voice-input');
@@ -542,25 +563,25 @@
         function processVoiceText(text) {
             let amount = 0;
             let method = "Débito/PIX";
-            let dateFormatted = new Date().toISOString().split('T')[0]; // Padrão: HOJE
+            let dateFormatted = getTodayString();
 
             const textLower = text.toLowerCase();
 
-            // Extrai Valor
             const numbers = text.match(/\d+(?:[\.,]\d+)?/g);
             if (numbers) {
                 amount = parseFloat(numbers[0].replace(',', '.'));
             }
 
-            // Extrai Método
             if (textLower.includes('crédito') || textLower.includes('cartão')) method = 'Crédito';
             if (textLower.includes('dinheiro')) method = 'Dinheiro';
 
-            // Extrai Data Falada (ex: "dia 15 de maio" ou "ontem")
             if (textLower.includes('ontem')) {
                 let d = new Date();
                 d.setDate(d.getDate() - 1);
-                dateFormatted = d.toISOString().split('T')[0];
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                dateFormatted = `${year}-${month}-${day}`;
             } else {
                 for (let m in monthMap) {
                     if (textLower.includes(m)) {
@@ -575,7 +596,6 @@
                 }
             }
 
-            // Extrai Descrição limpa
             let desc = text.replace(/\d+(?:[\.,]\d+)?/g, '')
                        .replace(/reais|real|no débito|no crédito|cartão|dinheiro|pix|gastei|com|dia|ontem|de/gI, '')
                        .trim();
@@ -596,10 +616,14 @@
             const desc = document.getElementById('exp-desc').value;
             const amount = parseFloat(document.getElementById('exp-amount').value);
             const method = document.getElementById('exp-method').value;
-            const date = document.getElementById('exp-date').value;
+            const date = document.getElementById('exp-date').value || getTodayString();
+
+            if (!desc || isNaN(amount)) return;
 
             addTransaction('expense', desc, amount, method, date);
-            document.getElementById('form-expense').reset();
+            
+            document.getElementById('exp-desc').value = '';
+            document.getElementById('exp-amount').value = '';
             setTodayDates();
         }
 
@@ -608,7 +632,9 @@
             const desc = document.getElementById('inc-desc-select').value;
             const amount = parseFloat(document.getElementById('inc-amount').value);
             const subType = document.getElementById('inc-category-type').value;
-            const date = document.getElementById('inc-date').value;
+            const date = document.getElementById('inc-date').value || getTodayString();
+
+            if (!desc || isNaN(amount)) return;
 
             let catLabel = 'Geral';
             if (subType === 'penal') catLabel = 'Policial Penal';
@@ -616,6 +642,7 @@
             if (subType === 'outras') catLabel = 'Outras Fontes';
 
             addTransaction('income', desc, amount, catLabel, date);
+            
             document.getElementById('inc-amount').value = '';
             setTodayDates();
         }
@@ -627,7 +654,7 @@
                 title: title,
                 amount: amount,
                 detail: detail,
-                date: dateStr || new Date().toISOString().split('T')[0]
+                date: dateStr || getTodayString()
             };
 
             appState.transactions.unshift(transaction);
@@ -636,15 +663,17 @@
         }
 
         function formatDisplayDate(dateStr) {
-            if(!dateStr) return '';
+            if (!dateStr) return '';
             const parts = dateStr.split('-');
-            if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
             return dateStr;
         }
 
         function renderFeeds() {
             const expContainer = document.getElementById('expenses-feed');
             const incContainer = document.getElementById('incomes-feed');
+
+            if (!expContainer || !incContainer) return;
 
             expContainer.innerHTML = '';
             incContainer.innerHTML = '';
@@ -687,21 +716,22 @@
 
         function renderIncomeSubTabs() {
             const container = document.getElementById('income-subtabs');
+            if (!container) return;
             container.innerHTML = '';
 
             const profs = appState.user.professions;
             let firstTab = null;
 
             if (profs.penal) {
-                container.innerHTML += `<button class="sub-tab-btn ${appState.currentIncomeSubTab === 'penal' ? 'active' : ''}" onclick="selectIncomeSubTab('penal')">Policial Penal</button>`;
+                container.innerHTML += `<button type="button" class="sub-tab-btn ${appState.currentIncomeSubTab === 'penal' ? 'active' : ''}" onclick="selectIncomeSubTab('penal')">Policial Penal</button>`;
                 if (!firstTab) firstTab = 'penal';
             }
             if (profs.nutri) {
-                container.innerHTML += `<button class="sub-tab-btn ${appState.currentIncomeSubTab === 'nutri' ? 'active' : ''}" onclick="selectIncomeSubTab('nutri')">Nutricionista</button>`;
+                container.innerHTML += `<button type="button" class="sub-tab-btn ${appState.currentIncomeSubTab === 'nutri' ? 'active' : ''}" onclick="selectIncomeSubTab('nutri')">Nutricionista</button>`;
                 if (!firstTab) firstTab = 'nutri';
             }
             if (profs.outras) {
-                container.innerHTML += `<button class="sub-tab-btn ${appState.currentIncomeSubTab === 'outras' ? 'active' : ''}" onclick="selectIncomeSubTab('outras')">Outras Fontes</button>`;
+                container.innerHTML += `<button type="button" class="sub-tab-btn ${appState.currentIncomeSubTab === 'outras' ? 'active' : ''}" onclick="selectIncomeSubTab('outras')">Outras Fontes</button>`;
                 if (!firstTab) firstTab = 'outras';
             }
 
@@ -719,6 +749,7 @@
 
         function updateIncomeSelectOptions() {
             const select = document.getElementById('inc-desc-select');
+            if (!select) return;
             select.innerHTML = '';
             
             const currentSub = appState.currentIncomeSubTab;
@@ -789,7 +820,11 @@
         function loadFromStorage() {
             const data = localStorage.getItem('sucesso_financeiro_db');
             if (data) {
-                appState = JSON.parse(data);
+                try {
+                    appState = JSON.parse(data);
+                } catch(e) {
+                    console.error('Erro ao carregar dados:', e);
+                }
             }
         }
     </script>
