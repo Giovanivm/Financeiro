@@ -15,7 +15,6 @@
             --accent-blue: #38bdf8;
             --accent-red: #ef4444;
             --accent-purple: #a855f7;
-            --accent-amber: #f59e0b;
             --border-color: #334155;
         }
 
@@ -291,7 +290,7 @@
         <button class="btn-reset" id="btn-force-reset">RECARREGAR APP</button>
     </div>
 
-    <!-- Barra de Alternância de Conta Geral -->
+    <!-- Seletor de Conta Ativa -->
     <div class="account-selector-bar">
         <label for="global-account-select">GESTÃO DE:</label>
         <select id="global-account-select" class="account-select">
@@ -370,7 +369,7 @@
             </div>
         </div>
 
-        <!-- ABA 3: PACIENTES (APENAS NUTRICIONISTA NA CONTA PRINCIPAL) -->
+        <!-- ABA 3: PACIENTES (APENAS NUTRICIONISTA NA CONTA FAMÍLIA) -->
         <div id="tab-patients" class="tab-content">
             <div class="card">
                 <div class="card-title">👤 Cadastrar Novo Paciente</div>
@@ -419,25 +418,26 @@
         <!-- ABA 5: PERFIL -->
         <div id="tab-profile" class="tab-content">
             <div class="card">
-                <div class="card-title">⚙️ Perfil do Usuário</div>
+                <div class="card-title" id="profile-card-title">⚙️ Perfil do Titular</div>
                 <form id="form-profile">
                     <div class="form-group">
-                        <label>Nome Completo</label>
+                        <label>Nome Completo / Titular</label>
                         <input type="text" id="prof-name" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label>Profissão Principal</label>
+                        <label>Profissão / Categoria Principal</label>
                         <select id="prof-job" class="form-control">
                             <option value="penal">Policial Penal</option>
                             <option value="nutri">Nutricionista</option>
+                            <option value="aposentado">Aposentado / Pensionista</option>
                             <option value="outras">Outra Profissão</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>E-mail</label>
-                        <input type="email" id="prof-email" class="form-control" placeholder="seu@email.com">
+                        <label>E-mail / Contato</label>
+                        <input type="email" id="prof-email" class="form-control" placeholder="email@exemplo.com">
                     </div>
-                    <button type="submit" class="btn-submit">Salvar Alterações</button>
+                    <button type="submit" class="btn-submit">Salvar Perfil Desta Conta</button>
                 </form>
             </div>
         </div>
@@ -470,17 +470,23 @@
 
     <script>
         (function() {
-            // O botão recarrega a página para destravar sem apagar os dados salvos
             document.getElementById('btn-force-reset').addEventListener('click', function() {
                 window.location.reload(true);
             });
 
             var state = {
-                currentAccount: 'main', // 'main' ou 'sebastiao'
-                user: {
-                    name: 'Giovani',
-                    job: 'penal',
-                    email: ''
+                currentAccount: 'main',
+                profiles: {
+                    main: {
+                        name: 'Giovani / Rosângela',
+                        job: 'penal',
+                        email: ''
+                    },
+                    sebastiao: {
+                        name: 'Sr. Sebastião',
+                        job: 'aposentado',
+                        email: ''
+                    }
                 },
                 items: [],
                 patients: []
@@ -489,10 +495,9 @@
             var jobIncomes = {
                 penal: ['Subsídio / Salário', 'AC4 / Plantão Extra', 'Indenizações', 'Adicionais'],
                 nutri: ['Consulta Individual', 'Mensalidade Paciente', 'Pacote Alimentar', 'Mentoria / Cursos'],
+                aposentado: ['Aposentadoria / Benefício', 'Aluguel / Arrendamento', 'Renda de Investimentos', 'Outras Receitas'],
                 outras: ['Salário', 'Renda Extra', 'Serviços Prestados', 'Vendas']
             };
-
-            var sebastiaoIncomes = ['Aposentadoria / Benefício', 'Aluguel / Arrendamento', 'Renda de Investimentos', 'Outras Receitas'];
 
             function getTodayStr() {
                 var d = new Date();
@@ -509,10 +514,10 @@
 
             function loadData() {
                 try {
-                    var data = localStorage.getItem('sf_app_data_v5');
+                    var data = localStorage.getItem('sf_app_data_v6');
                     if (data) {
                         var parsed = JSON.parse(data);
-                        if (parsed.user) state.user = parsed.user;
+                        if (parsed.profiles) state.profiles = parsed.profiles;
                         if (parsed.items) state.items = parsed.items;
                         if (parsed.patients) state.patients = parsed.patients;
                     }
@@ -521,17 +526,22 @@
 
             function saveData() {
                 try {
-                    localStorage.setItem('sf_app_data_v5', JSON.stringify(state));
+                    localStorage.setItem('sf_app_data_v6', JSON.stringify(state));
                 } catch(e) {}
             }
 
             function applyProfileState() {
-                document.getElementById('prof-name').value = state.user.name || '';
-                document.getElementById('prof-job').value = state.user.job || 'penal';
-                document.getElementById('prof-email').value = state.user.email || '';
+                var activeProfile = state.profiles[state.currentAccount] || { name: '', job: 'outras', email: '' };
+
+                document.getElementById('prof-name').value = activeProfile.name || '';
+                document.getElementById('prof-job').value = activeProfile.job || 'outras';
+                document.getElementById('prof-email').value = activeProfile.email || '';
+
+                document.getElementById('profile-card-title').textContent = 
+                    '⚙️ Perfil (' + (state.currentAccount === 'main' ? 'Família' : 'Sr. Sebastião') + ')';
 
                 var patNav = document.getElementById('nav-patients');
-                if (state.user.job === 'nutri' && state.currentAccount === 'main') {
+                if (state.currentAccount === 'main' && activeProfile.job === 'nutri') {
                     patNav.style.display = 'flex';
                 } else {
                     patNav.style.display = 'none';
@@ -547,12 +557,8 @@
                 var sel = document.getElementById('inc-desc-select');
                 sel.innerHTML = '';
                 
-                var opts = [];
-                if (state.currentAccount === 'sebastiao') {
-                    opts = sebastiaoIncomes;
-                } else {
-                    opts = jobIncomes[state.user.job] || jobIncomes.outras;
-                }
+                var activeProfile = state.profiles[state.currentAccount] || { job: 'outras' };
+                var opts = jobIncomes[activeProfile.job] || jobIncomes.outras;
 
                 for (var i = 0; i < opts.length; i++) {
                     var opt = document.createElement('option');
@@ -677,13 +683,15 @@
             // Submit Perfil
             document.getElementById('form-profile').addEventListener('submit', function(e) {
                 e.preventDefault();
-                state.user.name = document.getElementById('prof-name').value.trim();
-                state.user.job = document.getElementById('prof-job').value;
-                state.user.email = document.getElementById('prof-email').value.trim();
+                var cur = state.currentAccount;
+                
+                state.profiles[cur].name = document.getElementById('prof-name').value.trim();
+                state.profiles[cur].job = document.getElementById('prof-job').value;
+                state.profiles[cur].email = document.getElementById('prof-email').value.trim();
 
                 saveData();
                 applyProfileState();
-                alert('Perfil atualizado com sucesso!');
+                alert('Perfil da conta ' + (cur === 'main' ? 'Família' : 'Sr. Sebastião') + ' salvo com sucesso!');
             });
 
             // Submit Paciente
@@ -740,11 +748,12 @@
                 var dt = document.getElementById('inc-date').value || getTodayStr();
 
                 if (desc && !isNaN(val)) {
+                    var curJob = state.profiles[state.currentAccount].job;
                     state.items.unshift({ 
                         type: 'income', 
                         title: desc, 
                         amount: val, 
-                        detail: state.currentAccount === 'sebastiao' ? 'Sr. Sebastião' : state.user.job, 
+                        detail: curJob, 
                         date: dt,
                         account: state.currentAccount
                     });
