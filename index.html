@@ -14,6 +14,8 @@
             --accent-green: #10b981;
             --accent-blue: #38bdf8;
             --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+            --accent-amber: #f59e0b;
             --border-color: #334155;
         }
 
@@ -36,7 +38,7 @@
 
         .top-bar {
             background-color: var(--bg-card);
-            padding: 12px 16px;
+            padding: 10px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -44,20 +46,46 @@
         }
 
         .top-bar h1 {
-            font-size: 1.1rem;
+            font-size: 1rem;
             color: var(--accent-blue);
             font-weight: 700;
         }
 
         .btn-reset {
-            background: #ef4444;
-            color: #ffffff;
-            font-size: 0.75rem;
+            background: #334155;
+            color: #f8fafc;
+            font-size: 0.7rem;
             padding: 6px 10px;
             border-radius: 6px;
-            border: none;
+            border: 1px solid var(--border-color);
             font-weight: bold;
             cursor: pointer;
+        }
+
+        .account-selector-bar {
+            background-color: #1e293b;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--accent-blue);
+        }
+
+        .account-selector-bar label {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
+        .account-select {
+            background-color: var(--bg-input);
+            color: var(--accent-blue);
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            outline: none;
         }
 
         .content-container {
@@ -108,10 +136,6 @@
             margin-bottom: 8px;
         }
 
-        .btn-voice.listening {
-            background: linear-gradient(135deg, #ef4444, #f87171);
-        }
-
         .form-group {
             margin-bottom: 12px;
         }
@@ -145,29 +169,6 @@
             font-size: 0.95rem;
             cursor: pointer;
             margin-top: 5px;
-        }
-
-        .sub-tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .sub-tab-btn {
-            padding: 6px 14px;
-            background-color: var(--bg-card);
-            border: 1px solid var(--border-color);
-            color: var(--text-sub);
-            border-radius: 16px;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        .sub-tab-btn.active {
-            background-color: var(--accent-blue);
-            color: #0f172a;
-            font-weight: 600;
-            border-color: var(--accent-blue);
         }
 
         .transaction-item {
@@ -249,7 +250,7 @@
             color: var(--text-sub);
             font-size: 0.75rem;
             cursor: pointer;
-            width: 25%;
+            flex: 1;
             padding: 8px 0;
         }
 
@@ -262,11 +263,24 @@
             font-size: 1.3rem;
         }
 
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
+        .badge-status {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .badge-active {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+        }
+
+        .badge-inactive {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
         }
     </style>
 </head>
@@ -274,7 +288,16 @@
 
     <div class="top-bar">
         <h1>Sucesso Financeiro</h1>
-        <button class="btn-reset" id="btn-force-reset">LIMPAR DADOS</button>
+        <button class="btn-reset" id="btn-force-reset">RECARREGAR APP</button>
+    </div>
+
+    <!-- Barra de Alternância de Conta Geral -->
+    <div class="account-selector-bar">
+        <label for="global-account-select">GESTÃO DE:</label>
+        <select id="global-account-select" class="account-select">
+            <option value="main">Finanças Principais (Família)</option>
+            <option value="sebastiao">Sr. Sebastião (Pai)</option>
+        </select>
     </div>
 
     <div class="content-container">
@@ -292,7 +315,7 @@
                 <form id="form-exp">
                     <div class="form-group">
                         <label>Descrição</label>
-                        <input type="text" id="exp-desc" class="form-control" placeholder="Ex: Mercado" required>
+                        <input type="text" id="exp-desc" class="form-control" placeholder="Ex: Farmácia / Mercado" required>
                     </div>
                     <div class="form-group">
                         <label>Valor (R$)</label>
@@ -322,17 +345,11 @@
 
         <!-- ABA 2: RENDAS -->
         <div id="tab-incomes" class="tab-content">
-            <div class="sub-tabs" id="income-subtabs">
-                <button class="sub-tab-btn active" data-sub="penal">Policial Penal</button>
-                <button class="sub-tab-btn" data-sub="nutri">Nutricionista</button>
-                <button class="sub-tab-btn" data-sub="outras">Outras Fontes</button>
-            </div>
-
             <div class="card">
                 <div class="card-title">💰 Lançar Receita</div>
                 <form id="form-inc">
                     <div class="form-group">
-                        <label>Origem / Descrição</label>
+                        <label>Origem / Categoria</label>
                         <select id="inc-desc-select" class="form-control"></select>
                     </div>
                     <div class="form-group">
@@ -353,7 +370,34 @@
             </div>
         </div>
 
-        <!-- ABA 3: RELATÓRIOS -->
+        <!-- ABA 3: PACIENTES (APENAS NUTRICIONISTA NA CONTA PRINCIPAL) -->
+        <div id="tab-patients" class="tab-content">
+            <div class="card">
+                <div class="card-title">👤 Cadastrar Novo Paciente</div>
+                <form id="form-patient">
+                    <div class="form-group">
+                        <label>Nome do Paciente</label>
+                        <input type="text" id="pat-name" class="form-control" placeholder="Nome completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone / Contato</label>
+                        <input type="text" id="pat-phone" class="form-control" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Mensal (R$)</label>
+                        <input type="number" step="0.01" id="pat-val" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <button type="submit" class="btn-submit" style="background-color: var(--accent-purple);">Salvar Paciente</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📋 Lista de Pacientes</div>
+                <div id="patients-feed"></div>
+            </div>
+        </div>
+
+        <!-- ABA 4: RELATÓRIOS -->
         <div id="tab-reports" class="tab-content">
             <div class="summary-grid">
                 <div class="summary-card">
@@ -367,20 +411,34 @@
             </div>
 
             <div class="card" style="text-align: center;">
-                <span>Balanço Geral</span>
+                <span>Balanço Geral da Conta Selecionada</span>
                 <h2 id="rep-balance" style="font-size: 1.8rem; margin-top: 4px;">R$ 0,00</h2>
             </div>
         </div>
 
-        <!-- ABA 4: PERFIL -->
+        <!-- ABA 5: PERFIL -->
         <div id="tab-profile" class="tab-content">
             <div class="card">
-                <div class="card-title">⚙️ Perfil</div>
-                <div class="form-group">
-                    <label>Seu Nome</label>
-                    <input type="text" id="prof-name" class="form-control" value="Giovani">
-                </div>
-                <button type="button" id="btn-save-prof" class="btn-submit">Salvar Perfil</button>
+                <div class="card-title">⚙️ Perfil do Usuário</div>
+                <form id="form-profile">
+                    <div class="form-group">
+                        <label>Nome Completo</label>
+                        <input type="text" id="prof-name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Profissão Principal</label>
+                        <select id="prof-job" class="form-control">
+                            <option value="penal">Policial Penal</option>
+                            <option value="nutri">Nutricionista</option>
+                            <option value="outras">Outra Profissão</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" id="prof-email" class="form-control" placeholder="seu@email.com">
+                    </div>
+                    <button type="submit" class="btn-submit">Salvar Alterações</button>
+                </form>
             </div>
         </div>
 
@@ -396,6 +454,10 @@
             <span class="nav-icon">💰</span>
             <span>Rendas</span>
         </button>
+        <button class="nav-item" id="nav-patients" data-tab="patients" style="display: none;">
+            <span class="nav-icon">🩺</span>
+            <span>Pacientes</span>
+        </button>
         <button class="nav-item" data-tab="reports">
             <span class="nav-icon">📊</span>
             <span>Relatórios</span>
@@ -408,23 +470,29 @@
 
     <script>
         (function() {
-            // Garante a limpeza total imediatamente se houver o evento
+            // O botão recarrega a página para destravar sem apagar os dados salvos
             document.getElementById('btn-force-reset').addEventListener('click', function() {
-                localStorage.clear();
                 window.location.reload(true);
             });
 
             var state = {
-                currentTab: 'expenses',
-                currentSubTab: 'penal',
-                items: []
+                currentAccount: 'main', // 'main' ou 'sebastiao'
+                user: {
+                    name: 'Giovani',
+                    job: 'penal',
+                    email: ''
+                },
+                items: [],
+                patients: []
             };
 
-            var incomeOpts = {
+            var jobIncomes = {
                 penal: ['Subsídio / Salário', 'AC4 / Plantão Extra', 'Indenizações', 'Adicionais'],
-                nutri: ['Consulta Individual', 'Pacote Alimentar', 'Mentoria', 'Venda de Cursos/Ebooks'],
-                outras: ['Renda Extra', 'Investimentos', 'Vendas Gerais', 'Serviços']
+                nutri: ['Consulta Individual', 'Mensalidade Paciente', 'Pacote Alimentar', 'Mentoria / Cursos'],
+                outras: ['Salário', 'Renda Extra', 'Serviços Prestados', 'Vendas']
             };
+
+            var sebastiaoIncomes = ['Aposentadoria / Benefício', 'Aluguel / Arrendamento', 'Renda de Investimentos', 'Outras Receitas'];
 
             function getTodayStr() {
                 var d = new Date();
@@ -441,29 +509,51 @@
 
             function loadData() {
                 try {
-                    var data = localStorage.getItem('sf_app_data_v3');
-                    if (data) state.items = JSON.parse(data) || [];
-                } catch(e) {
-                    state.items = [];
-                }
+                    var data = localStorage.getItem('sf_app_data_v5');
+                    if (data) {
+                        var parsed = JSON.parse(data);
+                        if (parsed.user) state.user = parsed.user;
+                        if (parsed.items) state.items = parsed.items;
+                        if (parsed.patients) state.patients = parsed.patients;
+                    }
+                } catch(e) {}
             }
 
             function saveData() {
                 try {
-                    localStorage.setItem('sf_app_data_v3', JSON.stringify(state.items));
+                    localStorage.setItem('sf_app_data_v5', JSON.stringify(state));
                 } catch(e) {}
             }
 
-            function setDates() {
-                var today = getTodayStr();
-                document.getElementById('exp-date').value = today;
-                document.getElementById('inc-date').value = today;
+            function applyProfileState() {
+                document.getElementById('prof-name').value = state.user.name || '';
+                document.getElementById('prof-job').value = state.user.job || 'penal';
+                document.getElementById('prof-email').value = state.user.email || '';
+
+                var patNav = document.getElementById('nav-patients');
+                if (state.user.job === 'nutri' && state.currentAccount === 'main') {
+                    patNav.style.display = 'flex';
+                } else {
+                    patNav.style.display = 'none';
+                    if (document.getElementById('tab-patients').classList.contains('active')) {
+                        switchTab('expenses');
+                    }
+                }
+
+                renderIncomeOptions();
             }
 
             function renderIncomeOptions() {
                 var sel = document.getElementById('inc-desc-select');
                 sel.innerHTML = '';
-                var opts = incomeOpts[state.currentSubTab] || incomeOpts.outras;
+                
+                var opts = [];
+                if (state.currentAccount === 'sebastiao') {
+                    opts = sebastiaoIncomes;
+                } else {
+                    opts = jobIncomes[state.user.job] || jobIncomes.outras;
+                }
+
                 for (var i = 0; i < opts.length; i++) {
                     var opt = document.createElement('option');
                     opt.value = opts[i];
@@ -478,11 +568,15 @@
                 expFeed.innerHTML = '';
                 incFeed.innerHTML = '';
 
-                var exps = state.items.filter(function(i){ return i.type === 'expense'; });
-                var incs = state.items.filter(function(i){ return i.type === 'income'; });
+                var exps = state.items.filter(function(i){ 
+                    return i.type === 'expense' && (i.account || 'main') === state.currentAccount; 
+                });
+                var incs = state.items.filter(function(i){ 
+                    return i.type === 'income' && (i.account || 'main') === state.currentAccount; 
+                });
 
                 if (exps.length === 0) {
-                    expFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma despesa.</div>';
+                    expFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma despesa para esta conta.</div>';
                 } else {
                     exps.forEach(function(i) {
                         expFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + '</span></div><span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
@@ -490,7 +584,7 @@
                 }
 
                 if (incs.length === 0) {
-                    incFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma receita.</div>';
+                    incFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma receita para esta conta.</div>';
                 } else {
                     incs.forEach(function(i) {
                         incFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + '</span></div><span class="trans-amount amount-income">+ R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
@@ -498,13 +592,48 @@
                 }
             }
 
+            function renderPatients() {
+                var feed = document.getElementById('patients-feed');
+                feed.innerHTML = '';
+
+                if (state.patients.length === 0) {
+                    feed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhum paciente cadastrado.</div>';
+                    return;
+                }
+
+                state.patients.forEach(function(p, idx) {
+                    var badgeClass = p.active ? 'badge-active' : 'badge-inactive';
+                    var badgeText = p.active ? 'Ativo (Pagando)' : 'Inativo (Suspenso)';
+
+                    feed.innerHTML += '<div class="transaction-item">' +
+                        '<div>' +
+                            '<span class="trans-title">' + p.name + '</span>' +
+                            '<span class="trans-sub">' + (p.phone ? p.phone + ' • ' : '') + 'R$ ' + Number(p.val).toFixed(2) + '/mês</span>' +
+                        '</div>' +
+                        '<div>' +
+                            '<span class="badge-status ' + badgeClass + '" onclick="window.togglePatientStatus(' + idx + ')">' + badgeText + '</span>' +
+                        '</div>' +
+                    '</div>';
+                });
+            }
+
+            window.togglePatientStatus = function(idx) {
+                if (state.patients[idx]) {
+                    state.patients[idx].active = !state.patients[idx].active;
+                    saveData();
+                    renderPatients();
+                }
+            };
+
             function renderReports() {
                 var totalInc = 0;
                 var totalExp = 0;
 
                 state.items.forEach(function(i) {
-                    if (i.type === 'income') totalInc += Number(i.amount);
-                    if (i.type === 'expense') totalExp += Number(i.amount);
+                    if ((i.account || 'main') === state.currentAccount) {
+                        if (i.type === 'income') totalInc += Number(i.amount);
+                        if (i.type === 'expense') totalExp += Number(i.amount);
+                    }
                 });
 
                 document.getElementById('rep-income').textContent = 'R$ ' + totalInc.toFixed(2);
@@ -516,31 +645,67 @@
                 balEl.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
             }
 
-            // Atribuição dos Eventos de Navegação Abaixo
-            var navBtns = document.querySelectorAll('.nav-item');
-            navBtns.forEach(function(btn) {
+            function switchTab(targetTab) {
+                document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
+                document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+
+                var btn = document.querySelector('.nav-item[data-tab="' + targetTab + '"]');
+                if (btn) btn.classList.add('active');
+                
+                var tabEl = document.getElementById('tab-' + targetTab);
+                if (tabEl) tabEl.classList.add('active');
+
+                if (targetTab === 'reports') renderReports();
+                if (targetTab === 'patients') renderPatients();
+            }
+
+            // Alternância de Conta Geral
+            document.getElementById('global-account-select').addEventListener('change', function() {
+                state.currentAccount = this.value;
+                applyProfileState();
+                renderFeeds();
+                renderReports();
+            });
+
+            // Eventos de Navegação
+            document.querySelectorAll('.nav-item').forEach(function(btn) {
                 btn.addEventListener('click', function() {
-                    var targetTab = this.getAttribute('data-tab');
-                    
-                    document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
-                    document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
-
-                    this.classList.add('active');
-                    document.getElementById('tab-' + targetTab).classList.add('active');
-
-                    if (targetTab === 'reports') renderReports();
+                    switchTab(this.getAttribute('data-tab'));
                 });
             });
 
-            // Navegação das Sub-abas de Renda
-            var subBtns = document.querySelectorAll('.sub-tab-btn');
-            subBtns.forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    subBtns.forEach(function(b){ b.classList.remove('active'); });
-                    this.classList.add('active');
-                    state.currentSubTab = this.getAttribute('data-sub');
-                    renderIncomeOptions();
-                });
+            // Submit Perfil
+            document.getElementById('form-profile').addEventListener('submit', function(e) {
+                e.preventDefault();
+                state.user.name = document.getElementById('prof-name').value.trim();
+                state.user.job = document.getElementById('prof-job').value;
+                state.user.email = document.getElementById('prof-email').value.trim();
+
+                saveData();
+                applyProfileState();
+                alert('Perfil atualizado com sucesso!');
+            });
+
+            // Submit Paciente
+            document.getElementById('form-patient').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var name = document.getElementById('pat-name').value.trim();
+                var phone = document.getElementById('pat-phone').value.trim();
+                var val = parseFloat(document.getElementById('pat-val').value);
+
+                if (name && !isNaN(val)) {
+                    state.patients.unshift({
+                        name: name,
+                        phone: phone,
+                        val: val,
+                        active: true
+                    });
+                    saveData();
+                    renderPatients();
+                    document.getElementById('pat-name').value = '';
+                    document.getElementById('pat-phone').value = '';
+                    document.getElementById('pat-val').value = '';
+                }
             });
 
             // Submit Despesa
@@ -552,12 +717,18 @@
                 var mtd = document.getElementById('exp-method').value;
 
                 if (desc && !isNaN(val)) {
-                    state.items.unshift({ type: 'expense', title: desc, amount: val, detail: mtd, date: dt });
+                    state.items.unshift({ 
+                        type: 'expense', 
+                        title: desc, 
+                        amount: val, 
+                        detail: mtd, 
+                        date: dt,
+                        account: state.currentAccount
+                    });
                     saveData();
                     renderFeeds();
                     document.getElementById('exp-desc').value = '';
                     document.getElementById('exp-amount').value = '';
-                    setDates();
                 }
             });
 
@@ -569,19 +740,26 @@
                 var dt = document.getElementById('inc-date').value || getTodayStr();
 
                 if (desc && !isNaN(val)) {
-                    state.items.unshift({ type: 'income', title: desc, amount: val, detail: state.currentSubTab, date: dt });
+                    state.items.unshift({ 
+                        type: 'income', 
+                        title: desc, 
+                        amount: val, 
+                        detail: state.currentAccount === 'sebastiao' ? 'Sr. Sebastião' : state.user.job, 
+                        date: dt,
+                        account: state.currentAccount
+                    });
                     saveData();
                     renderFeeds();
                     document.getElementById('inc-amount').value = '';
-                    setDates();
                 }
             });
 
             // Inicialização
             loadData();
-            setDates();
-            renderIncomeOptions();
+            applyProfileState();
             renderFeeds();
+            document.getElementById('exp-date').value = getTodayStr();
+            document.getElementById('inc-date').value = getTodayStr();
 
         })();
     </script>
