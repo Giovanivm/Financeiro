@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sucesso Financeiro</title>
+    
+    <!-- Bibliotecas Firebase (Compatibilitate SDK v9+) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
     <style>
         :root {
             --bg-primary: #0f172a;
@@ -64,7 +69,20 @@
             border-radius: 6px;
             border: 1px solid var(--border-color);
             cursor: pointer;
+            position: relative;
         }
+
+        .sync-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background-color: #64748b;
+        }
+
+        .sync-active { background-color: var(--accent-green); }
 
         .btn-reset {
             background: #334155;
@@ -110,13 +128,8 @@
             padding-bottom: 85px;
         }
 
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
         .card {
             background-color: var(--bg-card);
@@ -164,10 +177,7 @@
             100% { transform: scale(1); }
         }
 
-        .form-group {
-            margin-bottom: 12px;
-        }
-
+        .form-group { margin-bottom: 12px; }
         .form-group label {
             display: block;
             font-size: 0.8rem;
@@ -206,26 +216,11 @@
             padding: 10px 0;
             border-bottom: 1px solid var(--border-color);
         }
+        .transaction-item:last-child { border-bottom: none; }
 
-        .transaction-item:last-child {
-            border-bottom: none;
-        }
-
-        .trans-title {
-            font-weight: 600;
-            font-size: 0.9rem;
-            display: block;
-        }
-
-        .trans-sub {
-            font-size: 0.75rem;
-            color: var(--text-sub);
-        }
-
-        .trans-amount {
-            font-weight: 700;
-            font-size: 0.95rem;
-        }
+        .trans-title { font-weight: 600; font-size: 0.9rem; display: block; }
+        .trans-sub { font-size: 0.75rem; color: var(--text-sub); }
+        .trans-amount { font-weight: 700; font-size: 0.95rem; }
 
         .amount-expense { color: var(--accent-red); }
         .amount-income { color: var(--accent-green); }
@@ -244,21 +239,12 @@
             border: 1px solid var(--border-color);
         }
 
-        .summary-card span {
-            font-size: 0.7rem;
-            color: var(--text-sub);
-        }
-
-        .summary-card h3 {
-            font-size: 1.1rem;
-            margin-top: 4px;
-        }
+        .summary-card span { font-size: 0.7rem; color: var(--text-sub); }
+        .summary-card h3 { font-size: 1.1rem; margin-top: 4px; }
 
         .nav-bar {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             height: 65px;
             background-color: var(--bg-card);
             border-top: 1px solid var(--border-color);
@@ -282,14 +268,8 @@
             padding: 8px 0;
         }
 
-        .nav-item.active {
-            color: var(--accent-blue);
-            font-weight: 700;
-        }
-
-        .nav-icon {
-            font-size: 1.3rem;
-        }
+        .nav-item.active { color: var(--accent-blue); font-weight: 700; }
+        .nav-icon { font-size: 1.3rem; }
 
         .badge-status {
             font-size: 0.7rem;
@@ -311,7 +291,6 @@
             border: 1px solid var(--accent-red);
         }
 
-        /* Modal Conexão Tempo Real */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -323,9 +302,7 @@
             padding: 16px;
         }
 
-        .modal-overlay.active {
-            display: flex;
-        }
+        .modal-overlay.active { display: flex; }
 
         .modal-body {
             background-color: var(--bg-card);
@@ -342,12 +319,14 @@
     <div class="top-bar">
         <h1>Sucesso Financeiro</h1>
         <div class="top-actions">
-            <button class="btn-gear" id="btn-open-sync" title="Conexão em Tempo Real">⚙️</button>
+            <button class="btn-gear" id="btn-open-sync" title="Conexão em Tempo Real">
+                ⚙️
+                <span class="sync-indicator" id="sync-status-dot"></span>
+            </button>
             <button class="btn-reset" id="btn-force-reset">RECARREGAR APP</button>
         </div>
     </div>
 
-    <!-- Seletor de Conta Ativa -->
     <div class="account-selector-bar">
         <label for="global-account-select">GESTÃO DE:</label>
         <select id="global-account-select" class="account-select">
@@ -501,7 +480,7 @@
 
     </div>
 
-    <!-- MODAL DE CONEXÃO EM TEMPO REAL (ENGRENAGEM) -->
+    <!-- MODAL DE CONEXÃO EM TEMPO REAL -->
     <div class="modal-overlay" id="modal-sync">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -509,21 +488,20 @@
                 <button id="btn-close-sync" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 12px;">
-                Cole o código ou URL do seu banco Firebase/Supabase para sincronizar os dados simultaneamente entre dois celulares.
+                Insira o mesmo <b>Código da Sala</b> nos dois celulares.
             </p>
             <div class="form-group">
-                <label>Código da Sala / ID de Sincronização</label>
-                <input type="text" id="sync-room-id" class="form-control" placeholder="Ex: familia-mesquita-2026">
+                <label>Código Único da Sala (Ex: familia2026)</label>
+                <input type="text" id="sync-room-id" class="form-control" placeholder="familia2026">
             </div>
             <div class="form-group">
-                <label>URL do Banco de Dados (opcional)</label>
-                <input type="text" id="sync-db-url" class="form-control" placeholder="https://seu-projeto.firebaseio.com">
+                <label>URL do Firebase Realtime Database</label>
+                <input type="text" id="sync-db-url" class="form-control" placeholder="https://seu-projeto-default-rtdb.firebaseio.com">
             </div>
             <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue);">Conectar e Sincronizar</button>
         </div>
     </div>
 
-    <!-- Navegação Inferior -->
     <nav class="nav-bar">
         <button class="nav-item active" data-tab="expenses">
             <span class="nav-icon">🎤</span>
@@ -549,6 +527,9 @@
 
     <script>
         (function() {
+            var dbRef = null;
+            var isRemoteUpdate = false;
+
             document.getElementById('btn-force-reset').addEventListener('click', function() {
                 window.location.reload(true);
             });
@@ -597,10 +578,60 @@
                 } catch(e) {}
             }
 
-            function saveData() {
+            function saveData(syncToRemote) {
+                if (syncToRemote === undefined) syncToRemote = true;
                 try {
                     localStorage.setItem('sf_app_data_v6', JSON.stringify(state));
                 } catch(e) {}
+
+                // Envia para o Firebase em tempo real se a conexão estiver configurada
+                if (syncToRemote && dbRef && !isRemoteUpdate) {
+                    dbRef.set({
+                        profiles: state.profiles,
+                        items: state.items,
+                        patients: state.patients
+                    });
+                }
+            }
+
+            function initFirebaseSync() {
+                var dot = document.getElementById('sync-status-dot');
+                if (!state.sync.roomId || !state.sync.dbUrl) {
+                    dot.classList.remove('sync-active');
+                    return;
+                }
+
+                try {
+                    // Inicializa o Firebase
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp({ databaseURL: state.sync.dbUrl });
+                    }
+                    
+                    var cleanRoom = state.sync.roomId.replace(/[^a-zA-Z0-9_-]/g, '');
+                    dbRef = firebase.database().ref('rooms/' + cleanRoom);
+
+                    // Escuta alterações na nuvem em tempo real
+                    dbRef.on('value', function(snapshot) {
+                        var data = snapshot.val();
+                        if (data) {
+                            isRemoteUpdate = true;
+                            if (data.profiles) state.profiles = data.profiles;
+                            if (data.items) state.items = data.items;
+                            if (data.patients) state.patients = data.patients;
+
+                            saveData(false);
+                            applyProfileState();
+                            renderFeeds();
+                            renderReports();
+                            renderPatients();
+                            isRemoteUpdate = false;
+                        }
+                    });
+
+                    dot.classList.add('sync-active');
+                } catch(err) {
+                    dot.classList.remove('sync-active');
+                }
             }
 
             function applyProfileState() {
@@ -738,7 +769,7 @@
                 if (targetTab === 'patients') renderPatients();
             }
 
-            // CONTROLE MODAL DE CONEXÃO / ENGRENAGEM
+            // MODAL ENGRENAGEM
             var modalSync = document.getElementById('modal-sync');
             document.getElementById('btn-open-sync').addEventListener('click', function() {
                 document.getElementById('sync-room-id').value = state.sync.roomId || '';
@@ -753,9 +784,10 @@
             document.getElementById('btn-save-sync').addEventListener('click', function() {
                 state.sync.roomId = document.getElementById('sync-room-id').value.trim();
                 state.sync.dbUrl = document.getElementById('sync-db-url').value.trim();
-                saveData();
+                saveData(false);
                 modalSync.classList.remove('active');
-                alert('Configurações de sincronização salvas com sucesso!');
+                initFirebaseSync();
+                alert('Conexão configurada! Os dois celulares sincronizarão na mesma sala.');
             });
 
             // RECONHECIMENTO DE VOZ
@@ -768,7 +800,7 @@
                     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
                     if (!SpeechRecognition) {
-                        alert('O reconhecimento de voz não é suportado neste navegador. Recomendamos usar o Google Chrome.');
+                        alert('Navegador sem suporte ao recurso de voz. Utilize o Chrome ou Safari.');
                         return;
                     }
 
@@ -797,19 +829,15 @@
                             description = text.replace(numbers[numbers.length - 1], '').trim();
                         }
 
-                        if (description) {
-                            document.getElementById('exp-desc').value = description;
-                        }
-                        if (amount) {
-                            document.getElementById('exp-amount').value = parseFloat(amount);
-                        }
+                        if (description) document.getElementById('exp-desc').value = description;
+                        if (amount) document.getElementById('exp-amount').value = parseFloat(amount);
                     };
 
                     recognition.onerror = function(event) {
                         btnVoice.classList.remove('listening');
                         voiceTitle.textContent = 'Lançamento por Voz';
                         if (event.error === 'not-allowed') {
-                            alert('Acesso ao microfone negado! Verifique as permissões do seu navegador.');
+                            alert('Acesso ao microfone negado. Habilite nas configurações do navegador.');
                         } else {
                             voiceDesc.textContent = 'Não foi possível ouvir. Tente novamente.';
                         }
@@ -821,7 +849,6 @@
                 });
             }
 
-            // Alternância de Conta Geral
             document.getElementById('global-account-select').addEventListener('change', function() {
                 state.currentAccount = this.value;
                 applyProfileState();
@@ -829,14 +856,12 @@
                 renderReports();
             });
 
-            // Eventos de Navegação
             document.querySelectorAll('.nav-item').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     switchTab(this.getAttribute('data-tab'));
                 });
             });
 
-            // Submit Perfil
             document.getElementById('form-profile').addEventListener('submit', function(e) {
                 e.preventDefault();
                 var cur = state.currentAccount;
@@ -847,10 +872,9 @@
 
                 saveData();
                 applyProfileState();
-                alert('Perfil da conta ' + (cur === 'main' ? 'Família' : 'Sr. Sebastião') + ' salvo com sucesso!');
+                alert('Perfil salvo com sucesso!');
             });
 
-            // Submit Paciente
             document.getElementById('form-patient').addEventListener('submit', function(e) {
                 e.preventDefault();
                 var name = document.getElementById('pat-name').value.trim();
@@ -858,12 +882,7 @@
                 var val = parseFloat(document.getElementById('pat-val').value);
 
                 if (name && !isNaN(val)) {
-                    state.patients.unshift({
-                        name: name,
-                        phone: phone,
-                        val: val,
-                        active: true
-                    });
+                    state.patients.unshift({ name: name, phone: phone, val: val, active: true });
                     saveData();
                     renderPatients();
                     document.getElementById('pat-name').value = '';
@@ -872,7 +891,6 @@
                 }
             });
 
-            // Submit Despesa
             document.getElementById('form-exp').addEventListener('submit', function(e) {
                 e.preventDefault();
                 var desc = document.getElementById('exp-desc').value.trim();
@@ -882,12 +900,7 @@
 
                 if (desc && !isNaN(val)) {
                     state.items.unshift({ 
-                        type: 'expense', 
-                        title: desc, 
-                        amount: val, 
-                        detail: mtd, 
-                        date: dt,
-                        account: state.currentAccount
+                        type: 'expense', title: desc, amount: val, detail: mtd, date: dt, account: state.currentAccount
                     });
                     saveData();
                     renderFeeds();
@@ -896,7 +909,6 @@
                 }
             });
 
-            // Submit Renda
             document.getElementById('form-inc').addEventListener('submit', function(e) {
                 e.preventDefault();
                 var desc = document.getElementById('inc-desc-select').value;
@@ -906,12 +918,7 @@
                 if (desc && !isNaN(val)) {
                     var curJob = state.profiles[state.currentAccount].job;
                     state.items.unshift({ 
-                        type: 'income', 
-                        title: desc, 
-                        amount: val, 
-                        detail: curJob, 
-                        date: dt,
-                        account: state.currentAccount
+                        type: 'income', title: desc, amount: val, detail: curJob, date: dt, account: state.currentAccount
                     });
                     saveData();
                     renderFeeds();
@@ -923,6 +930,7 @@
             loadData();
             applyProfileState();
             renderFeeds();
+            initFirebaseSync();
             document.getElementById('exp-date').value = getTodayStr();
             document.getElementById('inc-date').value = getTodayStr();
 
