@@ -14,7 +14,6 @@
             --accent-green: #10b981;
             --accent-blue: #38bdf8;
             --accent-red: #ef4444;
-            --accent-purple: #a855f7;
             --border-color: #334155;
         }
 
@@ -35,7 +34,6 @@
             overflow: hidden;
         }
 
-        /* Top Bar */
         .top-bar {
             background-color: var(--bg-card);
             padding: 16px 20px;
@@ -56,7 +54,6 @@
             color: var(--text-sub);
         }
 
-        /* Main Container */
         .content-container {
             flex: 1;
             overflow-y: auto;
@@ -72,7 +69,6 @@
             display: block;
         }
 
-        /* Card Styles */
         .card {
             background-color: var(--bg-card);
             border-radius: 16px;
@@ -91,7 +87,6 @@
             gap: 8px;
         }
 
-        /* Voice Button Section */
         .voice-section {
             text-align: center;
             padding: 20px 10px;
@@ -114,7 +109,7 @@
             margin-bottom: 12px;
         }
 
-        .btn-voice:active, .btn-voice.listening {
+        .btn-voice.listening {
             transform: scale(0.95);
             background: linear-gradient(135deg, #ef4444, #f87171);
             box-shadow: 0 10px 25px rgba(239, 68, 68, 0.5);
@@ -133,7 +128,6 @@
             margin-top: 5px;
         }
 
-        /* Forms */
         .form-group {
             margin-bottom: 15px;
         }
@@ -170,14 +164,8 @@
             font-weight: 600;
             font-size: 1rem;
             cursor: pointer;
-            transition: opacity 0.2s;
         }
 
-        .btn-submit:active {
-            opacity: 0.9;
-        }
-
-        /* Sub-tabs for Income */
         .sub-tabs {
             display: flex;
             gap: 8px;
@@ -204,7 +192,6 @@
             border-color: var(--accent-blue);
         }
 
-        /* Feed List */
         .transaction-item {
             display: flex;
             justify-content: space-between;
@@ -241,7 +228,6 @@
         .amount-expense { color: var(--accent-red); }
         .amount-income { color: var(--accent-green); }
 
-        /* Report Summary Cards */
         .summary-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -266,7 +252,6 @@
             margin-top: 5px;
         }
 
-        /* Bottom Navigation */
         .nav-bar {
             position: fixed;
             bottom: 0;
@@ -318,13 +303,11 @@
 </head>
 <body>
 
-    <!-- Bar superior -->
     <div class="top-bar">
         <h1>Sucesso Financeiro</h1>
         <div class="user-welcome">Olá, <strong id="header-user-name">Usuário</strong></div>
     </div>
 
-    <!-- Conteúdo Dinâmico -->
     <div class="content-container">
 
         <!-- ABA 1: DESPESAS (TELA PRINCIPAL) -->
@@ -332,7 +315,7 @@
             <div class="card voice-section">
                 <button class="btn-voice" id="btn-voice-input" onclick="startVoiceRecognition()">🎤</button>
                 <div style="font-weight: 600; font-size: 1rem;">Lançamento por Voz</div>
-                <div class="voice-hint">Toque no microfone e fale:<br><i>"Gasolina 120 reais no crédito"</i></div>
+                <div class="voice-hint">Fale: <i>"Gasolina 150 no crédito no dia 10 de maio"</i><br>(Sem data = Lança na data de hoje)</div>
             </div>
 
             <div class="card">
@@ -345,6 +328,10 @@
                     <div class="form-group">
                         <label>Valor (R$)</label>
                         <input type="number" step="0.01" id="exp-amount" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data da Despesa</label>
+                        <input type="date" id="exp-date" class="form-control" required>
                     </div>
                     <div class="form-group">
                         <label>Forma de Pagamento</label>
@@ -360,31 +347,29 @@
 
             <div class="card">
                 <div class="card-title">📋 Despesas Recentes</div>
-                <div id="expenses-feed">
-                    <!-- Inserido dinamicamente -->
-                </div>
+                <div id="expenses-feed"></div>
             </div>
         </div>
 
         <!-- ABA 2: RENDAS -->
         <div id="tab-incomes" class="tab-content">
-            <div class="sub-tabs" id="income-subtabs">
-                <!-- Sub-abas ativas renderizadas aqui -->
-            </div>
+            <div class="sub-tabs" id="income-subtabs"></div>
 
             <div class="card">
                 <div class="card-title" id="income-form-title">💰 Lançar Receita</div>
                 <form id="form-income" onsubmit="addIncomeManual(event)">
-                    <input type="hidden" id="inc-category-type" value="geral">
+                    <input type="hidden" id="inc-category-type" value="penal">
                     <div class="form-group">
                         <label>Origem / Descrição</label>
-                        <select id="inc-desc-select" class="form-control">
-                            <!-- Opções carregadas via JS -->
-                        </select>
+                        <select id="inc-desc-select" class="form-control"></select>
                     </div>
                     <div class="form-group">
                         <label>Valor Recebido (R$)</label>
                         <input type="number" step="0.01" id="inc-amount" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data do Recebimento</label>
+                        <input type="date" id="inc-date" class="form-control" required>
                     </div>
                     <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Salvar Receita</button>
                 </form>
@@ -392,9 +377,7 @@
 
             <div class="card">
                 <div class="card-title">📈 Receitas Registradas</div>
-                <div id="incomes-feed">
-                    <!-- Inserido dinamicamente -->
-                </div>
+                <div id="incomes-feed"></div>
             </div>
         </div>
 
@@ -417,10 +400,8 @@
             </div>
 
             <div class="card">
-                <div class="card-title">📊 Resumo Geral do Mês</div>
-                <p id="rep-summary-text" style="font-size: 0.9rem; color: var(--text-sub); line-height: 1.5;">
-                    Adicione suas receitas e despesas para gerar o diagnóstico completo de Sucesso Financeiro.
-                </p>
+                <div class="card-title">📊 Resumo Geral</div>
+                <p id="rep-summary-text" style="font-size: 0.9rem; color: var(--text-sub); line-height: 1.5;"></p>
             </div>
         </div>
 
@@ -479,37 +460,42 @@
     </nav>
 
     <script>
-        // ESTADO GLOBAL DO APP
         let appState = {
             user: {
                 name: 'Giovani',
-                professions: {
-                    penal: true,
-                    nutri: true,
-                    outras: false
-                }
+                professions: { penal: true, nutri: true, outras: false }
             },
             currentIncomeSubTab: 'penal',
             transactions: []
         };
 
-        // Opções de renda por profissão
         const incomeOptions = {
             penal: ['Subsídio / Salário', 'AC4 / Plantão Extra', 'Indenizações / Diárias', 'Outros Adicionais'],
             nutri: ['Consulta Individual', 'Pacote Alimentar', 'Mentoria / Consultoria', 'Venda de E-book / Curso'],
             outras: ['Renda Extra', 'Rendimentos / Investimentos', 'Vendas Gerais', 'Prestação de Serviços']
         };
 
-        // INICIALIZAÇÃO
+        const monthMap = {
+            'janeiro': '01', 'fevereiro': '02', 'março': '03', 'marco': '03', 'abril': '04',
+            'maio': '05', 'junho': '06', 'julho': '07', 'agosto': '08', 'setembro': '09',
+            'outubro': '10', 'novembro': '11', 'dezembro': '12'
+        };
+
         window.onload = function() {
             loadFromStorage();
+            setTodayDates();
             renderProfile();
             renderIncomeSubTabs();
             renderFeeds();
             calculateReports();
         };
 
-        // NAVEGAÇÃO DE ABAS
+        function setTodayDates() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('exp-date').value = today;
+            document.getElementById('inc-date').value = today;
+        }
+
         function switchTab(tabId, element) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -520,19 +506,18 @@
             if(tabId === 'reports') calculateReports();
         }
 
-        // COMANDO DE VOZ (Web Speech API)
+        // COMANDO DE VOZ
         function startVoiceRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const btn = document.getElementById('btn-voice-input');
 
             if (!SpeechRecognition) {
-                alert('Reconhecimento de voz não suportado neste navegador. Utilize o formulário manual.');
+                alert('Reconhecimento de voz não suportado neste navegador.');
                 return;
             }
 
             const recognition = new SpeechRecognition();
             recognition.lang = 'pt-BR';
-            recognition.interimResults = false;
 
             btn.classList.add('listening');
 
@@ -544,7 +529,7 @@
 
             recognition.onerror = function() {
                 btn.classList.remove('listening');
-                alert('Não foi possível compreender o áudio. Tente novamente.');
+                alert('Não foi possível compreender a fala. Tente novamente.');
             };
 
             recognition.onend = function() {
@@ -554,42 +539,152 @@
             recognition.start();
         }
 
-        // PROCESSADOR DE VOZ COM IA SIMULADA
         function processVoiceText(text) {
             let amount = 0;
-            let desc = "Gasto Diversos";
             let method = "Débito/PIX";
+            let dateFormatted = new Date().toISOString().split('T')[0]; // Padrão: HOJE
 
-            // Extrai números
+            const textLower = text.toLowerCase();
+
+            // Extrai Valor
             const numbers = text.match(/\d+(?:[\.,]\d+)?/g);
             if (numbers) {
                 amount = parseFloat(numbers[0].replace(',', '.'));
             }
 
-            // Identifica método
-            if (text.toLowerCase().includes('crédito') || text.toLowerCase().includes('cartão')) {
-                method = 'Crédito';
-            } else if (text.toLowerCase().includes('dinheiro')) {
-                method = 'Dinheiro';
+            // Extrai Método
+            if (textLower.includes('crédito') || textLower.includes('cartão')) method = 'Crédito';
+            if (textLower.includes('dinheiro')) method = 'Dinheiro';
+
+            // Extrai Data Falada (ex: "dia 15 de maio" ou "ontem")
+            if (textLower.includes('ontem')) {
+                let d = new Date();
+                d.setDate(d.getDate() - 1);
+                dateFormatted = d.toISOString().split('T')[0];
+            } else {
+                for (let m in monthMap) {
+                    if (textLower.includes(m)) {
+                        const dayMatch = textLower.match(/dia\s+(\d+)/) || textLower.match(/(\d+)\s+de\s+/);
+                        if (dayMatch) {
+                            let day = dayMatch[1].padStart(2, '0');
+                            let year = new Date().getFullYear();
+                            dateFormatted = `${year}-${monthMap[m]}-${day}`;
+                        }
+                        break;
+                    }
+                }
             }
 
-            // Descrição (remove números e palavras chave de método)
-            desc = text.replace(/\d+(?:[\.,]\d+)?/g, '')
-                       .replace(/reais|real|no débito|no crédito|cartão|dinheiro|pix|gastei|com/gI, '')
+            // Extrai Descrição limpa
+            let desc = text.replace(/\d+(?:[\.,]\d+)?/g, '')
+                       .replace(/reais|real|no débito|no crédito|cartão|dinheiro|pix|gastei|com|dia|ontem|de/gI, '')
                        .trim();
             
             if (!desc) desc = "Despesa por Voz";
             desc = desc.charAt(0).toUpperCase() + desc.slice(1);
 
             if (amount > 0) {
-                addTransaction('expense', desc, amount, method, 'Voz');
-                alert(`✅ Lançado por Voz com Sucesso!\n• Item: ${desc}\n• Valor: R$ ${amount.toFixed(2)}\n• Pagamento: ${method}`);
+                addTransaction('expense', desc, amount, method, dateFormatted);
+                alert(`✅ Lançado com Sucesso!\n• Item: ${desc}\n• Valor: R$ ${amount.toFixed(2)}\n• Data: ${formatDisplayDate(dateFormatted)}\n• Pgto: ${method}`);
             } else {
-                alert(`Voz reconhecida: "${text}". Não foi possível identificar o valor numericamente.`);
+                alert(`Ouvi: "${text}". Por favor, informe o valor da despesa.`);
             }
         }
 
-        // SUB-ABAS DE RENDA
+        function addExpenseManual(e) {
+            e.preventDefault();
+            const desc = document.getElementById('exp-desc').value;
+            const amount = parseFloat(document.getElementById('exp-amount').value);
+            const method = document.getElementById('exp-method').value;
+            const date = document.getElementById('exp-date').value;
+
+            addTransaction('expense', desc, amount, method, date);
+            document.getElementById('form-expense').reset();
+            setTodayDates();
+        }
+
+        function addIncomeManual(e) {
+            e.preventDefault();
+            const desc = document.getElementById('inc-desc-select').value;
+            const amount = parseFloat(document.getElementById('inc-amount').value);
+            const subType = document.getElementById('inc-category-type').value;
+            const date = document.getElementById('inc-date').value;
+
+            let catLabel = 'Geral';
+            if (subType === 'penal') catLabel = 'Policial Penal';
+            if (subType === 'nutri') catLabel = 'Nutricionista';
+            if (subType === 'outras') catLabel = 'Outras Fontes';
+
+            addTransaction('income', desc, amount, catLabel, date);
+            document.getElementById('inc-amount').value = '';
+            setTodayDates();
+        }
+
+        function addTransaction(type, title, amount, detail, dateStr) {
+            const transaction = {
+                id: Date.now(),
+                type: type,
+                title: title,
+                amount: amount,
+                detail: detail,
+                date: dateStr || new Date().toISOString().split('T')[0]
+            };
+
+            appState.transactions.unshift(transaction);
+            saveToStorage();
+            renderFeeds();
+        }
+
+        function formatDisplayDate(dateStr) {
+            if(!dateStr) return '';
+            const parts = dateStr.split('-');
+            if(parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            return dateStr;
+        }
+
+        function renderFeeds() {
+            const expContainer = document.getElementById('expenses-feed');
+            const incContainer = document.getElementById('incomes-feed');
+
+            expContainer.innerHTML = '';
+            incContainer.innerHTML = '';
+
+            const expenses = appState.transactions.filter(t => t.type === 'expense');
+            const incomes = appState.transactions.filter(t => t.type === 'income');
+
+            if (expenses.length === 0) {
+                expContainer.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem;">Nenhuma despesa registrada.</div>';
+            } else {
+                expenses.forEach(t => {
+                    expContainer.innerHTML += `
+                        <div class="transaction-item">
+                            <div class="trans-info">
+                                <span class="trans-title">${t.title}</span>
+                                <span class="trans-sub">${t.detail} • 📅 ${formatDisplayDate(t.date)}</span>
+                            </div>
+                            <span class="trans-amount amount-expense">- R$ ${t.amount.toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            if (incomes.length === 0) {
+                incContainer.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem;">Nenhuma receita registrada.</div>';
+            } else {
+                incomes.forEach(t => {
+                    incContainer.innerHTML += `
+                        <div class="transaction-item">
+                            <div class="trans-info">
+                                <span class="trans-title">${t.title}</span>
+                                <span class="trans-sub">${t.detail} • 📅 ${formatDisplayDate(t.date)}</span>
+                            </div>
+                            <span class="trans-amount amount-income">+ R$ ${t.amount.toFixed(2)}</span>
+                        </div>
+                    `;
+                });
+            }
+        }
+
         function renderIncomeSubTabs() {
             const container = document.getElementById('income-subtabs');
             container.innerHTML = '';
@@ -636,92 +731,6 @@
             document.getElementById('inc-category-type').value = currentSub;
         }
 
-        // ADICIONAR LANÇAMENTOS
-        function addExpenseManual(e) {
-            e.preventDefault();
-            const desc = document.getElementById('exp-desc').value;
-            const amount = parseFloat(document.getElementById('exp-amount').value);
-            const method = document.getElementById('exp-method').value;
-
-            addTransaction('expense', desc, amount, method, 'Manual');
-            document.getElementById('form-expense').reset();
-        }
-
-        function addIncomeManual(e) {
-            e.preventDefault();
-            const desc = document.getElementById('inc-desc-select').value;
-            const amount = parseFloat(document.getElementById('inc-amount').value);
-            const subType = document.getElementById('inc-category-type').value;
-
-            let catLabel = 'Geral';
-            if (subType === 'penal') catLabel = 'Policial Penal';
-            if (subType === 'nutri') catLabel = 'Nutricionista';
-            if (subType === 'outras') catLabel = 'Outras Fontes';
-
-            addTransaction('income', desc, amount, catLabel, 'Manual');
-            document.getElementById('inc-amount').value = '';
-        }
-
-        function addTransaction(type, title, amount, detail, origin) {
-            const transaction = {
-                id: Date.now(),
-                type: type, // 'expense' ou 'income'
-                title: title,
-                amount: amount,
-                detail: detail,
-                date: new Date().toLocaleDateString('pt-BR')
-            };
-
-            appState.transactions.unshift(transaction);
-            saveToStorage();
-            renderFeeds();
-        }
-
-        // RENDERIZAR LISTAS
-        function renderFeeds() {
-            const expContainer = document.getElementById('expenses-feed');
-            const incContainer = document.getElementById('incomes-feed');
-
-            expContainer.innerHTML = '';
-            incContainer.innerHTML = '';
-
-            const expenses = appState.transactions.filter(t => t.type === 'expense');
-            const incomes = appState.transactions.filter(t => t.type === 'income');
-
-            if (expenses.length === 0) {
-                expContainer.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem;">Nenhuma despesa registrada.</div>';
-            } else {
-                expenses.forEach(t => {
-                    expContainer.innerHTML += `
-                        <div class="transaction-item">
-                            <div class="trans-info">
-                                <span class="trans-title">${t.title}</span>
-                                <span class="trans-sub">${t.detail} • ${t.date}</span>
-                            </div>
-                            <span class="trans-amount amount-expense">- R$ ${t.amount.toFixed(2)}</span>
-                        </div>
-                    `;
-                });
-            }
-
-            if (incomes.length === 0) {
-                incContainer.innerHTML = '<div style="color:var(--text-sub); font-size:0.85rem;">Nenhuma receita registrada.</div>';
-            } else {
-                incomes.forEach(t => {
-                    incContainer.innerHTML += `
-                        <div class="transaction-item">
-                            <div class="trans-info">
-                                <span class="trans-title">${t.title}</span>
-                                <span class="trans-sub">${t.detail} • ${t.date}</span>
-                            </div>
-                            <span class="trans-amount amount-income">+ R$ ${t.amount.toFixed(2)}</span>
-                        </div>
-                    `;
-                });
-            }
-        }
-
-        // RELATÓRIOS
         function calculateReports() {
             const totalInc = appState.transactions
                 .filter(t => t.type === 'income')
@@ -742,15 +751,14 @@
 
             const summaryEl = document.getElementById('rep-summary-text');
             if (balance > 0) {
-                summaryEl.innerText = `Parabéns! Suas receitas superam suas despesas em R$ ${balance.toFixed(2)}. Você está no caminho certo para o Sucesso Financeiro!`;
+                summaryEl.innerText = `Parabéns! Suas receitas superam suas despesas em R$ ${balance.toFixed(2)}.`;
             } else if (balance < 0) {
-                summaryEl.innerText = `Atenção: Suas despesas ultrapassaram suas receitas em R$ ${Math.abs(balance).toFixed(2)}. Reveja os lançamentos de voz recentes para conter exageros.`;
+                summaryEl.innerText = `Atenção: Suas despesas ultrapassaram suas receitas em R$ ${Math.abs(balance).toFixed(2)}.`;
             } else {
-                summaryEl.innerText = `Suas contas estão empatadas no momento. LANCE todas as suas receitas e despesas para manter o controle total.`;
+                summaryEl.innerText = `Suas contas estão empatadas no momento.`;
             }
         }
 
-        // CONFIGURAÇÕES E PERFIL
         function saveProfile() {
             const name = document.getElementById('prof-name').value;
             const penal = document.getElementById('prof-penal').checked;
@@ -774,7 +782,6 @@
             document.getElementById('prof-outras').checked = appState.user.professions.outras;
         }
 
-        // PERSISTÊNCIA (LOCAL STORAGE)
         function saveToStorage() {
             localStorage.setItem('sucesso_financeiro_db', JSON.stringify(appState));
         }
