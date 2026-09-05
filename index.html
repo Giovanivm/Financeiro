@@ -21,7 +21,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -50,12 +50,13 @@
         }
 
         .btn-reset {
-            background: transparent;
-            border: 1px solid var(--accent-red);
-            color: var(--accent-red);
+            background: #ef4444;
+            color: #ffffff;
             font-size: 0.75rem;
-            padding: 4px 8px;
+            padding: 6px 10px;
             border-radius: 6px;
+            border: none;
+            font-weight: bold;
             cursor: pointer;
         }
 
@@ -67,11 +68,11 @@
         }
 
         .tab-content {
-            display: none !important;
+            display: none;
         }
 
         .tab-content.active {
-            display: block !important;
+            display: block;
         }
 
         .card {
@@ -87,9 +88,6 @@
             font-weight: 600;
             margin-bottom: 12px;
             color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
 
         .voice-section {
@@ -112,18 +110,6 @@
 
         .btn-voice.listening {
             background: linear-gradient(135deg, #ef4444, #f87171);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-            70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-
-        .voice-hint {
-            font-size: 0.8rem;
-            color: var(--text-sub);
         }
 
         .form-group {
@@ -288,7 +274,7 @@
 
     <div class="top-bar">
         <h1>Sucesso Financeiro</h1>
-        <button class="btn-reset" onclick="resetApp()">Resetar App</button>
+        <button class="btn-reset" id="btn-force-reset">LIMPAR DADOS</button>
     </div>
 
     <div class="content-container">
@@ -296,9 +282,9 @@
         <!-- ABA 1: DESPESAS -->
         <div id="tab-expenses" class="tab-content active">
             <div class="card voice-section">
-                <button class="btn-voice" id="btn-voice-input" onclick="startVoice()">🎤</button>
+                <button class="btn-voice" id="btn-voice-input">🎤</button>
                 <div style="font-weight: 600; font-size: 0.95rem;">Lançamento por Voz</div>
-                <div class="voice-hint">Fale: <i>"Gasolina 150 no crédito dia 10 de maio"</i><br>(Sem falar data = Lança hoje)</div>
+                <div style="font-size: 0.8rem; color: var(--text-sub);">Fale o valor e a descrição</div>
             </div>
 
             <div class="card">
@@ -306,18 +292,18 @@
                 <form id="form-exp">
                     <div class="form-group">
                         <label>Descrição</label>
-                        <input type="text" id="exp-desc" class="form-control" placeholder="Ex: Almoço, Mercado" required>
+                        <input type="text" id="exp-desc" class="form-control" placeholder="Ex: Mercado" required>
                     </div>
                     <div class="form-group">
                         <label>Valor (R$)</label>
                         <input type="number" step="0.01" id="exp-amount" class="form-control" placeholder="0,00" required>
                     </div>
                     <div class="form-group">
-                        <label>Data da Despesa</label>
+                        <label>Data</label>
                         <input type="date" id="exp-date" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label>Forma de Pagamento</label>
+                        <label>Pagamento</label>
                         <select id="exp-method" class="form-control">
                             <option value="Débito/PIX">Débito / PIX</option>
                             <option value="Crédito">Cartão de Crédito</option>
@@ -336,22 +322,25 @@
 
         <!-- ABA 2: RENDAS -->
         <div id="tab-incomes" class="tab-content">
-            <div class="sub-tabs" id="income-subtabs"></div>
+            <div class="sub-tabs" id="income-subtabs">
+                <button class="sub-tab-btn active" data-sub="penal">Policial Penal</button>
+                <button class="sub-tab-btn" data-sub="nutri">Nutricionista</button>
+                <button class="sub-tab-btn" data-sub="outras">Outras Fontes</button>
+            </div>
 
             <div class="card">
                 <div class="card-title">💰 Lançar Receita</div>
                 <form id="form-inc">
-                    <input type="hidden" id="inc-sub-type" value="penal">
                     <div class="form-group">
                         <label>Origem / Descrição</label>
                         <select id="inc-desc-select" class="form-control"></select>
                     </div>
                     <div class="form-group">
-                        <label>Valor Recebido (R$)</label>
+                        <label>Valor (R$)</label>
                         <input type="number" step="0.01" id="inc-amount" class="form-control" placeholder="0,00" required>
                     </div>
                     <div class="form-group">
-                        <label>Data do Recebimento</label>
+                        <label>Data</label>
                         <input type="date" id="inc-date" class="form-control" required>
                     </div>
                     <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Salvar Receita</button>
@@ -381,382 +370,220 @@
                 <span>Balanço Geral</span>
                 <h2 id="rep-balance" style="font-size: 1.8rem; margin-top: 4px;">R$ 0,00</h2>
             </div>
-
-            <div class="card">
-                <div class="card-title">📊 Resumo</div>
-                <p id="rep-summary-text" style="font-size: 0.85rem; color: var(--text-sub); line-height: 1.4;"></p>
-            </div>
         </div>
 
         <!-- ABA 4: PERFIL -->
         <div id="tab-profile" class="tab-content">
             <div class="card">
-                <div class="card-title">⚙️ Configurações do Perfil</div>
+                <div class="card-title">⚙️ Perfil</div>
                 <div class="form-group">
                     <label>Seu Nome</label>
                     <input type="text" id="prof-name" class="form-control" value="Giovani">
                 </div>
-                
-                <div style="margin: 15px 0 10px 0; font-weight: 600; font-size: 0.9rem;">Fontes de Renda:</div>
-                
-                <div class="checkbox-group">
-                    <input type="checkbox" id="prof-penal" checked>
-                    <label for="prof-penal">Policial Penal</label>
-                </div>
-                
-                <div class="checkbox-group">
-                    <input type="checkbox" id="prof-nutri" checked>
-                    <label for="prof-nutri">Nutricionista</label>
-                </div>
-
-                <div class="checkbox-group">
-                    <input type="checkbox" id="prof-outras">
-                    <label for="prof-outras">Outras Fontes</label>
-                </div>
-
-                <button type="button" onclick="saveProfile()" class="btn-submit" style="margin-top: 10px;">Salvar Perfil</button>
+                <button type="button" id="btn-save-prof" class="btn-submit">Salvar Perfil</button>
             </div>
         </div>
 
     </div>
 
-    <!-- Navegação -->
+    <!-- Navegação Inferior -->
     <nav class="nav-bar">
-        <button class="nav-item active" onclick="openTab('expenses', this)">
+        <button class="nav-item active" data-tab="expenses">
             <span class="nav-icon">🎤</span>
             <span>Despesas</span>
         </button>
-        <button class="nav-item" onclick="openTab('incomes', this)">
+        <button class="nav-item" data-tab="incomes">
             <span class="nav-icon">💰</span>
             <span>Rendas</span>
         </button>
-        <button class="nav-item" onclick="openTab('reports', this)">
+        <button class="nav-item" data-tab="reports">
             <span class="nav-icon">📊</span>
             <span>Relatórios</span>
         </button>
-        <button class="nav-item" onclick="openTab('profile', this)">
+        <button class="nav-item" data-tab="profile">
             <span class="nav-icon">⚙️</span>
             <span>Perfil</span>
         </button>
     </nav>
 
     <script>
-        let db = {
-            user: { name: 'Giovani', penal: true, nutri: true, outras: false },
-            subTab: 'penal',
-            items: []
-        };
+        (function() {
+            // Garante a limpeza total imediatamente se houver o evento
+            document.getElementById('btn-force-reset').addEventListener('click', function() {
+                localStorage.clear();
+                window.location.reload(true);
+            });
 
-        const incomeOpts = {
-            penal: ['Subsídio / Salário', 'AC4 / Plantão Extra', 'Indenizações', 'Adicionais'],
-            nutri: ['Consulta Individual', 'Pacote Alimentar', 'Mentoria', 'Venda de Cursos/Ebooks'],
-            outras: ['Renda Extra', 'Investimentos', 'Vendas Gerais', 'Serviços']
-        };
+            var state = {
+                currentTab: 'expenses',
+                currentSubTab: 'penal',
+                items: []
+            };
 
-        const months = {
-            'janeiro':'01','fevereiro':'02','março':'03','marco':'03','abril':'04','maio':'05',
-            'junho':'06','julho':'07','agosto':'08','setembro':'09','outubro':'10','novembro':'11','dezembro':'12'
-        };
+            var incomeOpts = {
+                penal: ['Subsídio / Salário', 'AC4 / Plantão Extra', 'Indenizações', 'Adicionais'],
+                nutri: ['Consulta Individual', 'Pacote Alimentar', 'Mentoria', 'Venda de Cursos/Ebooks'],
+                outras: ['Renda Extra', 'Investimentos', 'Vendas Gerais', 'Serviços']
+            };
 
-        function getToday() {
-            const d = new Date();
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        function formatDate(str) {
-            if(!str) return '';
-            const p = str.split('-');
-            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
-        }
-
-        window.onload = function() {
-            loadStorage();
-            initDates();
-            setupFormListeners();
-            renderIncomeTabs();
-            renderFeeds();
-        };
-
-        function initDates() {
-            const today = getToday();
-            document.getElementById('exp-date').value = today;
-            document.getElementById('inc-date').value = today;
-        }
-
-        function openTab(tabName, btn) {
-            const contents = document.getElementsByClassName('tab-content');
-            for (let i = 0; i < contents.length; i++) {
-                contents[i].classList.remove('active');
+            function getTodayStr() {
+                var d = new Date();
+                var m = (d.getMonth() + 1);
+                var day = d.getDate();
+                return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
             }
 
-            const navs = document.getElementsByClassName('nav-item');
-            for (let i = 0; i < navs.length; i++) {
-                navs[i].classList.remove('active');
+            function formatDate(str) {
+                if (!str) return '';
+                var p = str.split('-');
+                return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : str;
             }
 
-            document.getElementById('tab-' + tabName).classList.add('active');
-            if (btn) btn.classList.add('active');
+            function loadData() {
+                try {
+                    var data = localStorage.getItem('sf_app_data_v3');
+                    if (data) state.items = JSON.parse(data) || [];
+                } catch(e) {
+                    state.items = [];
+                }
+            }
 
-            if (tabName === 'reports') renderReports();
-        }
+            function saveData() {
+                try {
+                    localStorage.setItem('sf_app_data_v3', JSON.stringify(state.items));
+                } catch(e) {}
+            }
 
-        function setupFormListeners() {
-            document.getElementById('form-exp').onsubmit = function(e) {
+            function setDates() {
+                var today = getTodayStr();
+                document.getElementById('exp-date').value = today;
+                document.getElementById('inc-date').value = today;
+            }
+
+            function renderIncomeOptions() {
+                var sel = document.getElementById('inc-desc-select');
+                sel.innerHTML = '';
+                var opts = incomeOpts[state.currentSubTab] || incomeOpts.outras;
+                for (var i = 0; i < opts.length; i++) {
+                    var opt = document.createElement('option');
+                    opt.value = opts[i];
+                    opt.textContent = opts[i];
+                    sel.appendChild(opt);
+                }
+            }
+
+            function renderFeeds() {
+                var expFeed = document.getElementById('expenses-feed');
+                var incFeed = document.getElementById('incomes-feed');
+                expFeed.innerHTML = '';
+                incFeed.innerHTML = '';
+
+                var exps = state.items.filter(function(i){ return i.type === 'expense'; });
+                var incs = state.items.filter(function(i){ return i.type === 'income'; });
+
+                if (exps.length === 0) {
+                    expFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma despesa.</div>';
+                } else {
+                    exps.forEach(function(i) {
+                        expFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + '</span></div><span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
+                    });
+                }
+
+                if (incs.length === 0) {
+                    incFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma receita.</div>';
+                } else {
+                    incs.forEach(function(i) {
+                        incFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + '</span></div><span class="trans-amount amount-income">+ R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
+                    });
+                }
+            }
+
+            function renderReports() {
+                var totalInc = 0;
+                var totalExp = 0;
+
+                state.items.forEach(function(i) {
+                    if (i.type === 'income') totalInc += Number(i.amount);
+                    if (i.type === 'expense') totalExp += Number(i.amount);
+                });
+
+                document.getElementById('rep-income').textContent = 'R$ ' + totalInc.toFixed(2);
+                document.getElementById('rep-expense').textContent = 'R$ ' + totalExp.toFixed(2);
+                
+                var bal = totalInc - totalExp;
+                var balEl = document.getElementById('rep-balance');
+                balEl.textContent = 'R$ ' + bal.toFixed(2);
+                balEl.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            }
+
+            // Atribuição dos Eventos de Navegação Abaixo
+            var navBtns = document.querySelectorAll('.nav-item');
+            navBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var targetTab = this.getAttribute('data-tab');
+                    
+                    document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
+                    document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
+
+                    this.classList.add('active');
+                    document.getElementById('tab-' + targetTab).classList.add('active');
+
+                    if (targetTab === 'reports') renderReports();
+                });
+            });
+
+            // Navegação das Sub-abas de Renda
+            var subBtns = document.querySelectorAll('.sub-tab-btn');
+            subBtns.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    subBtns.forEach(function(b){ b.classList.remove('active'); });
+                    this.classList.add('active');
+                    state.currentSubTab = this.getAttribute('data-sub');
+                    renderIncomeOptions();
+                });
+            });
+
+            // Submit Despesa
+            document.getElementById('form-exp').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const desc = document.getElementById('exp-desc').value.trim();
-                const val = parseFloat(document.getElementById('exp-amount').value);
-                const dt = document.getElementById('exp-date').value || getToday();
-                const mtd = document.getElementById('exp-method').value;
+                var desc = document.getElementById('exp-desc').value.trim();
+                var val = parseFloat(document.getElementById('exp-amount').value);
+                var dt = document.getElementById('exp-date').value || getTodayStr();
+                var mtd = document.getElementById('exp-method').value;
 
-                if(desc && !isNaN(val)) {
-                    saveItem('expense', desc, val, mtd, dt);
+                if (desc && !isNaN(val)) {
+                    state.items.unshift({ type: 'expense', title: desc, amount: val, detail: mtd, date: dt });
+                    saveData();
+                    renderFeeds();
                     document.getElementById('exp-desc').value = '';
                     document.getElementById('exp-amount').value = '';
-                    initDates();
+                    setDates();
                 }
-            };
+            });
 
-            document.getElementById('form-inc').onsubmit = function(e) {
+            // Submit Renda
+            document.getElementById('form-inc').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const desc = document.getElementById('inc-desc-select').value;
-                const val = parseFloat(document.getElementById('inc-amount').value);
-                const dt = document.getElementById('inc-date').value || getToday();
-                const st = document.getElementById('inc-sub-type').value;
+                var desc = document.getElementById('inc-desc-select').value;
+                var val = parseFloat(document.getElementById('inc-amount').value);
+                var dt = document.getElementById('inc-date').value || getTodayStr();
 
-                let tag = 'Geral';
-                if(st === 'penal') tag = 'Policial Penal';
-                if(st === 'nutri') tag = 'Nutricionista';
-                if(st === 'outras') tag = 'Outras Fontes';
-
-                if(!isNaN(val)) {
-                    saveItem('income', desc, val, tag, dt);
+                if (desc && !isNaN(val)) {
+                    state.items.unshift({ type: 'income', title: desc, amount: val, detail: state.currentSubTab, date: dt });
+                    saveData();
+                    renderFeeds();
                     document.getElementById('inc-amount').value = '';
-                    initDates();
+                    setDates();
                 }
-            };
-        }
-
-        function saveItem(type, title, amount, detail, date) {
-            db.items.unshift({
-                id: Date.now(),
-                type: type,
-                title: title,
-                amount: amount,
-                detail: detail,
-                date: date
             });
-            saveStorage();
+
+            // Inicialização
+            loadData();
+            setDates();
+            renderIncomeOptions();
             renderFeeds();
-        }
 
-        function renderFeeds() {
-            const expFeed = document.getElementById('expenses-feed');
-            const incFeed = document.getElementById('incomes-feed');
-
-            expFeed.innerHTML = '';
-            incFeed.innerHTML = '';
-
-            const exps = db.items.filter(i => i.type === 'expense');
-            const incs = db.items.filter(i => i.type === 'income');
-
-            if (exps.length === 0) {
-                expFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma despesa lançada.</div>';
-            } else {
-                exps.forEach(i => {
-                    expFeed.innerHTML += `
-                        <div class="transaction-item">
-                            <div>
-                                <span class="trans-title">${i.title}</span>
-                                <span class="trans-sub">${i.detail} • 📅 ${formatDate(i.date)}</span>
-                            </div>
-                            <span class="trans-amount amount-expense">- R$ ${i.amount.toFixed(2)}</span>
-                        </div>
-                    `;
-                });
-            }
-
-            if (incs.length === 0) {
-                incFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma receita lançada.</div>';
-            } else {
-                incs.forEach(i => {
-                    incFeed.innerHTML += `
-                        <div class="transaction-item">
-                            <div>
-                                <span class="trans-title">${i.title}</span>
-                                <span class="trans-sub">${i.detail} • 📅 ${formatDate(i.date)}</span>
-                            </div>
-                            <span class="trans-amount amount-income">+ R$ ${i.amount.toFixed(2)}</span>
-                        </div>
-                    `;
-                });
-            }
-        }
-
-        function renderIncomeTabs() {
-            const container = document.getElementById('income-subtabs');
-            container.innerHTML = '';
-
-            if (db.user.penal) {
-                container.innerHTML += `<button type="button" class="sub-tab-btn ${db.subTab==='penal'?'active':''}" onclick="setIncomeSub('penal')">Policial Penal</button>`;
-            }
-            if (db.user.nutri) {
-                container.innerHTML += `<button type="button" class="sub-tab-btn ${db.subTab==='nutri'?'active':''}" onclick="setIncomeSub('nutri')">Nutricionista</button>`;
-            }
-            if (db.user.outras) {
-                container.innerHTML += `<button type="button" class="sub-tab-btn ${db.subTab==='outras'?'active':''}" onclick="setIncomeSub('outras')">Outras Fontes</button>`;
-            }
-
-            updateIncomeOptions();
-        }
-
-        function setIncomeSub(sub) {
-            db.subTab = sub;
-            renderIncomeTabs();
-        }
-
-        function updateIncomeOptions() {
-            const select = document.getElementById('inc-desc-select');
-            select.innerHTML = '';
-            const opts = incomeOpts[db.subTab] || incomeOpts.outras;
-            opts.forEach(o => {
-                select.innerHTML += `<option value="${o}">${o}</option>`;
-            });
-            document.getElementById('inc-sub-type').value = db.subTab;
-        }
-
-        function renderReports() {
-            const totalInc = db.items.filter(i => i.type === 'income').reduce((a, b) => a + b.amount, 0);
-            const totalExp = db.items.filter(i => i.type === 'expense').reduce((a, b) => a + b.amount, 0);
-            const bal = totalInc - totalExp;
-
-            document.getElementById('rep-income').innerText = `R$ ${totalInc.toFixed(2)}`;
-            document.getElementById('rep-expense').innerText = `R$ ${totalExp.toFixed(2)}`;
-            
-            const balEl = document.getElementById('rep-balance');
-            balEl.innerText = `R$ ${bal.toFixed(2)}`;
-            balEl.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-
-            const txt = document.getElementById('rep-summary-text');
-            if(bal > 0) txt.innerText = `Sua saúde financeira está excelente! Suas receitas superam suas despesas em R$ ${bal.toFixed(2)}.`;
-            else if(bal < 0) txt.innerText = `Atenção: Suas despesas superaram suas receitas em R$ ${Math.abs(bal).toFixed(2)}.`;
-            else txt.innerText = `Suas finanças estão equilibradas.`;
-        }
-
-        function saveProfile() {
-            db.user.name = document.getElementById('prof-name').value || 'Giovani';
-            db.user.penal = document.getElementById('prof-penal').checked;
-            db.user.nutri = document.getElementById('prof-nutri').checked;
-            db.user.outras = document.getElementById('prof-outras').checked;
-            
-            saveStorage();
-            renderIncomeTabs();
-            alert('Perfil atualizado com sucesso!');
-        }
-
-        function startVoice() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const btn = document.getElementById('btn-voice-input');
-
-            if (!SpeechRecognition) {
-                alert('Seu navegador não suporta voz.');
-                return;
-            }
-
-            const rec = new SpeechRecognition();
-            rec.lang = 'pt-BR';
-            btn.classList.add('listening');
-
-            rec.onresult = function(e) {
-                btn.classList.remove('listening');
-                parseVoice(e.results[0][0].transcript);
-            };
-
-            rec.onerror = function() {
-                btn.classList.remove('listening');
-                alert('Erro ao ouvir a voz.');
-            };
-
-            rec.onend = function() {
-                btn.classList.remove('listening');
-            };
-
-            rec.start();
-        }
-
-        function parseVoice(text) {
-            let val = 0;
-            let mtd = 'Débito/PIX';
-            let dt = getToday();
-
-            const lower = text.toLowerCase();
-            const nums = text.match(/\d+(?:[\.,]\d+)?/g);
-            
-            if (nums) val = parseFloat(nums[0].replace(',', '.'));
-            if (lower.includes('crédito') || lower.includes('cartão')) mtd = 'Crédito';
-            if (lower.includes('dinheiro')) mtd = 'Dinheiro';
-
-            if (lower.includes('ontem')) {
-                let d = new Date();
-                d.setDate(d.getDate() - 1);
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                dt = `${year}-${month}-${day}`;
-            } else {
-                for (let m in months) {
-                    if (lower.includes(m)) {
-                        const dayMatch = lower.match(/dia\s+(\d+)/) || lower.match(/(\d+)\s+de\s+/);
-                        if (dayMatch) {
-                            let day = dayMatch[1].padStart(2, '0');
-                            let year = new Date().getFullYear();
-                            dt = `${year}-${months[m]}-${day}`;
-                        }
-                        break;
-                    }
-                }
-            }
-
-            let desc = text.replace(/\d+(?:[\.,]\d+)?/g, '')
-                       .replace(/reais|real|no débito|no crédito|cartão|dinheiro|pix|gastei|com|dia|ontem|de/gI, '')
-                       .trim();
-            if(!desc) desc = "Despesa por Voz";
-            desc = desc.charAt(0).toUpperCase() + desc.slice(1);
-
-            if(val > 0) {
-                saveItem('expense', desc, val, mtd, dt);
-                alert(`✅ Lançado!\n• Item: ${desc}\n• Valor: R$ ${val.toFixed(2)}\n• Data: ${formatDate(dt)}\n• Pgto: ${mtd}`);
-            } else {
-                alert(`Ouvi: "${text}". Não consegui identificar o valor.`);
-            }
-        }
-
-        function saveStorage() {
-            localStorage.setItem('sf_app_data', JSON.stringify(db));
-        }
-
-        function loadStorage() {
-            const data = localStorage.getItem('sf_app_data');
-            if (data) {
-                try {
-                    const parsed = JSON.parse(data);
-                    if (parsed && Array.isArray(parsed.items)) {
-                        db = parsed;
-                    }
-                } catch(e) {
-                    console.error('Erro de leitura, resetando...');
-                }
-            }
-        }
-
-        function resetApp() {
-            if(confirm("Deseja limpar todos os lançamentos e destravar o aplicativo?")) {
-                localStorage.removeItem('sf_app_data');
-                location.reload();
-            }
-        }
+        })();
     </script>
 </body>
 </html>
