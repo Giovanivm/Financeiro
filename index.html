@@ -50,6 +50,22 @@
             font-weight: 700;
         }
 
+        .top-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-gear {
+            background: #334155;
+            color: #f8fafc;
+            font-size: 1.1rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+        }
+
         .btn-reset {
             background: #334155;
             color: #f8fafc;
@@ -294,13 +310,41 @@
             color: var(--accent-red);
             border: 1px solid var(--accent-red);
         }
+
+        /* Modal Conexão Tempo Real */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-body {
+            background-color: var(--bg-card);
+            border-radius: 14px;
+            padding: 20px;
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid var(--border-color);
+        }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
         <h1>Sucesso Financeiro</h1>
-        <button class="btn-reset" id="btn-force-reset">RECARREGAR APP</button>
+        <div class="top-actions">
+            <button class="btn-gear" id="btn-open-sync" title="Conexão em Tempo Real">⚙️</button>
+            <button class="btn-reset" id="btn-force-reset">RECARREGAR APP</button>
+        </div>
     </div>
 
     <!-- Seletor de Conta Ativa -->
@@ -382,7 +426,7 @@
             </div>
         </div>
 
-        <!-- ABA 3: PACIENTES (APENAS NUTRICIONISTA NA CONTA FAMÍLIA) -->
+        <!-- ABA 3: PACIENTES -->
         <div id="tab-patients" class="tab-content">
             <div class="card">
                 <div class="card-title">👤 Cadastrar Novo Paciente</div>
@@ -457,6 +501,28 @@
 
     </div>
 
+    <!-- MODAL DE CONEXÃO EM TEMPO REAL (ENGRENAGEM) -->
+    <div class="modal-overlay" id="modal-sync">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">🔗 Conexão em Tempo Real</h3>
+                <button id="btn-close-sync" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 12px;">
+                Cole o código ou URL do seu banco Firebase/Supabase para sincronizar os dados simultaneamente entre dois celulares.
+            </p>
+            <div class="form-group">
+                <label>Código da Sala / ID de Sincronização</label>
+                <input type="text" id="sync-room-id" class="form-control" placeholder="Ex: familia-mesquita-2026">
+            </div>
+            <div class="form-group">
+                <label>URL do Banco de Dados (opcional)</label>
+                <input type="text" id="sync-db-url" class="form-control" placeholder="https://seu-projeto.firebaseio.com">
+            </div>
+            <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue);">Conectar e Sincronizar</button>
+        </div>
+    </div>
+
     <!-- Navegação Inferior -->
     <nav class="nav-bar">
         <button class="nav-item active" data-tab="expenses">
@@ -489,17 +555,10 @@
 
             var state = {
                 currentAccount: 'main',
+                sync: { roomId: '', dbUrl: '' },
                 profiles: {
-                    main: {
-                        name: 'Giovani / Rosângela',
-                        job: 'penal',
-                        email: ''
-                    },
-                    sebastiao: {
-                        name: 'Sr. Sebastião',
-                        job: 'aposentado',
-                        email: ''
-                    }
+                    main: { name: 'Giovani / Rosângela', job: 'penal', email: '' },
+                    sebastiao: { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
                 },
                 items: [],
                 patients: []
@@ -533,6 +592,7 @@
                         if (parsed.profiles) state.profiles = parsed.profiles;
                         if (parsed.items) state.items = parsed.items;
                         if (parsed.patients) state.patients = parsed.patients;
+                        if (parsed.sync) state.sync = parsed.sync;
                     }
                 } catch(e) {}
             }
@@ -678,7 +738,27 @@
                 if (targetTab === 'patients') renderPatients();
             }
 
-            // --- RECONHECIMENTO DE VOZ COMPLETO ---
+            // CONTROLE MODAL DE CONEXÃO / ENGRENAGEM
+            var modalSync = document.getElementById('modal-sync');
+            document.getElementById('btn-open-sync').addEventListener('click', function() {
+                document.getElementById('sync-room-id').value = state.sync.roomId || '';
+                document.getElementById('sync-db-url').value = state.sync.dbUrl || '';
+                modalSync.classList.add('active');
+            });
+
+            document.getElementById('btn-close-sync').addEventListener('click', function() {
+                modalSync.classList.remove('active');
+            });
+
+            document.getElementById('btn-save-sync').addEventListener('click', function() {
+                state.sync.roomId = document.getElementById('sync-room-id').value.trim();
+                state.sync.dbUrl = document.getElementById('sync-db-url').value.trim();
+                saveData();
+                modalSync.classList.remove('active');
+                alert('Configurações de sincronização salvas com sucesso!');
+            });
+
+            // RECONHECIMENTO DE VOZ
             var btnVoice = document.getElementById('btn-voice-input');
             var voiceTitle = document.getElementById('voice-status-title');
             var voiceDesc = document.getElementById('voice-status-desc');
@@ -688,7 +768,7 @@
                     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
                     if (!SpeechRecognition) {
-                        alert('O reconhecimento de voz não é suportado neste navegador. Recomendamos usar o Google Chrome no celular ou computador.');
+                        alert('O reconhecimento de voz não é suportado neste navegador. Recomendamos usar o Google Chrome.');
                         return;
                     }
 
@@ -709,7 +789,6 @@
                         voiceTitle.textContent = 'Lançamento por Voz';
                         voiceDesc.textContent = 'Voz capturada: "' + text + '"';
 
-                        // Separa o texto dos números digitados
                         var numbers = text.match(/\d+([.,]\d+)?/g);
                         var amount = numbers ? numbers[numbers.length - 1].replace(',', '.') : '';
                         
@@ -729,9 +808,8 @@
                     recognition.onerror = function(event) {
                         btnVoice.classList.remove('listening');
                         voiceTitle.textContent = 'Lançamento por Voz';
-                        
                         if (event.error === 'not-allowed') {
-                            alert('Acesso ao microfone negado! Por favor, ative a permissão de microfone nas configurações do seu navegador.');
+                            alert('Acesso ao microfone negado! Verifique as permissões do seu navegador.');
                         } else {
                             voiceDesc.textContent = 'Não foi possível ouvir. Tente novamente.';
                         }
