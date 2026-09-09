@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sucesso Financeiro</title>
     
-    <!-- SDK Compatível Firebase v9 -->
+    <!-- Firebase SDK v9 (Compatibilizado) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
@@ -73,8 +73,8 @@
         }
 
         .sync-indicator {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             position: absolute;
             top: 2px;
@@ -82,7 +82,7 @@
             background-color: #64748b;
         }
 
-        .sync-active { background-color: var(--accent-green); }
+        .sync-active { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
 
         .btn-reset {
             background: #334155;
@@ -295,7 +295,7 @@
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             z-index: 2000;
             align-items: center;
             justify-content: center;
@@ -311,6 +311,8 @@
             width: 100%;
             max-width: 450px;
             border: 1px solid var(--border-color);
+            max-height: 90vh;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -484,21 +486,25 @@
     <div class="modal-overlay" id="modal-sync">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">🔗 Conexão em Tempo Real</h3>
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">🔗 Conexão de Celulares</h3>
                 <button id="btn-close-sync" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 12px;">
-                Insira o mesmo <b>Código da Sala</b> e a mesma <b>URL do Firebase</b> nos dois celulares.
+                Preencha os mesmos dados exatamente iguais em <b>ambos os celulares</b>.
             </p>
             <div class="form-group">
-                <label>Código Único da Sala (Ex: familiamesquita)</label>
+                <label>Código da Sala (Ex: familiamesquita)</label>
                 <input type="text" id="sync-room-id" class="form-control" placeholder="familiamesquita">
             </div>
             <div class="form-group">
-                <label>URL do Realtime Database</label>
+                <label>URL do Firebase Database</label>
                 <input type="text" id="sync-db-url" class="form-control" placeholder="https://seu-projeto-default-rtdb.firebaseio.com">
             </div>
-            <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue);">Conectar e Sincronizar</button>
+            <div class="form-group">
+                <label>Chave de API do Firebase (apiKey)</label>
+                <input type="text" id="sync-api-key" class="form-control" placeholder="AIzaSy...">
+            </div>
+            <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue);">Salvar e Conectar</button>
         </div>
     </div>
 
@@ -536,7 +542,7 @@
 
             var state = {
                 currentAccount: 'main',
-                sync: { roomId: '', dbUrl: '' },
+                sync: { roomId: '', dbUrl: '', apiKey: '' },
                 profiles: {
                     main: { name: 'Giovani / Rosângela', job: 'penal', email: '' },
                     sebastiao: { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
@@ -567,7 +573,7 @@
 
             function loadData() {
                 try {
-                    var data = localStorage.getItem('sf_app_data_v6');
+                    var data = localStorage.getItem('sf_app_data_v7');
                     if (data) {
                         var parsed = JSON.parse(data);
                         if (parsed.profiles) state.profiles = parsed.profiles;
@@ -581,7 +587,7 @@
             function saveData(syncToRemote) {
                 if (syncToRemote === undefined) syncToRemote = true;
                 try {
-                    localStorage.setItem('sf_app_data_v6', JSON.stringify(state));
+                    localStorage.setItem('sf_app_data_v7', JSON.stringify(state));
                 } catch(e) {}
 
                 if (syncToRemote && dbRef && !isRemoteUpdate) {
@@ -590,7 +596,7 @@
                         items: state.items,
                         patients: state.patients
                     }).catch(function(err) {
-                        alert('Erro ao enviar dados para a nuvem: ' + err.message);
+                        alert('Erro ao gravar no Firebase: ' + err.message);
                     });
                 }
             }
@@ -600,13 +606,13 @@
                 
                 var dbUrl = (state.sync.dbUrl || '').trim();
                 var roomId = (state.sync.roomId || '').trim();
+                var apiKey = (state.sync.apiKey || '').trim();
 
                 if (!roomId || !dbUrl) {
                     dot.classList.remove('sync-active');
                     return;
                 }
 
-                // Ajusta formatacao da URL se faltar o https://
                 if (!dbUrl.startsWith('http://') && !dbUrl.startsWith('https://')) {
                     dbUrl = 'https://' + dbUrl;
                 }
@@ -616,12 +622,15 @@
                         firebase.app().delete();
                     }
 
-                    firebase.initializeApp({ databaseURL: dbUrl });
+                    var config = { databaseURL: dbUrl };
+                    if (apiKey) config.apiKey = apiKey;
+
+                    firebase.initializeApp(config);
 
                     var cleanRoom = roomId.replace(/[^a-zA-Z0-9_-]/g, '');
                     dbRef = firebase.database().ref('rooms/' + cleanRoom);
 
-                    // Escuta conexao ativa
+                    // Verifica status de conexao em tempo real
                     var connectedRef = firebase.database().ref('.info/connected');
                     connectedRef.on('value', function(snap) {
                         if (snap.val() === true) {
@@ -631,7 +640,7 @@
                         }
                     });
 
-                    // Escuta dados em tempo real
+                    // Escuta alteracoes em tempo real
                     dbRef.on('value', function(snapshot) {
                         var data = snapshot.val();
                         if (data) {
@@ -649,12 +658,12 @@
                         }
                     }, function(error) {
                         dot.classList.remove('sync-active');
-                        alert('Falha na conexão do Firebase: ' + error.message + '\n\nVerifique se alterou as Regras do Realtime Database para true.');
+                        alert('Erro no Firebase: ' + error.message + '\nVerifique as regras do Realtime Database.');
                     });
 
                 } catch(err) {
                     dot.classList.remove('sync-active');
-                    alert('Erro de configuração: ' + err.message);
+                    alert('Erro de Configuração: ' + err.message);
                 }
             }
 
@@ -793,11 +802,12 @@
                 if (targetTab === 'patients') renderPatients();
             }
 
-            // MODAL DE CONFIGURAÇÃO DA SINCRONIZAÇÃO
+            // MODAL CONFIGURAÇÃO
             var modalSync = document.getElementById('modal-sync');
             document.getElementById('btn-open-sync').addEventListener('click', function() {
                 document.getElementById('sync-room-id').value = state.sync.roomId || '';
                 document.getElementById('sync-db-url').value = state.sync.dbUrl || '';
+                document.getElementById('sync-api-key').value = state.sync.apiKey || '';
                 modalSync.classList.add('active');
             });
 
@@ -808,6 +818,7 @@
             document.getElementById('btn-save-sync').addEventListener('click', function() {
                 state.sync.roomId = document.getElementById('sync-room-id').value.trim();
                 state.sync.dbUrl = document.getElementById('sync-db-url').value.trim();
+                state.sync.apiKey = document.getElementById('sync-api-key').value.trim();
                 saveData(false);
                 modalSync.classList.remove('active');
                 initFirebaseSync();
@@ -823,7 +834,7 @@
                     var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
                     if (!SpeechRecognition) {
-                        alert('Navegador sem suporte ao recurso de voz. Utilize o Chrome.');
+                        alert('Navegador sem suporte a voz. Utilize o Google Chrome.');
                         return;
                     }
 
