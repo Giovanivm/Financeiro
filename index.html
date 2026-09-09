@@ -456,11 +456,11 @@
         <!-- ABA 5: PERFIL -->
         <div id="tab-profile" class="tab-content">
             <div class="card">
-                <div class="card-title" id="profile-card-title">⚙️ Perfil do Titular</div>
+                <div class="card-title" id="profile-card-title">⚙️ Perfil do Dispositivo</div>
                 <form id="form-profile">
                     <div class="form-group">
-                        <label>Nome Completo / Titular</label>
-                        <input type="text" id="prof-name" class="form-control" required>
+                        <label>Seu Nome (Identificação deste Aparelho)</label>
+                        <input type="text" id="prof-name" class="form-control" placeholder="Digite seu nome" required>
                     </div>
                     <div class="form-group">
                         <label>Profissão / Categoria Principal</label>
@@ -475,7 +475,7 @@
                         <label>E-mail / Contato</label>
                         <input type="email" id="prof-email" class="form-control" placeholder="email@exemplo.com">
                     </div>
-                    <button type="submit" class="btn-submit">Salvar Perfil Desta Conta</button>
+                    <button type="submit" class="btn-submit">Salvar Perfil Neste Dispositivo</button>
                 </form>
             </div>
         </div>
@@ -543,10 +543,7 @@
             var state = {
                 currentAccount: 'main',
                 sync: { roomId: '', dbUrl: '', apiKey: '' },
-                profiles: {
-                    main: { name: 'Giovani / Rosângela', job: 'penal', email: '' },
-                    sebastiao: { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
-                },
+                localProfile: { name: '', job: 'outras', email: '' },
                 items: [],
                 patients: []
             };
@@ -573,10 +570,10 @@
 
             function loadData() {
                 try {
-                    var data = localStorage.getItem('sf_app_data_v7');
+                    var data = localStorage.getItem('sf_app_data_v8');
                     if (data) {
                         var parsed = JSON.parse(data);
-                        if (parsed.profiles) state.profiles = parsed.profiles;
+                        if (parsed.localProfile) state.localProfile = parsed.localProfile;
                         if (parsed.items) state.items = parsed.items;
                         if (parsed.patients) state.patients = parsed.patients;
                         if (parsed.sync) state.sync = parsed.sync;
@@ -587,12 +584,16 @@
             function saveData(syncToRemote) {
                 if (syncToRemote === undefined) syncToRemote = true;
                 try {
-                    localStorage.setItem('sf_app_data_v7', JSON.stringify(state));
+                    localStorage.setItem('sf_app_data_v8', JSON.stringify({
+                        localProfile: state.localProfile,
+                        sync: state.sync,
+                        items: state.items,
+                        patients: state.patients
+                    }));
                 } catch(e) {}
 
                 if (syncToRemote && dbRef && !isRemoteUpdate) {
                     dbRef.set({
-                        profiles: state.profiles,
                         items: state.items,
                         patients: state.patients
                     }).catch(function(err) {
@@ -630,7 +631,6 @@
                     var cleanRoom = roomId.replace(/[^a-zA-Z0-9_-]/g, '');
                     dbRef = firebase.database().ref('rooms/' + cleanRoom);
 
-                    // Verifica status de conexao em tempo real
                     var connectedRef = firebase.database().ref('.info/connected');
                     connectedRef.on('value', function(snap) {
                         if (snap.val() === true) {
@@ -640,12 +640,10 @@
                         }
                     });
 
-                    // Escuta alteracoes em tempo real
                     dbRef.on('value', function(snapshot) {
                         var data = snapshot.val();
                         if (data) {
                             isRemoteUpdate = true;
-                            if (data.profiles) state.profiles = data.profiles;
                             if (data.items) state.items = data.items;
                             if (data.patients) state.patients = data.patients;
 
@@ -668,17 +666,14 @@
             }
 
             function applyProfileState() {
-                var activeProfile = state.profiles[state.currentAccount] || { name: '', job: 'outras', email: '' };
+                var activeProfile = state.localProfile || { name: '', job: 'outras', email: '' };
 
                 document.getElementById('prof-name').value = activeProfile.name || '';
                 document.getElementById('prof-job').value = activeProfile.job || 'outras';
                 document.getElementById('prof-email').value = activeProfile.email || '';
 
-                document.getElementById('profile-card-title').textContent = 
-                    '⚙️ Perfil (' + (state.currentAccount === 'main' ? 'Família' : 'Sr. Sebastião') + ')';
-
                 var patNav = document.getElementById('nav-patients');
-                if (state.currentAccount === 'main' && activeProfile.job === 'nutri') {
+                if (activeProfile.job === 'nutri') {
                     patNav.style.display = 'flex';
                 } else {
                     patNav.style.display = 'none';
@@ -694,7 +689,7 @@
                 var sel = document.getElementById('inc-desc-select');
                 sel.innerHTML = '';
                 
-                var activeProfile = state.profiles[state.currentAccount] || { job: 'outras' };
+                var activeProfile = state.localProfile || { job: 'outras' };
                 var opts = jobIncomes[activeProfile.job] || jobIncomes.outras;
 
                 for (var i = 0; i < opts.length; i++) {
@@ -722,7 +717,8 @@
                     expFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma despesa para esta conta.</div>';
                 } else {
                     exps.forEach(function(i) {
-                        expFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + '</span></div><span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
+                        var authorStr = i.author ? ' • 👤 ' + i.author : '';
+                        expFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + authorStr + '</span></div><span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
                     });
                 }
 
@@ -730,7 +726,8 @@
                     incFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma receita para esta conta.</div>';
                 } else {
                     incs.forEach(function(i) {
-                        incFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + '</span></div><span class="trans-amount amount-income">+ R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
+                        var authorStr = i.author ? ' • 👤 ' + i.author : '';
+                        incFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + authorStr + '</span></div><span class="trans-amount amount-income">+ R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
                     });
                 }
             }
@@ -898,15 +895,14 @@
 
             document.getElementById('form-profile').addEventListener('submit', function(e) {
                 e.preventDefault();
-                var cur = state.currentAccount;
                 
-                state.profiles[cur].name = document.getElementById('prof-name').value.trim();
-                state.profiles[cur].job = document.getElementById('prof-job').value;
-                state.profiles[cur].email = document.getElementById('prof-email').value.trim();
+                state.localProfile.name = document.getElementById('prof-name').value.trim();
+                state.localProfile.job = document.getElementById('prof-job').value;
+                state.localProfile.email = document.getElementById('prof-email').value.trim();
 
-                saveData();
+                saveData(false);
                 applyProfileState();
-                alert('Perfil salvo com sucesso!');
+                alert('Perfil salvo localmente neste aparelho!');
             });
 
             document.getElementById('form-patient').addEventListener('submit', function(e) {
@@ -931,10 +927,11 @@
                 var val = parseFloat(document.getElementById('exp-amount').value);
                 var dt = document.getElementById('exp-date').value || getTodayStr();
                 var mtd = document.getElementById('exp-method').value;
+                var author = state.localProfile.name || 'Anônimo';
 
                 if (desc && !isNaN(val)) {
                     state.items.unshift({ 
-                        type: 'expense', title: desc, amount: val, detail: mtd, date: dt, account: state.currentAccount
+                        type: 'expense', title: desc, amount: val, detail: mtd, date: dt, account: state.currentAccount, author: author
                     });
                     saveData();
                     renderFeeds();
@@ -948,11 +945,12 @@
                 var desc = document.getElementById('inc-desc-select').value;
                 var val = parseFloat(document.getElementById('inc-amount').value);
                 var dt = document.getElementById('inc-date').value || getTodayStr();
+                var author = state.localProfile.name || 'Anônimo';
 
                 if (desc && !isNaN(val)) {
-                    var curJob = state.profiles[state.currentAccount].job;
+                    var curJob = state.localProfile.job;
                     state.items.unshift({ 
-                        type: 'income', title: desc, amount: val, detail: curJob, date: dt, account: state.currentAccount
+                        type: 'income', title: desc, amount: val, detail: curJob, date: dt, account: state.currentAccount, author: author
                     });
                     saveData();
                     renderFeeds();
