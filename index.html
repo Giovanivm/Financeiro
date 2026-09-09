@@ -541,11 +541,11 @@
                 <button id="btn-close-sync" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
             <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 12px;">
-                Preencha os mesmos dados exatamente iguais em <b>ambos os celulares</b>.
+                Esta é a sua senha de conexão privada para sincronizar os aparelhos.
             </p>
             <div class="form-group">
-                <label>Código da Sala (Ex: familiamesquita)</label>
-                <input type="text" id="sync-room-id" class="form-control" placeholder="familiamesquita">
+                <label>Sua Senha da Sala</label>
+                <input type="text" id="sync-room-id" class="form-control" placeholder="Digite sua senha aqui">
             </div>
             <div class="form-group">
                 <label>URL do Firebase Database</label>
@@ -584,6 +584,14 @@
 
     <script>
         (function() {
+            // =========================================================
+            // CONFIGURAÇÕES PADRÃO DO FIREBASE PRÉ-INSTALADAS
+            // =========================================================
+            var DEFAULT_SYNC_ROOM = "familia2026"; 
+            var DEFAULT_SYNC_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/"; 
+            var DEFAULT_SYNC_KEY  = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE"; 
+            // =========================================================
+
             var dbRef = null;
             var isRemoteUpdate = false;
 
@@ -593,7 +601,11 @@
 
             var state = {
                 currentAccount: 'main',
-                sync: { roomId: '', dbUrl: '', apiKey: '' },
+                sync: { 
+                    roomId: DEFAULT_SYNC_ROOM, 
+                    dbUrl: DEFAULT_SYNC_URL, 
+                    apiKey: DEFAULT_SYNC_KEY 
+                },
                 localProfile: { name: '', job: 'outras', email: '' },
                 items: [],
                 patients: []
@@ -632,7 +644,16 @@
                         if (parsed.localProfile) state.localProfile = parsed.localProfile;
                         if (parsed.items) state.items = parsed.items;
                         if (parsed.patients) state.patients = parsed.patients;
-                        if (parsed.sync) state.sync = parsed.sync;
+                        
+                        if (parsed.sync && parsed.sync.roomId && parsed.sync.dbUrl) {
+                            state.sync = parsed.sync;
+                        } else {
+                            state.sync = { 
+                                roomId: DEFAULT_SYNC_ROOM, 
+                                dbUrl: DEFAULT_SYNC_URL, 
+                                apiKey: DEFAULT_SYNC_KEY 
+                            };
+                        }
                     }
                 } catch(e) {}
             }
@@ -661,9 +682,9 @@
             function initFirebaseSync() {
                 var dot = document.getElementById('sync-status-dot');
                 
-                var dbUrl = (state.sync.dbUrl || '').trim();
-                var roomId = (state.sync.roomId || '').trim();
-                var apiKey = (state.sync.apiKey || '').trim();
+                var dbUrl = (state.sync.dbUrl || DEFAULT_SYNC_URL).trim();
+                var roomId = (state.sync.roomId || DEFAULT_SYNC_ROOM).trim();
+                var apiKey = (state.sync.apiKey || DEFAULT_SYNC_KEY).trim();
 
                 if (!roomId || !dbUrl) {
                     dot.classList.remove('sync-active');
@@ -712,12 +733,10 @@
                         }
                     }, function(error) {
                         dot.classList.remove('sync-active');
-                        alert('Erro no Firebase: ' + error.message + '\nVerifique as regras do Realtime Database.');
                     });
 
                 } catch(err) {
                     dot.classList.remove('sync-active');
-                    alert('Erro de Configuração: ' + err.message);
                 }
             }
 
@@ -841,7 +860,6 @@
                 balEl.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
             }
 
-            // FUNÇÕES DE EXPORTAÇÃO E COMPARTILHAMENTO
             function getFilteredItems() {
                 return state.items.filter(function(i) {
                     return (i.account || 'main') === state.currentAccount;
@@ -970,12 +988,11 @@
                 if (targetTab === 'patients') renderPatients();
             }
 
-            // MODAL CONFIGURAÇÃO
             var modalSync = document.getElementById('modal-sync');
             document.getElementById('btn-open-sync').addEventListener('click', function() {
-                document.getElementById('sync-room-id').value = state.sync.roomId || '';
-                document.getElementById('sync-db-url').value = state.sync.dbUrl || '';
-                document.getElementById('sync-api-key').value = state.sync.apiKey || '';
+                document.getElementById('sync-room-id').value = state.sync.roomId || DEFAULT_SYNC_ROOM;
+                document.getElementById('sync-db-url').value = state.sync.dbUrl || DEFAULT_SYNC_URL;
+                document.getElementById('sync-api-key').value = state.sync.apiKey || DEFAULT_SYNC_KEY;
                 modalSync.classList.add('active');
             });
 
@@ -992,7 +1009,6 @@
                 initFirebaseSync();
             });
 
-            // RECONHECIMENTO DE VOZ
             var btnVoice = document.getElementById('btn-voice-input');
             var voiceTitle = document.getElementById('voice-status-title');
             var voiceDesc = document.getElementById('voice-status-desc');
