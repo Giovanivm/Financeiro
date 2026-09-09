@@ -9,6 +9,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
+    <!-- Bibliotecas para Exportação (PDF e Excel) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         :root {
             --bg-primary: #0f172a;
@@ -207,6 +212,36 @@
             font-size: 0.95rem;
             cursor: pointer;
             margin-top: 5px;
+        }
+
+        .btn-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-action:active { opacity: 0.8; }
+
+        .btn-pdf { background-color: #ef4444; }
+        .btn-excel { background-color: #10b981; }
+        .btn-wsp { background-color: #25d366; }
+        .btn-email { background-color: #38bdf8; }
+
+        .export-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
         }
 
         .transaction-item {
@@ -451,6 +486,22 @@
                 <span>Balanço Geral da Conta Selecionada</span>
                 <h2 id="rep-balance" style="font-size: 1.8rem; margin-top: 4px;">R$ 0,00</h2>
             </div>
+
+            <div class="card">
+                <div class="card-title">📄 Exportar Relatórios</div>
+                <div class="export-grid">
+                    <button class="btn-action btn-pdf" id="btn-export-pdf">📄 Baixar PDF</button>
+                    <button class="btn-action btn-excel" id="btn-export-excel">📊 Baixar Excel</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📲 Compartilhar Resumo</div>
+                <div class="export-grid">
+                    <button class="btn-action btn-wsp" id="btn-share-wsp">💬 WhatsApp</button>
+                    <button class="btn-action btn-email" id="btn-share-email">✉️ E-mail</button>
+                </div>
+            </div>
         </div>
 
         <!-- ABA 5: PERFIL -->
@@ -554,6 +605,11 @@
                 aposentado: ['Aposentadoria / Benefício', 'Aluguel / Arrendamento', 'Renda de Investimentos', 'Outras Receitas'],
                 outras: ['Salário', 'Renda Extra', 'Serviços Prestados', 'Vendas']
             };
+
+            function getAccountLabel() {
+                var sel = document.getElementById('global-account-select');
+                return sel.options[sel.selectedIndex].text;
+            }
 
             function getTodayStr() {
                 var d = new Date();
@@ -784,6 +840,121 @@
                 balEl.textContent = 'R$ ' + bal.toFixed(2);
                 balEl.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
             }
+
+            // FUNÇÕES DE EXPORTAÇÃO E COMPARTILHAMENTO
+            function getFilteredItems() {
+                return state.items.filter(function(i) {
+                    return (i.account || 'main') === state.currentAccount;
+                });
+            }
+
+            function generateReportSummaryText() {
+                var filtered = getFilteredItems();
+                var totalInc = 0;
+                var totalExp = 0;
+
+                filtered.forEach(function(i) {
+                    if (i.type === 'income') totalInc += Number(i.amount);
+                    if (i.type === 'expense') totalExp += Number(i.amount);
+                });
+
+                var bal = totalInc - totalExp;
+                var accName = getAccountLabel();
+
+                var msg = "📊 *RELATÓRIO FINANCEIRO*\n";
+                msg += "📁 *Conta:* " + accName + "\n";
+                msg += "----------------------------\n";
+                msg += "💰 *Total Receitas:* R$ " + totalInc.toFixed(2) + "\n";
+                msg += "💸 *Total Despesas:* R$ " + totalExp.toFixed(2) + "\n";
+                msg += "💵 *Balanço Geral:* R$ " + bal.toFixed(2) + "\n";
+                msg += "----------------------------\n\n";
+                msg += "📋 *ÚLTIMAS MOVIMENTAÇÕES:*\n";
+
+                var recent = filtered.slice(0, 10);
+                if (recent.length === 0) {
+                    msg += "Nenhuma movimentação registrada.";
+                } else {
+                    recent.forEach(function(i) {
+                        var signal = i.type === 'income' ? '+' : '-';
+                        msg += signal + " R$ " + Number(i.amount).toFixed(2) + " | " + i.title + " (" + formatDate(i.date) + ")\n";
+                    });
+                }
+
+                return msg;
+            }
+
+            document.getElementById('btn-export-pdf').addEventListener('click', function() {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    var doc = new jsPDF();
+                    var filtered = getFilteredItems();
+
+                    doc.setFontSize(16);
+                    doc.text("Relatório Financeiro - Sucesso Financeiro", 14, 15);
+                    
+                    doc.setFontSize(10);
+                    doc.text("Conta: " + getAccountLabel(), 14, 22);
+                    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR'), 14, 27);
+
+                    var tableData = filtered.map(function(i) {
+                        return [
+                            formatDate(i.date),
+                            i.type === 'income' ? 'Receita' : 'Despesa',
+                            i.title,
+                            i.detail || '-',
+                            'R$ ' + Number(i.amount).toFixed(2),
+                            i.author || '-'
+                        ];
+                    });
+
+                    doc.autoTable({
+                        startY: 32,
+                        head: [['Data', 'Tipo', 'Descrição', 'Método/Detalhe', 'Valor', 'Cadastrado Por']],
+                        body: tableData,
+                        headStyles: { fillColor: [30, 41, 59] }
+                    });
+
+                    doc.save("Relatorio_Financeiro_" + state.currentAccount + ".pdf");
+                } catch(e) {
+                    alert("Erro ao gerar PDF: " + e.message);
+                }
+            });
+
+            document.getElementById('btn-export-excel').addEventListener('click', function() {
+                try {
+                    var filtered = getFilteredItems();
+                    var data = filtered.map(function(i) {
+                        return {
+                            "Data": formatDate(i.date),
+                            "Tipo": i.type === 'income' ? 'Receita' : 'Despesa',
+                            "Descrição": i.title,
+                            "Detalhe": i.detail || '',
+                            "Valor (R$)": Number(i.amount),
+                            "Autor": i.author || ''
+                        };
+                    });
+
+                    var worksheet = XLSX.utils.json_to_sheet(data);
+                    var workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, worksheet, "Financeiro");
+                    XLSX.writeFile(workbook, "Relatorio_Financeiro_" + state.currentAccount + ".xlsx");
+                } catch(e) {
+                    alert("Erro ao gerar Excel: " + e.message);
+                }
+            });
+
+            document.getElementById('btn-share-wsp').addEventListener('click', function() {
+                var text = generateReportSummaryText();
+                var url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
+                window.open(url, '_blank');
+            });
+
+            document.getElementById('btn-share-email').addEventListener('click', function() {
+                var text = generateReportSummaryText();
+                var subject = "Relatório Financeiro - " + getAccountLabel();
+                var url = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(text);
+                window.open(url, '_blank');
+            });
 
             function switchTab(targetTab) {
                 document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
