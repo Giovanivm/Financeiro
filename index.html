@@ -537,25 +537,17 @@
     <div class="modal-overlay" id="modal-sync">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">🔗 Conexão de Celulares</h3>
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">🔗 Sincronizar Aparelhos</h3>
                 <button id="btn-close-sync" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
             </div>
-            <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 12px;">
-                Esta é a sua senha de conexão privada para sincronizar os aparelhos.
+            <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px; line-height: 1.4;">
+                Para conectar celulares diferentes, digite a <b>mesma senha de sala</b> em todos os aparelhos (Exemplo: <code>familia</code> ou <code>casa123</code>).
             </p>
             <div class="form-group">
-                <label>Sua Senha da Sala</label>
-                <input type="text" id="sync-room-id" class="form-control" placeholder="Digite sua senha aqui">
+                <label style="font-weight: bold; color: var(--accent-blue);">Senha da Sala Compartilhada</label>
+                <input type="text" id="sync-room-id" class="form-control" placeholder="Ex: familia" style="font-size: 1.1rem; text-align: center; font-weight: bold; letter-spacing: 1px;">
             </div>
-            <div class="form-group">
-                <label>URL do Firebase Database</label>
-                <input type="text" id="sync-db-url" class="form-control" placeholder="https://seu-projeto-default-rtdb.firebaseio.com">
-            </div>
-            <div class="form-group">
-                <label>Chave de API do Firebase (apiKey)</label>
-                <input type="text" id="sync-api-key" class="form-control" placeholder="AIzaSy...">
-            </div>
-            <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue);">Salvar e Conectar</button>
+            <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue); font-size: 1rem; padding: 12px; margin-top: 10px;">Conectar Aparelhos</button>
         </div>
     </div>
 
@@ -584,13 +576,9 @@
 
     <script>
         (function() {
-            // =========================================================
-            // CONFIGURAÇÕES PADRÃO DO FIREBASE PRÉ-INSTALADAS
-            // =========================================================
-            var DEFAULT_SYNC_ROOM = "familia2026"; 
-            var DEFAULT_SYNC_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/"; 
-            var DEFAULT_SYNC_KEY  = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE"; 
-            // =========================================================
+            var FIXED_DB_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/"; 
+            var FIXED_API_KEY = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE"; 
+            var DEFAULT_ROOM  = "familia";
 
             var dbRef = null;
             var isRemoteUpdate = false;
@@ -601,11 +589,7 @@
 
             var state = {
                 currentAccount: 'main',
-                sync: { 
-                    roomId: DEFAULT_SYNC_ROOM, 
-                    dbUrl: DEFAULT_SYNC_URL, 
-                    apiKey: DEFAULT_SYNC_KEY 
-                },
+                syncRoomId: DEFAULT_ROOM,
                 localProfile: { name: '', job: 'outras', email: '' },
                 items: [],
                 patients: []
@@ -638,22 +622,13 @@
 
             function loadData() {
                 try {
-                    var data = localStorage.getItem('sf_app_data_v8');
+                    var data = localStorage.getItem('sf_app_data_v9');
                     if (data) {
                         var parsed = JSON.parse(data);
                         if (parsed.localProfile) state.localProfile = parsed.localProfile;
                         if (parsed.items) state.items = parsed.items;
                         if (parsed.patients) state.patients = parsed.patients;
-                        
-                        if (parsed.sync && parsed.sync.roomId && parsed.sync.dbUrl) {
-                            state.sync = parsed.sync;
-                        } else {
-                            state.sync = { 
-                                roomId: DEFAULT_SYNC_ROOM, 
-                                dbUrl: DEFAULT_SYNC_URL, 
-                                apiKey: DEFAULT_SYNC_KEY 
-                            };
-                        }
+                        if (parsed.syncRoomId) state.syncRoomId = parsed.syncRoomId;
                     }
                 } catch(e) {}
             }
@@ -661,9 +636,9 @@
             function saveData(syncToRemote) {
                 if (syncToRemote === undefined) syncToRemote = true;
                 try {
-                    localStorage.setItem('sf_app_data_v8', JSON.stringify({
+                    localStorage.setItem('sf_app_data_v9', JSON.stringify({
                         localProfile: state.localProfile,
-                        sync: state.sync,
+                        syncRoomId: state.syncRoomId,
                         items: state.items,
                         patients: state.patients
                     }));
@@ -674,38 +649,32 @@
                         items: state.items,
                         patients: state.patients
                     }).catch(function(err) {
-                        alert('Erro ao gravar no Firebase: ' + err.message);
+                        console.error('Erro ao gravar no Firebase:', err);
                     });
                 }
             }
 
             function initFirebaseSync() {
                 var dot = document.getElementById('sync-status-dot');
-                
-                var dbUrl = (state.sync.dbUrl || DEFAULT_SYNC_URL).trim();
-                var roomId = (state.sync.roomId || DEFAULT_SYNC_ROOM).trim();
-                var apiKey = (state.sync.apiKey || DEFAULT_SYNC_KEY).trim();
+                var roomId = (state.syncRoomId || DEFAULT_ROOM).trim().toLowerCase();
 
-                if (!roomId || !dbUrl) {
-                    dot.classList.remove('sync-active');
-                    return;
-                }
-
-                if (!dbUrl.startsWith('http://') && !dbUrl.startsWith('https://')) {
-                    dbUrl = 'https://' + dbUrl;
-                }
+                if (!roomId) roomId = DEFAULT_ROOM;
 
                 try {
-                    if (firebase.apps.length > 0) {
-                        firebase.app().delete();
+                    if (dbRef) {
+                        dbRef.off();
                     }
 
-                    var config = { databaseURL: dbUrl };
-                    if (apiKey) config.apiKey = apiKey;
+                    if (firebase.apps.length === 0) {
+                        firebase.initializeApp({
+                            databaseURL: FIXED_DB_URL,
+                            apiKey: FIXED_API_KEY
+                        });
+                    }
 
-                    firebase.initializeApp(config);
+                    var cleanRoom = roomId.replace(/[^a-z0-9_-]/g, '');
+                    if (!cleanRoom) cleanRoom = 'familia';
 
-                    var cleanRoom = roomId.replace(/[^a-zA-Z0-9_-]/g, '');
                     dbRef = firebase.database().ref('rooms/' + cleanRoom);
 
                     var connectedRef = firebase.database().ref('.info/connected');
@@ -721,8 +690,8 @@
                         var data = snapshot.val();
                         if (data) {
                             isRemoteUpdate = true;
-                            if (data.items) state.items = data.items;
-                            if (data.patients) state.patients = data.patients;
+                            state.items = data.items || [];
+                            state.patients = data.patients || [];
 
                             saveData(false);
                             applyProfileState();
@@ -730,13 +699,19 @@
                             renderReports();
                             renderPatients();
                             isRemoteUpdate = false;
+                        } else {
+                            if (state.items.length > 0 || state.patients.length > 0) {
+                                dbRef.set({
+                                    items: state.items,
+                                    patients: state.patients
+                                });
+                            }
                         }
-                    }, function(error) {
-                        dot.classList.remove('sync-active');
                     });
 
                 } catch(err) {
                     dot.classList.remove('sync-active');
+                    console.error('Initialization error:', err);
                 }
             }
 
@@ -990,9 +965,7 @@
 
             var modalSync = document.getElementById('modal-sync');
             document.getElementById('btn-open-sync').addEventListener('click', function() {
-                document.getElementById('sync-room-id').value = state.sync.roomId || DEFAULT_SYNC_ROOM;
-                document.getElementById('sync-db-url').value = state.sync.dbUrl || DEFAULT_SYNC_URL;
-                document.getElementById('sync-api-key').value = state.sync.apiKey || DEFAULT_SYNC_KEY;
+                document.getElementById('sync-room-id').value = state.syncRoomId || DEFAULT_ROOM;
                 modalSync.classList.add('active');
             });
 
@@ -1001,12 +974,16 @@
             });
 
             document.getElementById('btn-save-sync').addEventListener('click', function() {
-                state.sync.roomId = document.getElementById('sync-room-id').value.trim();
-                state.sync.dbUrl = document.getElementById('sync-db-url').value.trim();
-                state.sync.apiKey = document.getElementById('sync-api-key').value.trim();
-                saveData(false);
-                modalSync.classList.remove('active');
-                initFirebaseSync();
+                var inputRoom = document.getElementById('sync-room-id').value.trim();
+                if (inputRoom) {
+                    state.syncRoomId = inputRoom;
+                    saveData(false);
+                    modalSync.classList.remove('active');
+                    initFirebaseSync();
+                    alert('Sincronizado! Conectado na sala: ' + inputRoom);
+                } else {
+                    alert('Por favor, digite uma senha para a sala.');
+                }
             });
 
             var btnVoice = document.getElementById('btn-voice-input');
@@ -1145,7 +1122,6 @@
                 }
             });
 
-            // Inicialização
             loadData();
             applyProfileState();
             renderFeeds();
