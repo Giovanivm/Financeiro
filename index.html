@@ -189,6 +189,21 @@
             100% { transform: scale(1); }
         }
 
+        .voice-box {
+            background-color: var(--bg-input);
+            border: 1px dashed var(--accent-blue);
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--accent-blue);
+            margin-top: 8px;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-word;
+        }
+
         .form-group { margin-bottom: 12px; }
         .form-group label {
             display: block;
@@ -414,8 +429,9 @@
         <div id="tab-expenses" class="tab-content active">
             <div class="card voice-section">
                 <button class="btn-voice" id="btn-voice-input">🎤</button>
-                <div style="font-weight: 600; font-size: 0.95rem;" id="voice-status-title">Lançamento por Voz Contínuo</div>
-                <div style="font-size: 0.8rem; color: var(--text-sub);" id="voice-status-desc">Toque e fale. O app aguardará até você dizer o valor.</div>
+                <div style="font-weight: 600; font-size: 0.95rem;" id="voice-status-title">Comando por Voz Inteligente</div>
+                <div style="font-size: 0.8rem; color: var(--text-sub);" id="voice-status-desc">Toque no microfone e fale. Pode fazer pausas sem problemas.</div>
+                <div class="voice-box" id="voice-text-preview">Aguardando você falar...</div>
             </div>
 
             <div class="card">
@@ -526,7 +542,7 @@
             <div class="card">
                 <div class="card-title">📥 Importar Dados via Excel (.xlsx / .csv)</div>
                 <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px;">
-                    Sua planilha pode conter colunas com cabeçalhos como: <b>Data, Tipo (Despesa/Receita/Paciente/Perfil), Descrição, FormaPagamento, Valor, Telefone</b>.
+                    Sua planilha pode conter colunas com cabeçalhos como: <b>Data, Tipo, Descrição, FormaPagamento, Valor, Telefone</b>.
                 </p>
                 <div class="file-import-box">
                     <input type="file" id="excel-import-input" accept=".xlsx, .xls, .csv" style="display: none;">
@@ -1146,52 +1162,65 @@
                 }
             });
 
-            // AJUSTE 1: RECONHECIMENTO DE VOZ CONTÍNUO (AGUARDA O VALOR SEM FECHAR)
+            // ==========================================
+            // RECONHECIMENTO DE VOZ ACUMULATIVO
+            // ==========================================
             var btnVoice = document.getElementById('btn-voice-input');
+            var voiceBox = document.getElementById('voice-text-preview');
+
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 var recognition = new SpeechRecognition();
                 recognition.lang = 'pt-BR';
-                recognition.continuous = true; // Continua ouvindo até encontrar o valor
+                recognition.continuous = true;
                 recognition.interimResults = false;
 
                 var isListening = false;
+                var voiceBuffer = ""; // Memória acumulativa da fala
 
                 btnVoice.addEventListener('click', function() {
                     if (!isListening) {
+                        voiceBuffer = ""; // Limpa a memória ao iniciar nova gravação
+                        voiceBox.textContent = "Ouvindo... Pode falar a descrição";
                         try {
                             recognition.start();
                             isListening = true;
                             btnVoice.classList.add('listening');
                             document.getElementById('voice-status-title').textContent = 'Ouvindo... Fale a descrição e o valor';
-                            document.getElementById('voice-status-desc').textContent = 'Ex: "Mercado 150". Aguardando valor...';
+                            document.getElementById('voice-status-desc').textContent = 'O app continuará ouvindo mesmo se você fizer pausas.';
                         } catch(e) {}
                     } else {
-                        recognition.stop();
-                        isListening = false;
-                        btnVoice.classList.remove('listening');
-                        document.getElementById('voice-status-title').textContent = 'Lançamento por Voz Contínuo';
+                        pararVoz();
                     }
                 });
 
+                function pararVoz() {
+                    isListening = false;
+                    try { recognition.stop(); } catch(e){}
+                    btnVoice.classList.remove('listening');
+                    document.getElementById('voice-status-title').textContent = 'Comando por Voz Inteligente';
+                    document.getElementById('voice-status-desc').textContent = 'Toque no microfone e fale. Pode fazer pausas sem problemas.';
+                }
+
                 recognition.onend = function() {
+                    // Se o usuário não mandou parar e ainda não achamos o valor, reativa o microfone mantendo o que já foi dito
                     if (isListening) {
                         try { recognition.start(); } catch(e){}
                     } else {
                         btnVoice.classList.remove('listening');
-                        document.getElementById('voice-status-title').textContent = 'Lançamento por Voz Contínuo';
-                        document.getElementById('voice-status-desc').textContent = 'Toque e fale. O app aguardará até você dizer o valor.';
                     }
                 };
 
                 recognition.onresult = function(event) {
-                    var fullText = '';
                     for (var i = event.resultIndex; i < event.results.length; ++i) {
-                        fullText += event.results[i][0].transcript + ' ';
+                        voiceBuffer += " " + event.results[i][0].transcript;
                     }
 
-                    fullText = fullText.toLowerCase().trim();
-                    var match = fullText.match(/(.*?)\s+(\d+([.,]\d+)?)\s*(reais|real)?$/);
+                    var txt = voiceBuffer.toLowerCase().trim();
+                    voiceBox.textContent = '"' + txt + '"';
+
+                    // Procura qualquer número dito na frase acumulada
+                    var match = txt.match(/(.*?)\s+(\d+([.,]\d+)?)\s*(reais|real)?$/);
 
                     if (match) {
                         var desc = match[1].trim();
@@ -1213,10 +1242,11 @@
                             renderFeeds();
                             renderReports();
 
-                            isListening = false;
-                            recognition.stop();
-                            alert('Lançado por voz: ' + desc + ' - R$ ' + amt.toFixed(2));
+                            pararVoz();
+                            voiceBox.textContent = '✅ Salvo: ' + desc + ' - R$ ' + amt.toFixed(2);
                         }
+                    } else {
+                        document.getElementById('voice-status-desc').textContent = 'Descrição identificada! Agora fale o valor quando quiser...';
                     }
                 };
             } else {
@@ -1224,7 +1254,7 @@
                 document.getElementById('voice-status-desc').textContent = 'Reconhecimento de voz não suportado neste navegador.';
             }
 
-            // AJUSTE 2: IMPORTAÇÃO DE PLANILHAS EM EXCEL (.XLSX / .CSV)
+            // IMPORTAÇÃO DE PLANILHAS EXCEL (.XLSX / .CSV)
             document.getElementById('excel-import-input').addEventListener('change', function(e) {
                 var file = e.target.files[0];
                 if (!file) return;
