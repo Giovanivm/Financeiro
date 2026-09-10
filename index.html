@@ -253,9 +253,30 @@
         }
         .transaction-item:last-child { border-bottom: none; }
 
+        .trans-info { flex: 1; padding-right: 8px; }
         .trans-title { font-weight: 600; font-size: 0.9rem; display: block; }
         .trans-sub { font-size: 0.75rem; color: var(--text-sub); }
+        .trans-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
         .trans-amount { font-weight: 700; font-size: 0.95rem; }
+
+        .item-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-icon {
+            background: #334155;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-main);
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+
+        .btn-icon:hover {
+            background: #475569;
+        }
 
         .amount-expense { color: var(--accent-red); }
         .amount-income { color: var(--accent-green); }
@@ -533,6 +554,36 @@
 
     </div>
 
+    <!-- MODAL DE EDIÇÃO DE ITEM -->
+    <div class="modal-overlay" id="modal-edit">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">✏️ Editar Lançamento</h3>
+                <button id="btn-close-edit" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-edit">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="edit-title" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Detalhe / Método</label>
+                    <input type="text" id="edit-detail" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" step="0.01" id="edit-amount" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" id="edit-date" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL DE CONEXÃO EM TEMPO REAL -->
     <div class="modal-overlay" id="modal-sync">
         <div class="modal-body">
@@ -768,7 +819,19 @@
                 } else {
                     exps.forEach(function(i) {
                         var authorStr = i.author ? ' • 👤 ' + i.author : '';
-                        expFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + authorStr + '</span></div><span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
+                        expFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title">' + i.title + '</span>' +
+                                '<span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span>' +
+                                '<div class="item-actions">' +
+                                    '<button class="btn-icon" onclick="window.editItem(\'' + i.id + '\')">✏️ Editar</button>' +
+                                    '<button class="btn-icon" onclick="window.deleteItem(\'' + i.id + '\')">🗑️ Apagar</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
                     });
                 }
 
@@ -777,10 +840,73 @@
                 } else {
                     incs.forEach(function(i) {
                         var authorStr = i.author ? ' • 👤 ' + i.author : '';
-                        incFeed.innerHTML += '<div class="transaction-item"><div><span class="trans-title">' + i.title + '</span><span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + authorStr + '</span></div><span class="trans-amount amount-income">+ R$ ' + Number(i.amount).toFixed(2) + '</span></div>';
+                        incFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title">' + i.title + '</span>' +
+                                '<span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<span class="trans-amount amount-income">+ R$ ' + Number(i.amount).toFixed(2) + '</span>' +
+                                '<div class="item-actions">' +
+                                    '<button class="btn-icon" onclick="window.editItem(\'' + i.id + '\')">✏️ Editar</button>' +
+                                    '<button class="btn-icon" onclick="window.deleteItem(\'' + i.id + '\')">🗑️ Apagar</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
                     });
                 }
             }
+
+            // Funções Globais para Edição e Exclusão
+            window.deleteItem = function(id) {
+                if (confirm("Tem certeza que deseja apagar este lançamento?")) {
+                    state.items = state.items.filter(function(item) {
+                        return item.id !== id;
+                    });
+                    saveData();
+                    renderFeeds();
+                    renderReports();
+                }
+            };
+
+            window.editItem = function(id) {
+                var item = state.items.find(function(i) { return i.id === id; });
+                if (!item) return;
+
+                document.getElementById('edit-id').value = item.id;
+                document.getElementById('edit-title').value = item.title;
+                document.getElementById('edit-detail').value = item.detail || '';
+                document.getElementById('edit-amount').value = item.amount;
+                document.getElementById('edit-date').value = item.date;
+
+                document.getElementById('modal-edit').classList.add('active');
+            };
+
+            document.getElementById('btn-close-edit').addEventListener('click', function() {
+                document.getElementById('modal-edit').classList.remove('active');
+            });
+
+            document.getElementById('form-edit').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var id = document.getElementById('edit-id').value;
+                var title = document.getElementById('edit-title').value.trim();
+                var detail = document.getElementById('edit-detail').value.trim();
+                var amount = parseFloat(document.getElementById('edit-amount').value);
+                var date = document.getElementById('edit-date').value;
+
+                var item = state.items.find(function(i) { return i.id === id; });
+                if (item) {
+                    item.title = title;
+                    item.detail = detail;
+                    item.amount = amount;
+                    item.date = date;
+
+                    saveData();
+                    renderFeeds();
+                    renderReports();
+                    document.getElementById('modal-edit').classList.remove('active');
+                }
+            });
 
             function renderPatients() {
                 var feed = document.getElementById('patients-feed');
