@@ -419,8 +419,8 @@
                         <input type="date" id="exp-date" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label>Pagamento</label>
-                        <select id="exp-method" class="form-control">
+                        <label>Forma de Pagamento</label>
+                        <select id="exp-method" class="form-control" required>
                             <option value="Débito/PIX">Débito / PIX</option>
                             <option value="Crédito">Cartão de Crédito</option>
                             <option value="Dinheiro">Dinheiro</option>
@@ -567,9 +567,13 @@
                     <label>Descrição</label>
                     <input type="text" id="edit-title" class="form-control" required>
                 </div>
-                <div class="form-group">
-                    <label>Detalhe / Método</label>
-                    <input type="text" id="edit-detail" class="form-control">
+                <div class="form-group" id="edit-detail-container">
+                    <label>Forma de Pagamento</label>
+                    <select id="edit-detail" class="form-control">
+                        <option value="Débito/PIX">Débito / PIX</option>
+                        <option value="Crédito">Cartão de Crédito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Valor (R$)</label>
@@ -875,7 +879,7 @@
 
                 document.getElementById('edit-id').value = item.id;
                 document.getElementById('edit-title').value = item.title;
-                document.getElementById('edit-detail').value = item.detail || '';
+                document.getElementById('edit-detail').value = item.detail || 'Débito/PIX';
                 document.getElementById('edit-amount').value = item.amount;
                 document.getElementById('edit-date').value = item.date;
 
@@ -1142,7 +1146,7 @@
                                 id: Date.now().toString(),
                                 type: 'expense',
                                 title: desc.charAt(0).toUpperCase() + desc.slice(1),
-                                detail: 'Lançamento por Voz',
+                                detail: 'Débito/PIX',
                                 amount: amt,
                                 date: getTodayStr(),
                                 account: state.currentAccount,
@@ -1177,7 +1181,7 @@
 
                 doc.autoTable({
                     startY: 30,
-                    head: [['Data', 'Tipo', 'Descrição', 'Detalhe', 'Valor']],
+                    head: [['Data', 'Tipo', 'Descrição', 'Pagamento/Detalhe', 'Valor']],
                     body: rows
                 });
 
@@ -1193,7 +1197,7 @@
                             Data: formatDate(i.date),
                             Tipo: i.type === 'income' ? 'Receita' : 'Despesa',
                             Descrição: i.title,
-                            Detalhe: i.detail,
+                            Pagamento: i.detail,
                             Valor: Number(i.amount)
                         };
                     });
