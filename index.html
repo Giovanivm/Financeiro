@@ -5,11 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sucesso Financeiro</title>
     
+    <!-- Configurações de PWA (Atalho na Tela Inicial) -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanças">
+    <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22short_name%22%3A%22Finan%C3%A7as%22%2C%22name%22%3A%22Sucesso%20Financeiro%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2845%2F2845531.png%22%2C%22type%22%3A%22image%2Fpng%22%2C%22sizes%22%3A%22192x192%22%7D%5D%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%2C%22display%22%3A%22standalone%22%7D">
+
     <!-- Firebase SDK v9 (Compatibilizado) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-    <!-- Bibliotecas para Exportação (PDF e Excel) -->
+    <!-- Bibliotecas para Exportação e Importação (PDF e Excel) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -274,9 +281,7 @@
             cursor: pointer;
         }
 
-        .btn-icon:hover {
-            background: #475569;
-        }
+        .btn-icon:hover { background: #475569; }
 
         .amount-expense { color: var(--accent-red); }
         .amount-income { color: var(--accent-green); }
@@ -370,6 +375,16 @@
             max-height: 90vh;
             overflow-y: auto;
         }
+
+        .file-import-box {
+            background-color: var(--bg-input);
+            border: 2px dashed var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 8px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -399,8 +414,8 @@
         <div id="tab-expenses" class="tab-content active">
             <div class="card voice-section">
                 <button class="btn-voice" id="btn-voice-input">🎤</button>
-                <div style="font-weight: 600; font-size: 0.95rem;" id="voice-status-title">Lançamento por Voz</div>
-                <div style="font-size: 0.8rem; color: var(--text-sub);" id="voice-status-desc">Toque no microfone e fale (Ex: "Farmácia 45")</div>
+                <div style="font-weight: 600; font-size: 0.95rem;" id="voice-status-title">Lançamento por Voz Contínuo</div>
+                <div style="font-size: 0.8rem; color: var(--text-sub);" id="voice-status-desc">Toque e fale. O app aguardará até você dizer o valor.</div>
             </div>
 
             <div class="card">
@@ -509,6 +524,17 @@
             </div>
 
             <div class="card">
+                <div class="card-title">📥 Importar Dados via Excel (.xlsx / .csv)</div>
+                <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px;">
+                    Sua planilha pode conter colunas com cabeçalhos como: <b>Data, Tipo (Despesa/Receita/Paciente/Perfil), Descrição, FormaPagamento, Valor, Telefone</b>.
+                </p>
+                <div class="file-import-box">
+                    <input type="file" id="excel-import-input" accept=".xlsx, .xls, .csv" style="display: none;">
+                    <button type="button" class="btn-action btn-excel" onclick="document.getElementById('excel-import-input').click()">📂 Selecionar Planilha Excel</button>
+                </div>
+            </div>
+
+            <div class="card">
                 <div class="card-title">📄 Exportar Relatórios</div>
                 <div class="export-grid">
                     <button class="btn-action btn-pdf" id="btn-export-pdf">📄 Baixar PDF</button>
@@ -549,6 +575,16 @@
                     </div>
                     <button type="submit" class="btn-submit">Salvar Perfil Neste Dispositivo</button>
                 </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📱 Atalho na Tela Inicial</div>
+                <p style="font-size: 0.85rem; color: var(--text-sub); line-height: 1.4;">
+                    Para instalar este app na tela inicial:<br>
+                    • <b>Android / Chrome:</b> Toque nos 3 pontos superiores e selecione <i>"Adicionar à tela inicial"</i> ou <i>"Instalar aplicativo"</i>.<br>
+                    • <b>iPhone / Safari:</b> Toque no ícone de Compartilhar (quadrado com seta) e escolha <i>"Adicionar à Tela de Início"</i>.<br>
+                    • <b>Computador:</b> Clique no ícone de instalação ao lado da barra de endereço do seu navegador.
+                </p>
             </div>
         </div>
 
@@ -631,6 +667,14 @@
 
     <script>
         (function() {
+            // Registro do Service Worker para PWA (Atalho)
+            if ('serviceWorker' in navigator) {
+                var swCode = "self.addEventListener('fetch', function(e) {});";
+                var blob = new Blob([swCode], { type: 'text/javascript' });
+                var swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(function(){});
+            }
+
             var FIXED_DB_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/"; 
             var FIXED_API_KEY = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE"; 
             var DEFAULT_ROOM  = "familia";
@@ -712,13 +756,10 @@
             function initFirebaseSync() {
                 var dot = document.getElementById('sync-status-dot');
                 var roomId = (state.syncRoomId || DEFAULT_ROOM).trim().toLowerCase();
-
                 if (!roomId) roomId = DEFAULT_ROOM;
 
                 try {
-                    if (dbRef) {
-                        dbRef.off();
-                    }
+                    if (dbRef) dbRef.off();
 
                     if (firebase.apps.length === 0) {
                         firebase.initializeApp({
@@ -766,7 +807,6 @@
 
                 } catch(err) {
                     dot.classList.remove('sync-active');
-                    console.error('Initialization error:', err);
                 }
             }
 
@@ -861,12 +901,9 @@
                 }
             }
 
-            // Funções Globais para Edição e Exclusão
             window.deleteItem = function(id) {
                 if (confirm("Tem certeza que deseja apagar este lançamento?")) {
-                    state.items = state.items.filter(function(item) {
-                        return item.id !== id;
-                    });
+                    state.items = state.items.filter(function(item) { return item.id !== id; });
                     saveData();
                     renderFeeds();
                     renderReports();
@@ -1109,33 +1146,52 @@
                 }
             });
 
-            // Reconhecimento por Voz
+            // AJUSTE 1: RECONHECIMENTO DE VOZ CONTÍNUO (AGUARDA O VALOR SEM FECHAR)
             var btnVoice = document.getElementById('btn-voice-input');
             if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
                 var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 var recognition = new SpeechRecognition();
                 recognition.lang = 'pt-BR';
-                recognition.continuous = false;
+                recognition.continuous = true; // Continua ouvindo até encontrar o valor
+                recognition.interimResults = false;
+
+                var isListening = false;
 
                 btnVoice.addEventListener('click', function() {
-                    try {
-                        recognition.start();
-                    } catch(e) {}
+                    if (!isListening) {
+                        try {
+                            recognition.start();
+                            isListening = true;
+                            btnVoice.classList.add('listening');
+                            document.getElementById('voice-status-title').textContent = 'Ouvindo... Fale a descrição e o valor';
+                            document.getElementById('voice-status-desc').textContent = 'Ex: "Mercado 150". Aguardando valor...';
+                        } catch(e) {}
+                    } else {
+                        recognition.stop();
+                        isListening = false;
+                        btnVoice.classList.remove('listening');
+                        document.getElementById('voice-status-title').textContent = 'Lançamento por Voz Contínuo';
+                    }
                 });
 
-                recognition.onstart = function() {
-                    btnVoice.classList.add('listening');
-                    document.getElementById('voice-status-title').textContent = 'Ouvindo...';
-                };
-
                 recognition.onend = function() {
-                    btnVoice.classList.remove('listening');
-                    document.getElementById('voice-status-title').textContent = 'Lançamento por Voz';
+                    if (isListening) {
+                        try { recognition.start(); } catch(e){}
+                    } else {
+                        btnVoice.classList.remove('listening');
+                        document.getElementById('voice-status-title').textContent = 'Lançamento por Voz Contínuo';
+                        document.getElementById('voice-status-desc').textContent = 'Toque e fale. O app aguardará até você dizer o valor.';
+                    }
                 };
 
                 recognition.onresult = function(event) {
-                    var transcript = event.results[0][0].transcript.toLowerCase().trim();
-                    var match = transcript.match(/(.*?)\s+(\d+([.,]\d+)?)$/);
+                    var fullText = '';
+                    for (var i = event.resultIndex; i < event.results.length; ++i) {
+                        fullText += event.results[i][0].transcript + ' ';
+                    }
+
+                    fullText = fullText.toLowerCase().trim();
+                    var match = fullText.match(/(.*?)\s+(\d+([.,]\d+)?)\s*(reais|real)?$/);
 
                     if (match) {
                         var desc = match[1].trim();
@@ -1156,16 +1212,82 @@
                             saveData();
                             renderFeeds();
                             renderReports();
-                            alert('Adicionado: ' + desc + ' - R$ ' + amt.toFixed(2));
+
+                            isListening = false;
+                            recognition.stop();
+                            alert('Lançado por voz: ' + desc + ' - R$ ' + amt.toFixed(2));
                         }
-                    } else {
-                        alert('Não entendi. Tente falar o nome e o valor. Exemplo: "Padaria 15"');
                     }
                 };
             } else {
                 btnVoice.style.display = 'none';
                 document.getElementById('voice-status-desc').textContent = 'Reconhecimento de voz não suportado neste navegador.';
             }
+
+            // AJUSTE 2: IMPORTAÇÃO DE PLANILHAS EM EXCEL (.XLSX / .CSV)
+            document.getElementById('excel-import-input').addEventListener('change', function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    try {
+                        var data = new Uint8Array(evt.target.result);
+                        var workbook = XLSX.read(data, { type: 'array' });
+                        var firstSheet = workbook.SheetNames[0];
+                        var rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+
+                        var count = 0;
+                        rows.forEach(function(row) {
+                            var tipo = (row.Tipo || row.tipo || 'Despesa').toString().toLowerCase();
+                            var desc = row.Descrição || row.Descricao || row.Nome || row.nome || 'Importado';
+                            var valor = parseFloat(row.Valor || row.valor || 0);
+                            var dataItem = row.Data || row.data || getTodayStr();
+                            var forma = row.FormaPagamento || row.Forma || row.Pagamento || 'Débito/PIX';
+                            var telefone = row.Telefone || row.phone || '';
+
+                            if (tipo.indexOf('paciente') !== -1) {
+                                state.patients.unshift({
+                                    id: Date.now().toString() + Math.random(),
+                                    name: desc,
+                                    phone: telefone,
+                                    val: valor,
+                                    active: true
+                                });
+                                count++;
+                            } else if (tipo.indexOf('perfil') !== -1) {
+                                state.localProfile.name = desc;
+                                if (row.Email || row.email) state.localProfile.email = row.Email || row.email;
+                                count++;
+                            } else {
+                                var isInc = tipo.indexOf('receita') !== -1 || tipo.indexOf('renda') !== -1;
+                                state.items.unshift({
+                                    id: Date.now().toString() + Math.random(),
+                                    type: isInc ? 'income' : 'expense',
+                                    title: desc,
+                                    detail: isInc ? 'Receita Registrada' : forma,
+                                    amount: valor,
+                                    date: dataItem,
+                                    account: state.currentAccount,
+                                    author: state.localProfile.name || ''
+                                });
+                                count++;
+                            }
+                        });
+
+                        saveData();
+                        applyProfileState();
+                        renderFeeds();
+                        renderReports();
+                        renderPatients();
+
+                        alert(count + ' registro(s) importado(s) com sucesso da planilha!');
+                    } catch(err) {
+                        alert('Erro ao ler a planilha. Verifique o formato do arquivo.');
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
 
             // Exportações
             document.getElementById('btn-export-pdf').addEventListener('click', function() {
