@@ -590,7 +590,7 @@
             var state = {
                 currentAccount: 'main',
                 syncRoomId: DEFAULT_ROOM,
-                localProfile: { name: '', job: 'outras', email: '' },
+                localProfile: { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' },
                 items: [],
                 patients: []
             };
@@ -716,10 +716,10 @@
             }
 
             function applyProfileState() {
-                var activeProfile = state.localProfile || { name: '', job: 'outras', email: '' };
+                var activeProfile = state.localProfile || { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' };
 
                 document.getElementById('prof-name').value = activeProfile.name || '';
-                document.getElementById('prof-job').value = activeProfile.job || 'outras';
+                document.getElementById('prof-job').value = activeProfile.job || 'penal';
                 document.getElementById('prof-email').value = activeProfile.email || '';
 
                 var patNav = document.getElementById('nav-patients');
@@ -739,8 +739,8 @@
                 var sel = document.getElementById('inc-desc-select');
                 sel.innerHTML = '';
                 
-                var activeProfile = state.localProfile || { job: 'outras' };
-                var opts = jobIncomes[activeProfile.job] || jobIncomes.outras;
+                var activeProfile = state.localProfile || { job: 'penal' };
+                var opts = jobIncomes[activeProfile.job] || jobIncomes.penal;
 
                 for (var i = 0; i < opts.length; i++) {
                     var opt = document.createElement('option');
@@ -826,143 +826,138 @@
                     }
                 });
 
+                var bal = totalInc - totalExp;
+
                 document.getElementById('rep-income').textContent = 'R$ ' + totalInc.toFixed(2);
                 document.getElementById('rep-expense').textContent = 'R$ ' + totalExp.toFixed(2);
-                
-                var bal = totalInc - totalExp;
-                var balEl = document.getElementById('rep-balance');
-                balEl.textContent = 'R$ ' + bal.toFixed(2);
-                balEl.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+
+                var elBal = document.getElementById('rep-balance');
+                elBal.textContent = 'R$ ' + bal.toFixed(2);
+                elBal.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
             }
 
-            function getFilteredItems() {
-                return state.items.filter(function(i) {
-                    return (i.account || 'main') === state.currentAccount;
+            function switchTab(tabId) {
+                var contents = document.querySelectorAll('.tab-content');
+                for (var i = 0; i < contents.length; i++) {
+                    contents[i].classList.remove('active');
+                }
+
+                var navs = document.querySelectorAll('.nav-item');
+                for (var j = 0; j < navs.length; j++) {
+                    navs[j].classList.remove('active');
+                }
+
+                var targetContent = document.getElementById('tab-' + tabId);
+                if (targetContent) targetContent.classList.add('active');
+
+                var targetNav = document.querySelector('.nav-item[data-tab="' + tabId + '"]');
+                if (targetNav) targetNav.classList.add('active');
+            }
+
+            // Event Handlers
+            document.querySelectorAll('.nav-item').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var tab = this.getAttribute('data-tab');
+                    if (tab) switchTab(tab);
                 });
-            }
+            });
 
-            function generateReportSummaryText() {
-                var filtered = getFilteredItems();
-                var totalInc = 0;
-                var totalExp = 0;
+            document.getElementById('global-account-select').addEventListener('change', function(e) {
+                state.currentAccount = e.target.value;
+                renderFeeds();
+                renderReports();
+            });
 
-                filtered.forEach(function(i) {
-                    if (i.type === 'income') totalInc += Number(i.amount);
-                    if (i.type === 'expense') totalExp += Number(i.amount);
+            document.getElementById('form-exp').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var desc = document.getElementById('exp-desc').value.trim();
+                var amt = document.getElementById('exp-amount').value;
+                var date = document.getElementById('exp-date').value;
+                var method = document.getElementById('exp-method').value;
+
+                if (!desc || !amt || !date) return;
+
+                state.items.unshift({
+                    id: Date.now().toString(),
+                    type: 'expense',
+                    title: desc,
+                    detail: method,
+                    amount: parseFloat(amt),
+                    date: date,
+                    account: state.currentAccount,
+                    author: state.localProfile.name || ''
                 });
 
-                var bal = totalInc - totalExp;
-                var accName = getAccountLabel();
+                saveData();
+                renderFeeds();
+                renderReports();
 
-                var msg = "📊 *RELATÓRIO FINANCEIRO*\n";
-                msg += "📁 *Conta:* " + accName + "\n";
-                msg += "----------------------------\n";
-                msg += "💰 *Total Receitas:* R$ " + totalInc.toFixed(2) + "\n";
-                msg += "💸 *Total Despesas:* R$ " + totalExp.toFixed(2) + "\n";
-                msg += "💵 *Balanço Geral:* R$ " + bal.toFixed(2) + "\n";
-                msg += "----------------------------\n\n";
-                msg += "📋 *ÚLTIMAS MOVIMENTAÇÕES:*\n";
-
-                var recent = filtered.slice(0, 10);
-                if (recent.length === 0) {
-                    msg += "Nenhuma movimentação registrada.";
-                } else {
-                    recent.forEach(function(i) {
-                        var signal = i.type === 'income' ? '+' : '-';
-                        msg += signal + " R$ " + Number(i.amount).toFixed(2) + " | " + i.title + " (" + formatDate(i.date) + ")\n";
-                    });
-                }
-
-                return msg;
-            }
-
-            document.getElementById('btn-export-pdf').addEventListener('click', function() {
-                try {
-                    const { jsPDF } = window.jspdf;
-                    var doc = new jsPDF();
-                    var filtered = getFilteredItems();
-
-                    doc.setFontSize(16);
-                    doc.text("Relatório Financeiro - Sucesso Financeiro", 14, 15);
-                    
-                    doc.setFontSize(10);
-                    doc.text("Conta: " + getAccountLabel(), 14, 22);
-                    doc.text("Gerado em: " + new Date().toLocaleDateString('pt-BR'), 14, 27);
-
-                    var tableData = filtered.map(function(i) {
-                        return [
-                            formatDate(i.date),
-                            i.type === 'income' ? 'Receita' : 'Despesa',
-                            i.title,
-                            i.detail || '-',
-                            'R$ ' + Number(i.amount).toFixed(2),
-                            i.author || '-'
-                        ];
-                    });
-
-                    doc.autoTable({
-                        startY: 32,
-                        head: [['Data', 'Tipo', 'Descrição', 'Método/Detalhe', 'Valor', 'Cadastrado Por']],
-                        body: tableData,
-                        headStyles: { fillColor: [30, 41, 59] }
-                    });
-
-                    doc.save("Relatorio_Financeiro_" + state.currentAccount + ".pdf");
-                } catch(e) {
-                    alert("Erro ao gerar PDF: " + e.message);
-                }
+                document.getElementById('exp-desc').value = '';
+                document.getElementById('exp-amount').value = '';
             });
 
-            document.getElementById('btn-export-excel').addEventListener('click', function() {
-                try {
-                    var filtered = getFilteredItems();
-                    var data = filtered.map(function(i) {
-                        return {
-                            "Data": formatDate(i.date),
-                            "Tipo": i.type === 'income' ? 'Receita' : 'Despesa',
-                            "Descrição": i.title,
-                            "Detalhe": i.detail || '',
-                            "Valor (R$)": Number(i.amount),
-                            "Autor": i.author || ''
-                        };
-                    });
+            document.getElementById('form-inc').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var desc = document.getElementById('inc-desc-select').value;
+                var amt = document.getElementById('inc-amount').value;
+                var date = document.getElementById('inc-date').value;
 
-                    var worksheet = XLSX.utils.json_to_sheet(data);
-                    var workbook = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(workbook, worksheet, "Financeiro");
-                    XLSX.writeFile(workbook, "Relatorio_Financeiro_" + state.currentAccount + ".xlsx");
-                } catch(e) {
-                    alert("Erro ao gerar Excel: " + e.message);
-                }
+                if (!desc || !amt || !date) return;
+
+                state.items.unshift({
+                    id: Date.now().toString(),
+                    type: 'income',
+                    title: desc,
+                    detail: 'Receita Registrada',
+                    amount: parseFloat(amt),
+                    date: date,
+                    account: state.currentAccount,
+                    author: state.localProfile.name || ''
+                });
+
+                saveData();
+                renderFeeds();
+                renderReports();
+
+                document.getElementById('inc-amount').value = '';
             });
 
-            document.getElementById('btn-share-wsp').addEventListener('click', function() {
-                var text = generateReportSummaryText();
-                var url = "https://api.whatsapp.com/send?text=" + encodeURIComponent(text);
-                window.open(url, '_blank');
+            document.getElementById('form-patient').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var name = document.getElementById('pat-name').value.trim();
+                var phone = document.getElementById('pat-phone').value.trim();
+                var val = document.getElementById('pat-val').value;
+
+                if (!name || !val) return;
+
+                state.patients.unshift({
+                    id: Date.now().toString(),
+                    name: name,
+                    phone: phone,
+                    val: parseFloat(val),
+                    active: true
+                });
+
+                saveData();
+                renderPatients();
+
+                document.getElementById('pat-name').value = '';
+                document.getElementById('pat-phone').value = '';
+                document.getElementById('pat-val').value = '';
             });
 
-            document.getElementById('btn-share-email').addEventListener('click', function() {
-                var text = generateReportSummaryText();
-                var subject = "Relatório Financeiro - " + getAccountLabel();
-                var url = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(text);
-                window.open(url, '_blank');
+            document.getElementById('form-profile').addEventListener('submit', function(e) {
+                e.preventDefault();
+                state.localProfile.name = document.getElementById('prof-name').value.trim();
+                state.localProfile.job = document.getElementById('prof-job').value;
+                state.localProfile.email = document.getElementById('prof-email').value.trim();
+
+                saveData(false);
+                applyProfileState();
+                alert('Perfil salvo com sucesso neste aparelho!');
             });
 
-            function switchTab(targetTab) {
-                document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
-                document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.remove('active'); });
-
-                var btn = document.querySelector('.nav-item[data-tab="' + targetTab + '"]');
-                if (btn) btn.classList.add('active');
-                
-                var tabEl = document.getElementById('tab-' + targetTab);
-                if (tabEl) tabEl.classList.add('active');
-
-                if (targetTab === 'reports') renderReports();
-                if (targetTab === 'patients') renderPatients();
-            }
-
+            // Sincronização Modal
             var modalSync = document.getElementById('modal-sync');
             document.getElementById('btn-open-sync').addEventListener('click', function() {
                 document.getElementById('sync-room-id').value = state.syncRoomId || DEFAULT_ROOM;
@@ -974,160 +969,152 @@
             });
 
             document.getElementById('btn-save-sync').addEventListener('click', function() {
-                var inputRoom = document.getElementById('sync-room-id').value.trim();
-                if (inputRoom) {
-                    state.syncRoomId = inputRoom;
+                var val = document.getElementById('sync-room-id').value.trim().toLowerCase();
+                if (val) {
+                    state.syncRoomId = val;
                     saveData(false);
-                    modalSync.classList.remove('active');
                     initFirebaseSync();
-                    alert('Sincronizado! Conectado na sala: ' + inputRoom);
-                } else {
-                    alert('Por favor, digite uma senha para a sala.');
+                    modalSync.classList.remove('active');
+                    alert('Conectado à sala: ' + val);
                 }
             });
 
+            // Reconhecimento por Voz
             var btnVoice = document.getElementById('btn-voice-input');
-            var voiceTitle = document.getElementById('voice-status-title');
-            var voiceDesc = document.getElementById('voice-status-desc');
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                var recognition = new SpeechRecognition();
+                recognition.lang = 'pt-BR';
+                recognition.continuous = false;
 
-            if (btnVoice) {
                 btnVoice.addEventListener('click', function() {
-                    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-                    if (!SpeechRecognition) {
-                        alert('Navegador sem suporte a voz. Utilize o Google Chrome.');
-                        return;
-                    }
-
-                    var recognition = new SpeechRecognition();
-                    recognition.lang = 'pt-BR';
-                    recognition.continuous = false;
-                    recognition.interimResults = false;
-
-                    btnVoice.classList.add('listening');
-                    voiceTitle.textContent = 'Ouvindo... Fale agora!';
-                    voiceDesc.textContent = 'Diga a descrição e o valor (Ex: Mercado 80)';
-
-                    recognition.start();
-
-                    recognition.onresult = function(event) {
-                        var text = event.results[0][0].transcript;
-                        btnVoice.classList.remove('listening');
-                        voiceTitle.textContent = 'Lançamento por Voz';
-                        voiceDesc.textContent = 'Voz capturada: "' + text + '"';
-
-                        var numbers = text.match(/\d+([.,]\d+)?/g);
-                        var amount = numbers ? numbers[numbers.length - 1].replace(',', '.') : '';
-                        
-                        var description = text;
-                        if (numbers) {
-                            description = text.replace(numbers[numbers.length - 1], '').trim();
-                        }
-
-                        if (description) document.getElementById('exp-desc').value = description;
-                        if (amount) document.getElementById('exp-amount').value = parseFloat(amount);
-                    };
-
-                    recognition.onerror = function(event) {
-                        btnVoice.classList.remove('listening');
-                        voiceTitle.textContent = 'Lançamento por Voz';
-                        if (event.error === 'not-allowed') {
-                            alert('Acesso ao microfone negado.');
-                        } else {
-                            voiceDesc.textContent = 'Tente novamente.';
-                        }
-                    };
-
-                    recognition.onend = function() {
-                        btnVoice.classList.remove('listening');
-                    };
+                    try {
+                        recognition.start();
+                    } catch(e) {}
                 });
+
+                recognition.onstart = function() {
+                    btnVoice.classList.add('listening');
+                    document.getElementById('voice-status-title').textContent = 'Ouvindo...';
+                };
+
+                recognition.onend = function() {
+                    btnVoice.classList.remove('listening');
+                    document.getElementById('voice-status-title').textContent = 'Lançamento por Voz';
+                };
+
+                recognition.onresult = function(event) {
+                    var transcript = event.results[0][0].transcript.toLowerCase().trim();
+                    var match = transcript.match(/(.*?)\s+(\d+([.,]\d+)?)$/);
+
+                    if (match) {
+                        var desc = match[1].trim();
+                        var amt = parseFloat(match[2].replace(',', '.'));
+
+                        if (desc && !isNaN(amt)) {
+                            state.items.unshift({
+                                id: Date.now().toString(),
+                                type: 'expense',
+                                title: desc.charAt(0).toUpperCase() + desc.slice(1),
+                                detail: 'Lançamento por Voz',
+                                amount: amt,
+                                date: getTodayStr(),
+                                account: state.currentAccount,
+                                author: state.localProfile.name || ''
+                            });
+
+                            saveData();
+                            renderFeeds();
+                            renderReports();
+                            alert('Adicionado: ' + desc + ' - R$ ' + amt.toFixed(2));
+                        }
+                    } else {
+                        alert('Não entendi. Tente falar o nome e o valor. Exemplo: "Padaria 15"');
+                    }
+                };
+            } else {
+                btnVoice.style.display = 'none';
+                document.getElementById('voice-status-desc').textContent = 'Reconhecimento de voz não suportado neste navegador.';
             }
 
-            document.getElementById('global-account-select').addEventListener('change', function() {
-                state.currentAccount = this.value;
-                applyProfileState();
-                renderFeeds();
-                renderReports();
-            });
-
-            document.querySelectorAll('.nav-item').forEach(function(btn) {
-                btn.addEventListener('click', function() {
-                    switchTab(this.getAttribute('data-tab'));
-                });
-            });
-
-            document.getElementById('form-profile').addEventListener('submit', function(e) {
-                e.preventDefault();
+            // Exportações
+            document.getElementById('btn-export-pdf').addEventListener('click', function() {
+                if (!window.jspdf) return alert('Biblioteca PDF carregando, tente em instantes.');
+                var doc = new window.jspdf.jsPDF();
                 
-                state.localProfile.name = document.getElementById('prof-name').value.trim();
-                state.localProfile.job = document.getElementById('prof-job').value;
-                state.localProfile.email = document.getElementById('prof-email').value.trim();
+                doc.setFontSize(16);
+                doc.text('Relatório Financeiro - ' + getAccountLabel(), 14, 20);
+                
+                var rows = state.items
+                    .filter(function(i){ return (i.account || 'main') === state.currentAccount; })
+                    .map(function(i){ return [formatDate(i.date), i.type === 'income' ? 'Receita' : 'Despesa', i.title, i.detail, 'R$ ' + Number(i.amount).toFixed(2)]; });
 
-                saveData(false);
-                applyProfileState();
-                alert('Perfil salvo localmente neste aparelho!');
+                doc.autoTable({
+                    startY: 30,
+                    head: [['Data', 'Tipo', 'Descrição', 'Detalhe', 'Valor']],
+                    body: rows
+                });
+
+                doc.save('Relatorio_Financeiro.pdf');
             });
 
-            document.getElementById('form-patient').addEventListener('submit', function(e) {
-                e.preventDefault();
-                var name = document.getElementById('pat-name').value.trim();
-                var phone = document.getElementById('pat-phone').value.trim();
-                var val = parseFloat(document.getElementById('pat-val').value);
-
-                if (name && !isNaN(val)) {
-                    state.patients.unshift({ name: name, phone: phone, val: val, active: true });
-                    saveData();
-                    renderPatients();
-                    document.getElementById('pat-name').value = '';
-                    document.getElementById('pat-phone').value = '';
-                    document.getElementById('pat-val').value = '';
-                }
-            });
-
-            document.getElementById('form-exp').addEventListener('submit', function(e) {
-                e.preventDefault();
-                var desc = document.getElementById('exp-desc').value.trim();
-                var val = parseFloat(document.getElementById('exp-amount').value);
-                var dt = document.getElementById('exp-date').value || getTodayStr();
-                var mtd = document.getElementById('exp-method').value;
-                var author = state.localProfile.name || 'Anônimo';
-
-                if (desc && !isNaN(val)) {
-                    state.items.unshift({ 
-                        type: 'expense', title: desc, amount: val, detail: mtd, date: dt, account: state.currentAccount, author: author
+            document.getElementById('btn-export-excel').addEventListener('click', function() {
+                if (!window.XLSX) return alert('Biblioteca Excel carregando, tente em instantes.');
+                var data = state.items
+                    .filter(function(i){ return (i.account || 'main') === state.currentAccount; })
+                    .map(function(i){
+                        return {
+                            Data: formatDate(i.date),
+                            Tipo: i.type === 'income' ? 'Receita' : 'Despesa',
+                            Descrição: i.title,
+                            Detalhe: i.detail,
+                            Valor: Number(i.amount)
+                        };
                     });
-                    saveData();
-                    renderFeeds();
-                    document.getElementById('exp-desc').value = '';
-                    document.getElementById('exp-amount').value = '';
-                }
+
+                var ws = XLSX.utils.json_to_sheet(data);
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+                XLSX.writeFile(wb, "Relatorio_Financeiro.xlsx");
             });
 
-            document.getElementById('form-inc').addEventListener('submit', function(e) {
-                e.preventDefault();
-                var desc = document.getElementById('inc-desc-select').value;
-                var val = parseFloat(document.getElementById('inc-amount').value);
-                var dt = document.getElementById('inc-date').value || getTodayStr();
-                var author = state.localProfile.name || 'Anônimo';
+            document.getElementById('btn-share-wsp').addEventListener('click', function() {
+                var inc = document.getElementById('rep-income').textContent;
+                var exp = document.getElementById('rep-expense').textContent;
+                var bal = document.getElementById('rep-balance').textContent;
 
-                if (desc && !isNaN(val)) {
-                    var curJob = state.localProfile.job;
-                    state.items.unshift({ 
-                        type: 'income', title: desc, amount: val, detail: curJob, date: dt, account: state.currentAccount, author: author
-                    });
-                    saveData();
-                    renderFeeds();
-                    document.getElementById('inc-amount').value = '';
-                }
+                var txt = '*Resumo Financeiro (' + getAccountLabel() + ')*\n\n' +
+                          '📈 Receitas: ' + inc + '\n' +
+                          '📉 Despesas: ' + exp + '\n' +
+                          '💰 Balanço: ' + bal;
+
+                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank');
             });
+
+            document.getElementById('btn-share-email').addEventListener('click', function() {
+                var inc = document.getElementById('rep-income').textContent;
+                var exp = document.getElementById('rep-expense').textContent;
+                var bal = document.getElementById('rep-balance').textContent;
+
+                var body = 'Resumo Financeiro (' + getAccountLabel() + '):\n\n' +
+                           'Receitas: ' + inc + '\n' +
+                           'Despesas: ' + exp + '\n' +
+                           'Balanço Geral: ' + bal;
+
+                window.location.href = 'mailto:?subject=' + encodeURIComponent('Resumo Financeiro - ' + getAccountLabel()) + '&body=' + encodeURIComponent(body);
+            });
+
+            // Inicialização
+            var today = getTodayStr();
+            document.getElementById('exp-date').value = today;
+            document.getElementById('inc-date').value = today;
 
             loadData();
             applyProfileState();
             renderFeeds();
+            renderReports();
+            renderPatients();
             initFirebaseSync();
-            document.getElementById('exp-date').value = getTodayStr();
-            document.getElementById('inc-date').value = getTodayStr();
 
         })();
     </script>
