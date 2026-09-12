@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sucesso Financeiro</title>
     
-    <!-- Configurações de PWA (Atalho na Tela Inicial) -->
+    <!-- Configurações para PWA / Instalação Nativas -->
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Finanças">
-    <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22short_name%22%3A%22Finan%C3%A7as%22%2C%22name%22%3A%22Sucesso%20Financeiro%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2845%2F2845531.png%22%2C%22type%22%3A%22image%2Fpng%22%2C%22sizes%22%3A%22192x192%22%7D%5D%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%2C%22display%22%3A%22standalone%22%7D">
+    <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22short_name%22%3A%22Finan%C3%A7as%22%2C%22name%22%3A%22Sucesso%20Financeiro%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2845%2F2845531.png%22%2C%22type%22%3A%22image%2Fpng%22%2C%22sizes%22%3A%22192x192%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2845%2F2845531.png%22%2C%22type%22%3A%22image%2Fpng%22%2C%22sizes%22%3A%22512x512%22%7D%5D%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%2C%22display%22%3A%22standalone%22%7D">
 
     <!-- Firebase SDK v9 (Compatibilizado) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -258,6 +258,7 @@
         .btn-excel { background-color: #10b981; }
         .btn-wsp { background-color: #25d366; }
         .btn-email { background-color: #38bdf8; }
+        .btn-pwa { background-color: #a855f7; font-size: 0.95rem; padding: 12px; }
 
         .export-grid {
             display: grid;
@@ -600,12 +601,13 @@
             </div>
 
             <div class="card">
-                <div class="card-title">📱 Atalho na Tela Inicial</div>
+                <div class="card-title">📱 Atalho na Tela Inicial / Computador</div>
+                <button class="btn-action btn-pwa" id="btn-install-pwa" style="margin-bottom: 12px; display: none;">📱 Instalar Aplicativo Agora</button>
                 <p style="font-size: 0.85rem; color: var(--text-sub); line-height: 1.4;">
-                    Para instalar este app na tela inicial:<br>
-                    • <b>Android / Chrome:</b> Toque nos 3 pontos superiores e selecione <i>"Adicionar à tela inicial"</i> ou <i>"Instalar aplicativo"</i>.<br>
-                    • <b>iPhone / Safari:</b> Toque no ícone de Compartilhar (quadrado com seta) e escolha <i>"Adicionar à Tela de Início"</i>.<br>
-                    • <b>Computador:</b> Clique no ícone de instalação ao lado da barra de endereço do seu navegador.
+                    Para instalar este app manualmente:<br>
+                    • <b>Android / Chrome:</b> Clique no botão acima ou nos 3 pontos superiores > <i>"Adicionar à tela inicial"</i>.<br>
+                    • <b>iPhone / Safari:</b> Toque no ícone de Compartilhar (quadrado com seta) > <i>"Adicionar à Tela de Início"</i>.<br>
+                    • <b>Computador (Chrome/Edge):</b> Clique no botão acima ou no ícone ⊕ na barra de endereço.
                 </p>
             </div>
         </div>
@@ -689,13 +691,32 @@
 
     <script>
         (function() {
-            // Registro do Service Worker para PWA (Atalho)
+            // REGISTRO DE SERVICE WORKER EXTERNO (sw.js)
             if ('serviceWorker' in navigator) {
-                var swCode = "self.addEventListener('fetch', function(e) {});";
-                var blob = new Blob([swCode], { type: 'text/javascript' });
-                var swUrl = URL.createObjectURL(blob);
-                navigator.serviceWorker.register(swUrl).catch(function(){});
+                navigator.serviceWorker.register('./sw.js').catch(function(){});
             }
+
+            // CAPTURA DO EVENTO DE INSTALAÇÃO DO PWA (ANDROID E COMPUTADOR)
+            var deferredPrompt = null;
+            var btnInstallPWA = document.getElementById('btn-install-pwa');
+
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                deferredPrompt = e;
+                btnInstallPWA.style.display = 'block';
+            });
+
+            btnInstallPWA.addEventListener('click', function() {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(function(choiceResult) {
+                        if (choiceResult.outcome === 'accepted') {
+                            btnInstallPWA.style.display = 'none';
+                        }
+                        deferredPrompt = null;
+                    });
+                }
+            });
 
             var FIXED_DB_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/"; 
             var FIXED_API_KEY = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE"; 
@@ -1169,7 +1190,7 @@
             });
 
             // ==========================================
-            // RECONHECIMENTO DE VOZ CORRIGIDO (SEM REPETIÇÃO)
+            // RECONHECIMENTO DE VOZ (SÓ ACIONA NO CLIQUE + 10s DE ESPERA)
             // ==========================================
             var btnVoice = document.getElementById('btn-voice-input');
             var voiceBox = document.getElementById('voice-text-preview');
@@ -1183,7 +1204,7 @@
                 recognitionInst = new SpeechRecObj();
                 recognitionInst.lang = 'pt-BR';
                 recognitionInst.continuous = true;
-                recognitionInst.interimResults = false; // Apenas resultados consolidados para evitar duplicação
+                recognitionInst.interimResults = false;
 
                 btnVoice.addEventListener('click', function() {
                     if (!isListening) {
@@ -1213,20 +1234,16 @@
                     if (!textoFinal.trim()) return;
 
                     var txt = textoFinal.toLowerCase().trim();
-                    
-                    // Remove repetições consecutivas da mesma palavra (Ex: "farmácia farmácia" vira "farmácia")
                     txt = txt.replace(/\b(\w+)\s+\1\b/gi, '$1');
 
                     voiceBox.textContent = '"' + txt + '"';
 
-                    // Expressão para localizar o valor no final da frase
                     var match = txt.match(/(.*?)\s+(\d+([.,]\d+)?)\s*(reais|real)?$/);
 
                     if (match) {
                         var desc = match[1].trim();
                         var amt = parseFloat(match[2].replace(',', '.'));
 
-                        // Limpa duplicações residuais na descrição
                         desc = desc.split(' ').filter(function(item, pos, self) {
                             return self.indexOf(item) == pos;
                         }).join(' ');
