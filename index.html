@@ -1169,13 +1169,12 @@
             });
 
             // ==========================================
-            // RECONHECIMENTO DE VOZ (SÓ ACIONA NO CLIQUE + 10s DE ESPERA)
+            // RECONHECIMENTO DE VOZ CORRIGIDO (SEM REPETIÇÃO)
             // ==========================================
             var btnVoice = document.getElementById('btn-voice-input');
             var voiceBox = document.getElementById('voice-text-preview');
             var recognitionInst = null;
             var timerInatividade = null;
-            var voiceBuffer = "";
             var isListening = false;
 
             var SpeechRecObj = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1184,11 +1183,10 @@
                 recognitionInst = new SpeechRecObj();
                 recognitionInst.lang = 'pt-BR';
                 recognitionInst.continuous = true;
-                recognitionInst.interimResults = true;
+                recognitionInst.interimResults = false; // Apenas resultados consolidados para evitar duplicação
 
                 btnVoice.addEventListener('click', function() {
                     if (!isListening) {
-                        voiceBuffer = "";
                         voiceBox.textContent = "Ouvindo... Fale a descrição";
                         limparTimer();
 
@@ -1205,19 +1203,33 @@
                 });
 
                 recognitionInst.onresult = function(event) {
-                    var textoSessao = "";
+                    var textoFinal = "";
                     for (var i = event.resultIndex; i < event.results.length; ++i) {
-                        textoSessao += event.results[i][0].transcript + " ";
+                        if (event.results[i].isFinal) {
+                            textoFinal += event.results[i][0].transcript + " ";
+                        }
                     }
 
-                    voiceBuffer = (voiceBuffer + " " + textoSessao).toLowerCase().trim();
-                    voiceBox.textContent = '"' + voiceBuffer + '"';
+                    if (!textoFinal.trim()) return;
 
-                    var match = voiceBuffer.match(/(.*?)\s+(\d+([.,]\d+)?)\s*(reais|real)?$/);
+                    var txt = textoFinal.toLowerCase().trim();
+                    
+                    // Remove repetições consecutivas da mesma palavra (Ex: "farmácia farmácia" vira "farmácia")
+                    txt = txt.replace(/\b(\w+)\s+\1\b/gi, '$1');
+
+                    voiceBox.textContent = '"' + txt + '"';
+
+                    // Expressão para localizar o valor no final da frase
+                    var match = txt.match(/(.*?)\s+(\d+([.,]\d+)?)\s*(reais|real)?$/);
 
                     if (match) {
                         var desc = match[1].trim();
                         var amt = parseFloat(match[2].replace(',', '.'));
+
+                        // Limpa duplicações residuais na descrição
+                        desc = desc.split(' ').filter(function(item, pos, self) {
+                            return self.indexOf(item) == pos;
+                        }).join(' ');
 
                         if (desc && !isNaN(amt)) {
                             state.items.unshift({
