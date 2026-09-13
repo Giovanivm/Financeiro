@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Sucesso Financeiro</title>
+    <title>Sucesso Financeiro & Saúde</title>
     
     <!-- Configurações para PWA / Instalação Nativas -->
     <meta name="theme-color" content="#0f172a">
@@ -32,6 +32,7 @@
             --accent-blue: #38bdf8;
             --accent-red: #ef4444;
             --accent-purple: #a855f7;
+            --accent-amber: #f59e0b;
             --border-color: #334155;
         }
 
@@ -156,6 +157,9 @@
             font-weight: 600;
             margin-bottom: 12px;
             color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .voice-section {
@@ -401,12 +405,66 @@
             margin-top: 8px;
             cursor: pointer;
         }
+
+        .subnav-container {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+            padding-bottom: 4px;
+        }
+
+        .subnav-btn {
+            background: var(--bg-input);
+            color: var(--text-sub);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .subnav-btn.active {
+            background: var(--accent-blue);
+            color: #0f172a;
+            border-color: var(--accent-blue);
+        }
+
+        .month-selector-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-input);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .month-selector-bar select {
+            background: transparent;
+            color: var(--text-main);
+            border: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .attachment-preview {
+            max-width: 100%;
+            max-height: 180px;
+            border-radius: 8px;
+            margin-top: 8px;
+            object-fit: cover;
+            border: 1px solid var(--border-color);
+        }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <h1>Sucesso Financeiro</h1>
+        <h1>Sucesso Financeiro & Saúde</h1>
         <div class="top-actions">
             <button class="btn-gear" id="btn-open-sync" title="Conexão em Tempo Real">
                 ⚙️
@@ -495,7 +553,7 @@
             </div>
         </div>
 
-        <!-- ABA 3: PACIENTES -->
+        <!-- ABA 3: PACIENTES (NUTRI) -->
         <div id="tab-patients" class="tab-content">
             <div class="card">
                 <div class="card-title">👤 Cadastrar Novo Paciente</div>
@@ -522,7 +580,164 @@
             </div>
         </div>
 
-        <!-- ABA 4: RELATÓRIOS -->
+        <!-- ABA NOVAS DE SAÚDE (PENSIONISTA / APOSENTADO - SR. SEBASTIÃO) -->
+        <div id="tab-health" class="tab-content">
+            
+            <div class="subnav-container">
+                <button class="subnav-btn active" data-sub="meds">💊 Medicações do Mês</button>
+                <button class="subnav-btn" data-sub="exams">🔬 Exames & Laudos</button>
+                <button class="subnav-btn" data-sub="appts">🩺 Consultas Médicas</button>
+                <button class="subnav-btn" data-sub="vitals">❤️ Sinais Vitais / Medições</button>
+            </div>
+
+            <!-- SUB-ABA: MEDICAÇÕES -->
+            <div id="subtab-meds">
+                <div class="month-selector-bar">
+                    <span style="font-size: 0.8rem; color: var(--text-sub);">Mês de Referência:</span>
+                    <select id="health-month-select"></select>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span>💊 Cadastrar / Alterar Medicamento</span>
+                        <button class="btn-action btn-excel" id="btn-migrate-meds" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">🔁 Copiar do Mês Anterior</button>
+                    </div>
+                    <form id="form-med">
+                        <div class="form-group">
+                            <label>Nome do Medicamento</label>
+                            <input type="text" id="med-name" class="form-control" placeholder="Ex: Losartana / Sinalfa" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Dosagem / Quantidade</label>
+                            <input type="text" id="med-dosage" class="form-control" placeholder="Ex: 50mg / 1 comprimido / 10 gotas" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Horários de Administração</label>
+                            <input type="text" id="med-times" class="form-control" placeholder="Ex: 08:00, 14:00 e 20:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Instruções / Observações</label>
+                            <input type="text" id="med-notes" class="form-control" placeholder="Ex: Tomar após o café da manhã">
+                        </div>
+                        <button type="submit" class="btn-submit" style="background-color: var(--accent-green);">Salvar Medicamento no Mês</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📋 Grade de Medicações do Mês</div>
+                    <div id="meds-feed"></div>
+                </div>
+            </div>
+
+            <!-- SUB-ABA: EXAMES E LAUDOS -->
+            <div id="subtab-exams" style="display: none;">
+                <div class="card">
+                    <div class="card-title">🔬 Registrar Exame / Laudo</div>
+                    <form id="form-exam">
+                        <div class="form-group">
+                            <label>Nome do Exame</label>
+                            <input type="text" id="exam-title" class="form-control" placeholder="Ex: Hemograma Completo / ECG" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Data da Realização</label>
+                            <input type="date" id="exam-date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Médico Solicitante / Laboratório</label>
+                            <input type="text" id="exam-doctor" class="form-control" placeholder="Ex: Dr. Carlos / Lab Sabin">
+                        </div>
+                        <div class="form-group">
+                            <label>Resumo do Laudo / Resultado</label>
+                            <textarea id="exam-notes" class="form-control" rows="3" placeholder="Digite as conclusões ou laudo do exame..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Anexar Foto ou PDF do Exame/Laudo</label>
+                            <input type="file" id="exam-file" class="form-control" accept="image/*,application/pdf">
+                        </div>
+                        <button type="submit" class="btn-submit" style="background-color: var(--accent-purple);">Salvar Registro de Exame</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📄 Histórico de Exames Cadastrados</div>
+                    <div id="exams-feed"></div>
+                </div>
+            </div>
+
+            <!-- SUB-ABA: CONSULTAS MÉDICAS -->
+            <div id="subtab-appts" style="display: none;">
+                <div class="card">
+                    <div class="card-title">🩺 Agendar Consulta Médica</div>
+                    <form id="form-appt">
+                        <div class="form-group">
+                            <label>Especialidade / Motivo</label>
+                            <input type="text" id="appt-spec" class="form-control" placeholder="Ex: Cardiologista / Geriatra" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nome do Médico</label>
+                            <input type="text" id="appt-doc" class="form-control" placeholder="Ex: Dr. Roberto Silva" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Data e Horário</label>
+                            <input type="datetime-local" id="appt-datetime" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Local / Clínica / Endereço</label>
+                            <input type="text" id="appt-location" class="form-control" placeholder="Ex: Hospital do Coração - Sala 302">
+                        </div>
+                        <div class="form-group">
+                            <label>Preparo / Anotações para o dia</label>
+                            <input type="text" id="appt-notes" class="form-control" placeholder="Ex: Levar exames de sangue recentes e jejum 8h">
+                        </div>
+                        <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Agendar Consulta</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📅 Consultas Agendadas e Anteriores</div>
+                    <div id="appts-feed"></div>
+                </div>
+            </div>
+
+            <!-- SUB-ABA: SINAIS VITAIS / MEDIÇÕES DIÁRIAS -->
+            <div id="subtab-vitals" style="display: none;">
+                <div class="card">
+                    <div class="card-title">❤️ Aferição de Pressão & Glicemia</div>
+                    <form id="form-vital">
+                        <div class="form-group">
+                            <label>Pressão Arterial (mmHg)</label>
+                            <input type="text" id="vital-pa" class="form-control" placeholder="Ex: 120 x 80">
+                        </div>
+                        <div class="form-group">
+                            <label>Glicemia (mg/dL)</label>
+                            <input type="number" id="vital-glicemia" class="form-control" placeholder="Ex: 98">
+                        </div>
+                        <div class="form-group">
+                            <label>Data e Hora</label>
+                            <input type="datetime-local" id="vital-datetime" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn-submit" style="background-color: var(--accent-amber);">Registrar Medição</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📈 Histórico de Medições</div>
+                    <div id="vitals-feed"></div>
+                </div>
+            </div>
+
+            <!-- BOTÃO DE RELATÓRIO DE SAÚDE -->
+            <div class="card">
+                <div class="card-title">📄 Relatório Completo de Saúde</div>
+                <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 10px;">
+                    Gere um documento em PDF com as medicações do mês, consultas e exames recentes para apresentar em consultas médicas.
+                </p>
+                <button class="btn-action btn-pdf" id="btn-export-health-pdf">📄 Baixar Relatório de Saúde (PDF)</button>
+            </div>
+
+        </div>
+
+        <!-- ABA 4: RELATÓRIOS FINANCEIROS -->
         <div id="tab-reports" class="tab-content">
             <div class="summary-grid">
                 <div class="summary-card">
@@ -540,7 +755,6 @@
                 <h2 id="rep-balance" style="font-size: 1.8rem; margin-top: 4px;">R$ 0,00</h2>
             </div>
 
-            <!-- BOTÃO EXCLUSIVO DE IMPORTAR EXCEL NA ABA RELATÓRIOS -->
             <div class="card">
                 <div class="card-title">📥 Importar Dados de Planilha Excel (.xlsx / .csv)</div>
                 <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px;">
@@ -553,7 +767,7 @@
             </div>
 
             <div class="card">
-                <div class="card-title">📄 Exportar Relatórios</div>
+                <div class="card-title">📄 Exportar Relatórios Financeiros</div>
                 <div class="export-grid">
                     <button class="btn-action btn-pdf" id="btn-export-pdf">📄 Baixar PDF</button>
                     <button class="btn-action btn-excel" id="btn-export-excel">📊 Baixar Excel</button>
@@ -572,10 +786,10 @@
         <!-- ABA 5: PERFIL -->
         <div id="tab-profile" class="tab-content">
             <div class="card">
-                <div class="card-title" id="profile-card-title">⚙️ Perfil do Dispositivo</div>
+                <div class="card-title" id="profile-card-title">⚙️ Perfil da Conta Selecionada</div>
                 <form id="form-profile">
                     <div class="form-group">
-                        <label>Seu Nome (Identificação deste Aparelho)</label>
+                        <label>Nome (Identificação da Conta)</label>
                         <input type="text" id="prof-name" class="form-control" placeholder="Digite seu nome" required>
                     </div>
                     <div class="form-group">
@@ -591,7 +805,7 @@
                         <label>E-mail / Contato</label>
                         <input type="email" id="prof-email" class="form-control" placeholder="email@exemplo.com">
                     </div>
-                    <button type="submit" class="btn-submit">Salvar Perfil Neste Dispositivo</button>
+                    <button type="submit" class="btn-submit">Salvar Perfil Desta Conta</button>
                 </form>
             </div>
 
@@ -609,7 +823,37 @@
 
     </div>
 
-    <!-- MODAL DE EDIÇÃO DE ITEM -->
+    <!-- MODAL DE EDIÇÃO DE MEDICAMENTO -->
+    <div class="modal-overlay" id="modal-edit-med">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">✏️ Editar Medicamento</h3>
+                <button id="btn-close-edit-med" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-edit-med">
+                <input type="hidden" id="edit-med-id">
+                <div class="form-group">
+                    <label>Nome do Medicamento</label>
+                    <input type="text" id="edit-med-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Dosagem</label>
+                    <input type="text" id="edit-med-dosage" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Horários</label>
+                    <input type="text" id="edit-med-times" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <input type="text" id="edit-med-notes" class="form-control">
+                </div>
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Salvar Alteração</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE EDIÇÃO DE FINANCEIRO -->
     <div class="modal-overlay" id="modal-edit">
         <div class="modal-body">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -670,6 +914,10 @@
             <span class="nav-icon">💰</span>
             <span>Rendas</span>
         </button>
+        <button class="nav-item" id="nav-health" data-tab="health" style="display: none;">
+            <span class="nav-icon">💊</span>
+            <span>Saúde</span>
+        </button>
         <button class="nav-item" id="nav-patients" data-tab="patients" style="display: none;">
             <span class="nav-icon">🩺</span>
             <span>Pacientes</span>
@@ -682,16 +930,12 @@
             <span class="nav-icon">⚙️</span>
             <span>Perfil</span>
         </button>
-    </nav>
-
-    <script>
+    </nav><script>
         (function() {
-            // REGISTRO DE SERVICE WORKER EXTERNO (sw.js)
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').catch(function(){});
             }
 
-            // CAPTURA DO EVENTO DE INSTALAÇÃO DO PWA
             var deferredPrompt = null;
             var btnInstallPWA = document.getElementById('btn-install-pwa');
 
@@ -727,15 +971,22 @@
             var state = {
                 currentAccount: 'main',
                 syncRoomId: DEFAULT_ROOM,
-                localProfile: { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' },
+                profiles: {
+                    main: { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' },
+                    sebastiao: { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
+                },
                 items: [],
-                patients: []
+                patients: [],
+                medications: [],
+                exams: [],
+                appointments: [],
+                vitals: []
             };
 
             var jobIncomes = {
                 penal: ['Subsídio / Salário', 'AC4 / Plantão Extra', 'Indenizações', 'Adicionais'],
                 nutri: ['Consulta Individual', 'Mensalidade Paciente', 'Pacote Alimentar', 'Mentoria / Cursos'],
-                aposentado: ['Aposentadoria / Benefício', 'Aluguel / Arrendamento', 'Renda de Investimentos', 'Outras Receitas'],
+                aposentado: ['Aposentadoria / Benefício', 'Pensão', 'Aluguel / Arrendamento', 'Renda de Investimentos', 'Outras Receitas'],
                 outras: ['Salário', 'Renda Extra', 'Serviços Prestados', 'Vendas']
             };
 
@@ -751,20 +1002,30 @@
                 return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
             }
 
+            function getCurrentMonthKey() {
+                var d = new Date();
+                var m = (d.getMonth() + 1);
+                return d.getFullYear() + '-' + (m < 10 ? '0' + m : m);
+            }
+
             function formatDate(str) {
                 if (!str) return '';
-                var p = str.split('-');
+                var p = str.split('T')[0].split('-');
                 return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : str;
             }
 
             function loadData() {
                 try {
-                    var data = localStorage.getItem('sf_app_data_v9');
+                    var data = localStorage.getItem('sf_app_data_v10');
                     if (data) {
                         var parsed = JSON.parse(data);
-                        if (parsed.localProfile) state.localProfile = parsed.localProfile;
+                        if (parsed.profiles) state.profiles = parsed.profiles;
                         if (parsed.items) state.items = parsed.items;
                         if (parsed.patients) state.patients = parsed.patients;
+                        if (parsed.medications) state.medications = parsed.medications;
+                        if (parsed.exams) state.exams = parsed.exams;
+                        if (parsed.appointments) state.appointments = parsed.appointments;
+                        if (parsed.vitals) state.vitals = parsed.vitals;
                         if (parsed.syncRoomId) state.syncRoomId = parsed.syncRoomId;
                     }
                 } catch(e) {}
@@ -773,20 +1034,29 @@
             function saveData(syncToRemote) {
                 if (syncToRemote === undefined) syncToRemote = true;
                 try {
-                    localStorage.setItem('sf_app_data_v9', JSON.stringify({
-                        localProfile: state.localProfile,
+                    localStorage.setItem('sf_app_data_v10', JSON.stringify({
+                        profiles: state.profiles,
                         syncRoomId: state.syncRoomId,
                         items: state.items,
-                        patients: state.patients
+                        patients: state.patients,
+                        medications: state.medications,
+                        exams: state.exams,
+                        appointments: state.appointments,
+                        vitals: state.vitals
                     }));
                 } catch(e) {}
 
                 if (syncToRemote && dbRef && !isRemoteUpdate) {
                     dbRef.set({
+                        profiles: state.profiles,
                         items: state.items,
-                        patients: state.patients
+                        patients: state.patients,
+                        medications: state.medications,
+                        exams: state.exams,
+                        appointments: state.appointments,
+                        vitals: state.vitals
                     }).catch(function(err) {
-                        console.error('Erro ao gravar no Firebase:', err);
+                        console.error('Erro no Firebase:', err);
                     });
                 }
             }
@@ -824,22 +1094,31 @@
                         var data = snapshot.val();
                         if (data) {
                             isRemoteUpdate = true;
+                            if (data.profiles) state.profiles = data.profiles;
                             state.items = data.items || [];
                             state.patients = data.patients || [];
+                            state.medications = data.medications || [];
+                            state.exams = data.exams || [];
+                            state.appointments = data.appointments || [];
+                            state.vitals = data.vitals || [];
 
                             saveData(false);
                             applyProfileState();
                             renderFeeds();
                             renderReports();
                             renderPatients();
+                            renderHealthData();
                             isRemoteUpdate = false;
                         } else {
-                            if (state.items.length > 0 || state.patients.length > 0) {
-                                dbRef.set({
-                                    items: state.items,
-                                    patients: state.patients
-                                });
-                            }
+                            dbRef.set({
+                                profiles: state.profiles,
+                                items: state.items,
+                                patients: state.patients,
+                                medications: state.medications,
+                                exams: state.exams,
+                                appointments: state.appointments,
+                                vitals: state.vitals
+                            });
                         }
                     });
 
@@ -849,18 +1128,33 @@
             }
 
             function applyProfileState() {
-                var activeProfile = state.localProfile || { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' };
+                var acc = state.currentAccount;
+                if (!state.profiles[acc]) {
+                    state.profiles[acc] = acc === 'sebastiao' 
+                        ? { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
+                        : { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' };
+                }
+
+                var activeProfile = state.profiles[acc];
 
                 document.getElementById('prof-name').value = activeProfile.name || '';
                 document.getElementById('prof-job').value = activeProfile.job || 'penal';
                 document.getElementById('prof-email').value = activeProfile.email || '';
 
                 var patNav = document.getElementById('nav-patients');
+                var healthNav = document.getElementById('nav-health');
+
                 if (activeProfile.job === 'nutri') {
                     patNav.style.display = 'flex';
                 } else {
                     patNav.style.display = 'none';
-                    if (document.getElementById('tab-patients').classList.contains('active')) {
+                }
+
+                if (activeProfile.job === 'aposentado') {
+                    healthNav.style.display = 'flex';
+                } else {
+                    healthNav.style.display = 'none';
+                    if (document.getElementById('tab-health').classList.contains('active')) {
                         switchTab('expenses');
                     }
                 }
@@ -872,7 +1166,8 @@
                 var sel = document.getElementById('inc-desc-select');
                 sel.innerHTML = '';
                 
-                var activeProfile = state.localProfile || { job: 'penal' };
+                var acc = state.currentAccount;
+                var activeProfile = state.profiles[acc] || { job: 'penal' };
                 var opts = jobIncomes[activeProfile.job] || jobIncomes.penal;
 
                 for (var i = 0; i < opts.length; i++) {
@@ -1041,6 +1336,444 @@
                 }
             };
 
+            function initHealthMonthSelector() {
+                var sel = document.getElementById('health-month-select');
+                if (sel.options.length > 0) return;
+
+                var currentKey = getCurrentMonthKey();
+                var d = new Date();
+                
+                for (var i = 0; i < 12; i++) {
+                    var yr = d.getFullYear();
+                    var mo = d.getMonth() + 1;
+                    var key = yr + '-' + (mo < 10 ? '0' + mo : mo);
+                    var label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                    label = label.charAt(0).toUpperCase() + label.slice(1);
+
+                    var opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = label;
+                    if (key === currentKey) opt.selected = true;
+                    sel.appendChild(opt);
+
+                    d.setMonth(d.getMonth() - 1);
+                }
+
+                sel.addEventListener('change', function() {
+                    renderHealthData();
+                });
+            }
+
+            function renderHealthData() {
+                initHealthMonthSelector();
+                var selectedMonth = document.getElementById('health-month-select').value || getCurrentMonthKey();
+                var acc = state.currentAccount;
+
+                // MEDICAÇÕES
+                var medsFeed = document.getElementById('meds-feed');
+                medsFeed.innerHTML = '';
+                var currentMeds = state.medications.filter(function(m) {
+                    return m.monthKey === selectedMonth && (m.account || 'sebastiao') === acc;
+                });
+
+                if (currentMeds.length === 0) {
+                    medsFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhum medicamento registrado para este mês. Use o botão de cadastrar ou "Copiar do Mês Anterior".</div>';
+                } else {
+                    currentMeds.forEach(function(m) {
+                        var idClean = String(m.id).replace(/'/g, "");
+                        medsFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title" style="color: var(--accent-green);">' + m.name + ' (' + m.dosage + ')</span>' +
+                                '<span class="trans-sub">⏰ Horários: <b>' + m.times + '</b></span>' +
+                                (m.notes ? '<span class="trans-sub" style="color: var(--text-main);">📝 ' + m.notes + '</span>' : '') +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<div class="item-actions">' +
+                                    '<button class="btn-icon" onclick="window.editMed(\'' + idClean + '\')">✏️ Editar</button>' +
+                                    '<button class="btn-icon" onclick="window.deleteMed(\'' + idClean + '\')">🗑️ Apagar</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+
+                // EXAMES
+                var examsFeed = document.getElementById('exams-feed');
+                examsFeed.innerHTML = '';
+                var currentExams = state.exams.filter(function(e) {
+                    return (e.account || 'sebastiao') === acc;
+                });
+
+                if (currentExams.length === 0) {
+                    examsFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhum exame cadastrado.</div>';
+                } else {
+                    currentExams.forEach(function(e) {
+                        var idClean = String(e.id).replace(/'/g, "");
+                        var fileHtml = '';
+                        if (e.fileData) {
+                            if (e.fileType && e.fileType.indexOf('pdf') !== -1) {
+                                fileHtml = '<br><a href="' + e.fileData + '" target="_blank" style="color:var(--accent-blue); font-size:0.8rem; font-weight:bold;">📄 Abrir Documento PDF do Laudo</a>';
+                            } else {
+                                fileHtml = '<br><img src="' + e.fileData + '" class="attachment-preview" onclick="window.open(this.src)">';
+                            }
+                        }
+
+                        examsFeed.innerHTML += '<div class="transaction-item" style="flex-direction:column; align-items:flex-start; gap:6px;">' +
+                            '<div style="width:100%; display:flex; justify-content:space-between; align-items:center;">' +
+                                '<span class="trans-title" style="color: var(--accent-purple);">' + e.title + '</span>' +
+                                '<button class="btn-icon" onclick="window.deleteExam(\'' + idClean + '\')">🗑️ Apagar</button>' +
+                            '</div>' +
+                            '<span class="trans-sub">📅 Data: ' + formatDate(e.date) + (e.doctor ? ' • 👨‍⚕️ ' + e.doctor : '') + '</span>' +
+                            (e.notes ? '<span class="trans-sub" style="color: var(--text-main);">📝 <b>Laudo:</b> ' + e.notes + '</span>' : '') +
+                            fileHtml +
+                        '</div>';
+                    });
+                }
+
+                // CONSULTAS
+                var apptsFeed = document.getElementById('appts-feed');
+                apptsFeed.innerHTML = '';
+                var currentAppts = state.appointments.filter(function(a) {
+                    return (a.account || 'sebastiao') === acc;
+                });
+
+                if (currentAppts.length === 0) {
+                    apptsFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma consulta agendada.</div>';
+                } else {
+                    currentAppts.forEach(function(a) {
+                        var idClean = String(a.id).replace(/'/g, "");
+                        apptsFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title" style="color: var(--accent-blue);">' + a.spec + ' - ' + a.doctor + '</span>' +
+                                '<span class="trans-sub">📅 ' + formatDate(a.datetime) + ' às ' + (a.datetime.split('T')[1] || '') + '</span>' +
+                                (a.location ? '<span class="trans-sub">📍 ' + a.location + '</span>' : '') +
+                                (a.notes ? '<span class="trans-sub" style="color: var(--accent-amber);">⚠️ Preparo: ' + a.notes + '</span>' : '') +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<button class="btn-icon" onclick="window.deleteAppt(\'' + idClean + '\')">🗑️ Apagar</button>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+
+                // SINAIS VITAIS
+                var vitalsFeed = document.getElementById('vitals-feed');
+                vitalsFeed.innerHTML = '';
+                var currentVitals = state.vitals.filter(function(v) {
+                    return (v.account || 'sebastiao') === acc;
+                });
+
+                if (currentVitals.length === 0) {
+                    vitalsFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma medição registrada.</div>';
+                } else {
+                    currentVitals.forEach(function(v) {
+                        var idClean = String(v.id).replace(/'/g, "");
+                        vitalsFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title">❤️ PA: ' + (v.pa || 'N/A') + ' mmHg • 🩸 Glicemia: ' + (v.glicemia ? v.glicemia + ' mg/dL' : 'N/A') + '</span>' +
+                                '<span class="trans-sub">📅 ' + formatDate(v.datetime) + ' às ' + (v.datetime.split('T')[1] || '') + '</span>' +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<button class="btn-icon" onclick="window.deleteVital(\'' + idClean + '\')">🗑️ Apagar</button>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+            }
+
+            document.getElementById('btn-migrate-meds').addEventListener('click', function() {
+                var selectedMonth = document.getElementById('health-month-select').value;
+                var acc = state.currentAccount;
+
+                var parts = selectedMonth.split('-');
+                var yr = parseInt(parts[0]);
+                var mo = parseInt(parts[1]) - 1;
+                if (mo === 0) { mo = 12; yr--; }
+                var prevKey = yr + '-' + (mo < 10 ? '0' + mo : mo);
+
+                var prevMeds = state.medications.filter(function(m) {
+                    return m.monthKey === prevKey && (m.account || 'sebastiao') === acc;
+                });
+
+                if (prevMeds.length === 0) {
+                    alert('Nenhuma medicação encontrada no mês anterior (' + prevKey + ') para migrar.');
+                    return;
+                }
+
+                var count = 0;
+                prevMeds.forEach(function(m) {
+                    var exists = state.medications.some(function(curr) {
+                        return curr.monthKey === selectedMonth && curr.name.toLowerCase() === m.name.toLowerCase() && (curr.account || 'sebastiao') === acc;
+                    });
+
+                    if (!exists) {
+                        state.medications.push({
+                            id: Date.now().toString() + Math.random(),
+                            name: m.name,
+                            dosage: m.dosage,
+                            times: m.times,
+                            notes: m.notes || '',
+                            monthKey: selectedMonth,
+                            account: acc
+                        });
+                        count++;
+                    }
+                });
+
+                saveData();
+                renderHealthData();
+                alert(count + ' medicação(ões) migrada(s) com sucesso para o mês atual!');
+            });
+
+            document.getElementById('form-med').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var selectedMonth = document.getElementById('health-month-select').value || getCurrentMonthKey();
+                var name = document.getElementById('med-name').value.trim();
+                var dosage = document.getElementById('med-dosage').value.trim();
+                var times = document.getElementById('med-times').value.trim();
+                var notes = document.getElementById('med-notes').value.trim();
+
+                if (!name || !dosage || !times) return;
+
+                state.medications.unshift({
+                    id: Date.now().toString(),
+                    name: name,
+                    dosage: dosage,
+                    times: times,
+                    notes: notes,
+                    monthKey: selectedMonth,
+                    account: state.currentAccount
+                });
+
+                saveData();
+                renderHealthData();
+
+                document.getElementById('med-name').value = '';
+                document.getElementById('med-dosage').value = '';
+                document.getElementById('med-times').value = '';
+                document.getElementById('med-notes').value = '';
+            });
+
+            window.deleteMed = function(id) {
+                if (confirm("Tem certeza que deseja remover esta medicação deste mês? (O histórico de meses anteriores não será afetado)")) {
+                    var targetId = String(id);
+                    state.medications = state.medications.filter(function(m) { return String(m.id) !== targetId; });
+                    saveData();
+                    renderHealthData();
+                }
+            };
+
+            window.editMed = function(id) {
+                var targetId = String(id);
+                var m = state.medications.find(function(item) { return String(item.id) === targetId; });
+                if (!m) return;
+
+                document.getElementById('edit-med-id').value = String(m.id);
+                document.getElementById('edit-med-name').value = m.name;
+                document.getElementById('edit-med-dosage').value = m.dosage;
+                document.getElementById('edit-med-times').value = m.times;
+                document.getElementById('edit-med-notes').value = m.notes || '';
+
+                document.getElementById('modal-edit-med').classList.add('active');
+            };
+
+            document.getElementById('btn-close-edit-med').addEventListener('click', function() {
+                document.getElementById('modal-edit-med').classList.remove('active');
+            });
+
+            document.getElementById('form-edit-med').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var id = document.getElementById('edit-med-id').value;
+                var targetId = String(id);
+
+                var m = state.medications.find(function(item) { return String(item.id) === targetId; });
+                if (m) {
+                    m.name = document.getElementById('edit-med-name').value.trim();
+                    m.dosage = document.getElementById('edit-med-dosage').value.trim();
+                    m.times = document.getElementById('edit-med-times').value.trim();
+                    m.notes = document.getElementById('edit-med-notes').value.trim();
+
+                    saveData();
+                    renderHealthData();
+                    document.getElementById('modal-edit-med').classList.remove('active');
+                }
+            });
+
+            document.getElementById('form-exam').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var title = document.getElementById('exam-title').value.trim();
+                var date = document.getElementById('exam-date').value;
+                var doctor = document.getElementById('exam-doctor').value.trim();
+                var notes = document.getElementById('exam-notes').value.trim();
+                var fileInput = document.getElementById('exam-file');
+
+                if (!title || !date) return;
+
+                var saveExamObj = function(fileBase64, fileType) {
+                    state.exams.unshift({
+                        id: Date.now().toString(),
+                        title: title,
+                        date: date,
+                        doctor: doctor,
+                        notes: notes,
+                        fileData: fileBase64 || null,
+                        fileType: fileType || null,
+                        account: state.currentAccount
+                    });
+
+                    saveData();
+                    renderHealthData();
+
+                    document.getElementById('exam-title').value = '';
+                    document.getElementById('exam-date').value = '';
+                    document.getElementById('exam-doctor').value = '';
+                    document.getElementById('exam-notes').value = '';
+                    fileInput.value = '';
+                };
+
+                if (fileInput.files && fileInput.files[0]) {
+                    var file = fileInput.files[0];
+                    var reader = new FileReader();
+                    reader.onload = function(evt) {
+                        saveExamObj(evt.target.result, file.type);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    saveExamObj(null, null);
+                }
+            });
+
+            window.deleteExam = function(id) {
+                if (confirm("Deseja apagar este registro de exame?")) {
+                    var targetId = String(id);
+                    state.exams = state.exams.filter(function(e) { return String(e.id) !== targetId; });
+                    saveData();
+                    renderHealthData();
+                }
+            };
+
+            document.getElementById('form-appt').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var spec = document.getElementById('appt-spec').value.trim();
+                var doc = document.getElementById('appt-doc').value.trim();
+                var datetime = document.getElementById('appt-datetime').value;
+                var location = document.getElementById('appt-location').value.trim();
+                var notes = document.getElementById('appt-notes').value.trim();
+
+                if (!spec || !doc || !datetime) return;
+
+                state.appointments.unshift({
+                    id: Date.now().toString(),
+                    spec: spec,
+                    doctor: doc,
+                    datetime: datetime,
+                    location: location,
+                    notes: notes,
+                    account: state.currentAccount
+                });
+
+                saveData();
+                renderHealthData();
+
+                document.getElementById('appt-spec').value = '';
+                document.getElementById('appt-doc').value = '';
+                document.getElementById('appt-datetime').value = '';
+                document.getElementById('appt-location').value = '';
+                document.getElementById('appt-notes').value = '';
+            });
+
+            window.deleteAppt = function(id) {
+                if (confirm("Deseja apagar esta consulta?")) {
+                    var targetId = String(id);
+                    state.appointments = state.appointments.filter(function(a) { return String(a.id) !== targetId; });
+                    saveData();
+                    renderHealthData();
+                }
+            };
+
+            document.getElementById('form-vital').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var pa = document.getElementById('vital-pa').value.trim();
+                var glicemia = document.getElementById('vital-glicemia').value.trim();
+                var datetime = document.getElementById('vital-datetime').value;
+
+                if (!datetime) return;
+
+                state.vitals.unshift({
+                    id: Date.now().toString(),
+                    pa: pa,
+                    glicemia: glicemia,
+                    datetime: datetime,
+                    account: state.currentAccount
+                });
+
+                saveData();
+                renderHealthData();
+
+                document.getElementById('vital-pa').value = '';
+                document.getElementById('vital-glicemia').value = '';
+                document.getElementById('vital-datetime').value = '';
+            });
+
+            window.deleteVital = function(id) {
+                if (confirm("Deseja apagar esta medição?")) {
+                    var targetId = String(id);
+                    state.vitals = state.vitals.filter(function(v) { return String(v.id) !== targetId; });
+                    saveData();
+                    renderHealthData();
+                }
+            };
+
+            document.querySelectorAll('.subnav-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var sub = this.getAttribute('data-sub');
+                    
+                    document.querySelectorAll('.subnav-btn').forEach(function(b){ b.classList.remove('active'); });
+                    this.classList.add('active');
+
+                    document.getElementById('subtab-meds').style.display = sub === 'meds' ? 'block' : 'none';
+                    document.getElementById('subtab-exams').style.display = sub === 'exams' ? 'block' : 'none';
+                    document.getElementById('subtab-appts').style.display = sub === 'appts' ? 'block' : 'none';
+                    document.getElementById('subtab-vitals').style.display = sub === 'vitals' ? 'block' : 'none';
+                });
+            });
+
+            document.getElementById('btn-export-health-pdf').addEventListener('click', function() {
+                if (!window.jspdf) return alert('Biblioteca PDF carregando, tente em instantes.');
+                var doc = new window.jspdf.jsPDF();
+                
+                var acc = state.currentAccount;
+                var prof = state.profiles[acc] || {};
+                var selectedMonth = document.getElementById('health-month-select').value || getCurrentMonthKey();
+
+                doc.setFontSize(16);
+                doc.text('Relatório Acompanhamento de Saúde - ' + (prof.name || 'Sr. Sebastião'), 14, 20);
+                doc.setFontSize(10);
+                doc.text('Mês de Referência: ' + selectedMonth, 14, 26);
+
+                var medsData = state.medications
+                    .filter(function(m){ return m.monthKey === selectedMonth && (m.account || 'sebastiao') === acc; })
+                    .map(function(m){ return [m.name, m.dosage, m.times, m.notes || '-']; });
+
+                doc.autoTable({
+                    startY: 32,
+                    head: [['Medicamento', 'Dosagem', 'Horários', 'Observações']],
+                    body: medsData.length > 0 ? medsData : [['Nenhum medicamento registrado', '-', '-', '-']]
+                });
+
+                var apptsData = state.appointments
+                    .filter(function(a){ return (a.account || 'sebastiao') === acc; })
+                    .map(function(a){ return [formatDate(a.datetime), a.spec, a.doctor, a.location || '-']; });
+
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 10,
+                    head: [['Data', 'Especialidade', 'Médico', 'Local']],
+                    body: apptsData.length > 0 ? apptsData : [['Nenhuma consulta agendada', '-', '-', '-']]
+                });
+
+                doc.save('Relatorio_Saude_' + (prof.name || 'Sebastiao').replace(/\s+/g, '_') + '.pdf');
+            });
+
             function renderReports() {
                 var totalInc = 0;
                 var totalExp = 0;
@@ -1080,7 +1813,6 @@
                 if (targetNav) targetNav.classList.add('active');
             }
 
-            // Event Handlers
             document.querySelectorAll('.nav-item').forEach(function(btn) {
                 btn.addEventListener('click', function() {
                     var tab = this.getAttribute('data-tab');
@@ -1090,8 +1822,10 @@
 
             document.getElementById('global-account-select').addEventListener('change', function(e) {
                 state.currentAccount = e.target.value;
+                applyProfileState();
                 renderFeeds();
                 renderReports();
+                renderHealthData();
             });
 
             document.getElementById('form-exp').addEventListener('submit', function(e) {
@@ -1103,6 +1837,9 @@
 
                 if (!desc || !amt || !date) return;
 
+                var acc = state.currentAccount;
+                var prof = state.profiles[acc] || {};
+
                 state.items.unshift({
                     id: Date.now().toString(),
                     type: 'expense',
@@ -1110,8 +1847,8 @@
                     detail: method,
                     amount: parseFloat(amt),
                     date: date,
-                    account: state.currentAccount,
-                    author: state.localProfile.name || ''
+                    account: acc,
+                    author: prof.name || ''
                 });
 
                 saveData();
@@ -1130,6 +1867,9 @@
 
                 if (!desc || !amt || !date) return;
 
+                var acc = state.currentAccount;
+                var prof = state.profiles[acc] || {};
+
                 state.items.unshift({
                     id: Date.now().toString(),
                     type: 'income',
@@ -1137,8 +1877,8 @@
                     detail: 'Receita Registrada',
                     amount: parseFloat(amt),
                     date: date,
-                    account: state.currentAccount,
-                    author: state.localProfile.name || ''
+                    account: acc,
+                    author: prof.name || ''
                 });
 
                 saveData();
@@ -1174,16 +1914,18 @@
 
             document.getElementById('form-profile').addEventListener('submit', function(e) {
                 e.preventDefault();
-                state.localProfile.name = document.getElementById('prof-name').value.trim();
-                state.localProfile.job = document.getElementById('prof-job').value;
-                state.localProfile.email = document.getElementById('prof-email').value.trim();
+                var acc = state.currentAccount;
+                if (!state.profiles[acc]) state.profiles[acc] = {};
 
-                saveData(false);
+                state.profiles[acc].name = document.getElementById('prof-name').value.trim();
+                state.profiles[acc].job = document.getElementById('prof-job').value;
+                state.profiles[acc].email = document.getElementById('prof-email').value.trim();
+
+                saveData(true);
                 applyProfileState();
-                alert('Perfil salvo com sucesso neste aparelho!');
+                alert('Perfil salvo com sucesso para esta conta!');
             });
 
-            // Sincronização Modal
             var modalSync = document.getElementById('modal-sync');
             document.getElementById('btn-open-sync').addEventListener('click', function() {
                 document.getElementById('sync-room-id').value = state.syncRoomId || DEFAULT_ROOM;
@@ -1205,9 +1947,6 @@
                 }
             });
 
-            // ==========================================
-            // RECONHECIMENTO DE VOZ (SÓ ACIONA NO CLIQUE + 10s DE ESPERA)
-            // ==========================================
             var btnVoice = document.getElementById('btn-voice-input');
             var voiceBox = document.getElementById('voice-text-preview');
             var recognitionInst = null;
@@ -1265,6 +2004,9 @@
                         }).join(' ');
 
                         if (desc && !isNaN(amt)) {
+                            var acc = state.currentAccount;
+                            var prof = state.profiles[acc] || {};
+
                             state.items.unshift({
                                 id: Date.now().toString(),
                                 type: 'expense',
@@ -1272,8 +2014,8 @@
                                 detail: 'Débito/PIX',
                                 amount: amt,
                                 date: getTodayStr(),
-                                account: state.currentAccount,
-                                author: state.localProfile.name || ''
+                                account: acc,
+                                author: prof.name || ''
                             });
 
                             saveData();
@@ -1325,9 +2067,6 @@
                 document.getElementById('voice-status-desc').textContent = 'Reconhecimento de voz não suportado neste navegador.';
             }
 
-            // ==========================================
-            // IMPORTAÇÃO DE PLANILHAS EXCEL (EXCLUSIVO NA ABA RELATÓRIOS)
-            // ==========================================
             var fileInput = document.getElementById('excel-import-input');
             if (fileInput) {
                 fileInput.addEventListener('change', function(e) {
@@ -1344,7 +2083,6 @@
 
                             var count = 0;
                             rows.forEach(function(row) {
-                                // Mapeamento flexível de chaves da planilha
                                 var getVal = function(keys) {
                                     for (var k in row) {
                                         if (keys.indexOf(k.toLowerCase().trim()) !== -1) return row[k];
@@ -1357,38 +2095,25 @@
                                 var valor = parseFloat(getVal(['valor', 'monto', 'quantia']) || 0);
                                 var dataItem = String(getVal(['data']) || getTodayStr());
                                 var forma = String(getVal(['formapagamento', 'forma', 'pagamento']) || 'Débito/PIX');
-                                var telefone = String(getVal(['telefone', 'phone', 'contato']) || '');
 
-                                if (tipo.indexOf('paciente') !== -1) {
-                                    state.patients.unshift({
-                                        id: Date.now().toString() + Math.random(),
-                                        name: desc,
-                                        phone: telefone,
-                                        val: valor,
-                                        active: true
-                                    });
-                                    count++;
-                                } else {
-                                    var isInc = tipo.indexOf('receita') !== -1 || tipo.indexOf('renda') !== -1;
-                                    state.items.unshift({
-                                        id: Date.now().toString() + Math.random(),
-                                        type: isInc ? 'income' : 'expense',
-                                        title: desc,
-                                        detail: isInc ? 'Receita Registrada' : forma,
-                                        amount: valor,
-                                        date: dataItem,
-                                        account: state.currentAccount,
-                                        author: state.localProfile.name || ''
-                                    });
-                                    count++;
-                                }
+                                var isInc = tipo.indexOf('receita') !== -1 || tipo.indexOf('renda') !== -1;
+                                state.items.unshift({
+                                    id: Date.now().toString() + Math.random(),
+                                    type: isInc ? 'income' : 'expense',
+                                    title: desc,
+                                    detail: isInc ? 'Receita Registrada' : forma,
+                                    amount: valor,
+                                    date: dataItem,
+                                    account: state.currentAccount,
+                                    author: (state.profiles[state.currentAccount] || {}).name || ''
+                                });
+                                count++;
                             });
 
                             saveData();
                             applyProfileState();
                             renderFeeds();
                             renderReports();
-                            renderPatients();
 
                             alert(count + ' registro(s) importado(s) com sucesso da planilha!');
                         } catch(err) {
@@ -1399,7 +2124,6 @@
                 });
             }
 
-            // Exportações
             document.getElementById('btn-export-pdf').addEventListener('click', function() {
                 if (!window.jspdf) return alert('Biblioteca PDF carregando, tente em instantes.');
                 var doc = new window.jspdf.jsPDF();
@@ -1466,7 +2190,6 @@
                 window.location.href = 'mailto:?subject=' + encodeURIComponent('Resumo Financeiro - ' + getAccountLabel()) + '&body=' + encodeURIComponent(body);
             });
 
-            // Inicialização
             var today = getTodayStr();
             document.getElementById('exp-date').value = today;
             document.getElementById('inc-date').value = today;
@@ -1476,6 +2199,7 @@
             renderFeeds();
             renderReports();
             renderPatients();
+            renderHealthData();
             initFirebaseSync();
 
         })();
