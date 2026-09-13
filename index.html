@@ -906,16 +906,17 @@
                 } else {
                     exps.forEach(function(i) {
                         var authorStr = i.author ? ' • 👤 ' + i.author : '';
+                        var idClean = String(i.id).replace(/'/g, "");
                         expFeed.innerHTML += '<div class="transaction-item">' +
                             '<div class="trans-info">' +
                                 '<span class="trans-title">' + i.title + '</span>' +
-                                '<span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
+                                '<span class="trans-sub">' + (i.detail || 'Débito/PIX') + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
                             '</div>' +
                             '<div class="trans-right">' +
                                 '<span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span>' +
                                 '<div class="item-actions">' +
-                                    '<button class="btn-icon" onclick="window.editItem(\'' + i.id + '\')">✏️ Editar</button>' +
-                                    '<button class="btn-icon" onclick="window.deleteItem(\'' + i.id + '\')">🗑️ Apagar</button>' +
+                                    '<button class="btn-icon btn-edit-action" data-id="' + idClean + '">✏️ Editar</button>' +
+                                    '<button class="btn-icon btn-delete-action" data-id="' + idClean + '">🗑️ Apagar</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>';
@@ -927,26 +928,46 @@
                 } else {
                     incs.forEach(function(i) {
                         var authorStr = i.author ? ' • 👤 ' + i.author : '';
+                        var idClean = String(i.id).replace(/'/g, "");
                         incFeed.innerHTML += '<div class="transaction-item">' +
                             '<div class="trans-info">' +
                                 '<span class="trans-title">' + i.title + '</span>' +
-                                '<span class="trans-sub">' + i.detail + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
+                                '<span class="trans-sub">' + (i.detail || 'Receita Registrada') + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
                             '</div>' +
                             '<div class="trans-right">' +
                                 '<span class="trans-amount amount-income">+ R$ ' + Number(i.amount).toFixed(2) + '</span>' +
                                 '<div class="item-actions">' +
-                                    '<button class="btn-icon" onclick="window.editItem(\'' + i.id + '\')">✏️ Editar</button>' +
-                                    '<button class="btn-icon" onclick="window.deleteItem(\'' + i.id + '\')">🗑️ Apagar</button>' +
+                                    '<button class="btn-icon btn-edit-action" data-id="' + idClean + '">✏️ Editar</button>' +
+                                    '<button class="btn-icon btn-delete-action" data-id="' + idClean + '">🗑️ Apagar</button>' +
                                 '</div>' +
                             '</div>' +
                         '</div>';
                     });
                 }
+
+                // VINCULAÇÃO DIRETA DE EVENTOS DE EDITAR E DELETAR (GARANTE FUNCIONAMENTO EM QUALQUER DISPOSITIVO)
+                document.querySelectorAll('.btn-delete-action').forEach(function(btn) {
+                    btn.onclick = function() {
+                        var id = this.getAttribute('data-id');
+                        window.deleteItem(id);
+                    };
+                });
+
+                document.querySelectorAll('.btn-edit-action').forEach(function(btn) {
+                    btn.onclick = function() {
+                        var id = this.getAttribute('data-id');
+                        window.editItem(id);
+                    };
+                });
             }
 
+            // CORREÇÃO: COMPARAÇÃO DE ID PADRONIZADA PARA STRING
             window.deleteItem = function(id) {
                 if (confirm("Tem certeza que deseja apagar este lançamento?")) {
-                    state.items = state.items.filter(function(item) { return item.id !== id; });
+                    var targetId = String(id);
+                    state.items = state.items.filter(function(item) { 
+                        return String(item.id) !== targetId; 
+                    });
                     saveData();
                     renderFeeds();
                     renderReports();
@@ -954,10 +975,11 @@
             };
 
             window.editItem = function(id) {
-                var item = state.items.find(function(i) { return i.id === id; });
+                var targetId = String(id);
+                var item = state.items.find(function(i) { return String(i.id) === targetId; });
                 if (!item) return;
 
-                document.getElementById('edit-id').value = item.id;
+                document.getElementById('edit-id').value = String(item.id);
                 document.getElementById('edit-title').value = item.title;
                 document.getElementById('edit-detail').value = item.detail || 'Débito/PIX';
                 document.getElementById('edit-amount').value = item.amount;
@@ -978,7 +1000,8 @@
                 var amount = parseFloat(document.getElementById('edit-amount').value);
                 var date = document.getElementById('edit-date').value;
 
-                var item = state.items.find(function(i) { return i.id === id; });
+                var targetId = String(id);
+                var item = state.items.find(function(i) { return String(i.id) === targetId; });
                 if (item) {
                     item.title = title;
                     item.detail = detail;
