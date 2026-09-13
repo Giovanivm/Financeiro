@@ -477,6 +477,22 @@
             object-fit: cover;
             border: 1px solid var(--border-color);
         }
+
+        .attach-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            text-decoration: none;
+            margin-top: 4px;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -534,6 +550,10 @@
                             <option value="Dinheiro">Dinheiro</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label>Anexar Comprovante ou Foto (Opcional)</label>
+                        <input type="file" id="exp-file-receipt" class="form-control" accept="image/*,application/pdf">
+                    </div>
                     <button type="submit" class="btn-submit">Salvar Despesa</button>
                 </form>
             </div>
@@ -544,7 +564,7 @@
             </div>
         </div>
 
-        <!-- ABA NOVA: CONTAS A PAGAR -->
+        <!-- ABA CONTAS A PAGAR -->
         <div id="tab-bills" class="tab-content">
             <div class="summary-grid">
                 <div class="summary-card">
@@ -562,7 +582,7 @@
                 <form id="form-bill">
                     <div class="form-group">
                         <label>Descrição da Conta</label>
-                        <input type="text" id="bill-desc" class="form-control" placeholder="Ex: Energia / Condomínio / Remedios" required>
+                        <input type="text" id="bill-desc" class="form-control" placeholder="Ex: Energia / Condomínio / Remédios" required>
                     </div>
                     <div class="form-group">
                         <label>Valor Previsto (R$)</label>
@@ -580,6 +600,10 @@
                             <option value="Crédito">Cartão de Crédito</option>
                             <option value="Dinheiro">Dinheiro</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Anexar Boleto / Documento (PDF ou Foto)</label>
+                        <input type="file" id="bill-file-doc" class="form-control" accept="image/*,application/pdf">
                     </div>
                     <button type="submit" class="btn-submit" style="background-color: var(--accent-amber); color:#0f172a;">Cadastrar Conta a Pagar</button>
                 </form>
@@ -645,9 +669,8 @@
             </div>
         </div>
 
-        <!-- ABA DE SAÚDE (PENSIONISTA / APOSENTADO - SR. SEBASTIÃO) -->
+        <!-- ABA DE SAÚDE (SR. SEBASTIÃO) -->
         <div id="tab-health" class="tab-content">
-            
             <div class="subnav-container">
                 <button class="subnav-btn active" data-sub="meds">💊 Medicações do Mês</button>
                 <button class="subnav-btn" data-sub="exams">🔬 Exames & Laudos</button>
@@ -764,7 +787,7 @@
                 </div>
             </div>
 
-            <!-- SUB-ABA: SINAIS VITAIS / MEDIÇÕES DIÁRIAS -->
+            <!-- SUB-ABA: SINAIS VITAIS -->
             <div id="subtab-vitals" style="display: none;">
                 <div class="card">
                     <div class="card-title">❤️ Aferição de Pressão & Glicemia</div>
@@ -791,7 +814,6 @@
                 </div>
             </div>
 
-            <!-- BOTÃO DE RELATÓRIO DE SAÚDE -->
             <div class="card">
                 <div class="card-title">📄 Relatório Completo de Saúde</div>
                 <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 10px;">
@@ -799,7 +821,6 @@
                 </p>
                 <button class="btn-action btn-pdf" id="btn-export-health-pdf">📄 Baixar Relatório de Saúde (PDF)</button>
             </div>
-
         </div>
 
         <!-- ABA 4: RELATÓRIOS FINANCEIROS -->
@@ -823,7 +844,8 @@
             <div class="card">
                 <div class="card-title">📥 Importar Dados de Planilha Excel (.xlsx / .csv)</div>
                 <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px;">
-                    Suporta colunas: <b>Data, Tipo (Despesa/Receita/Paciente), Descrição, FormaPagamento, Valor</b>.
+                    Suporta os tipos: <b>Despesa, Receita, Contas a Pagar (Boleto) e Pacientes</b>.<br>
+                    Colunas recomendadas: <code>Data, Tipo, Descrição, FormaPagamento, Valor</code>.
                 </p>
                 <div class="file-import-box">
                     <input type="file" id="excel-import-input" accept=".xlsx, .xls, .csv" style="display: none;">
@@ -888,6 +910,32 @@
 
     </div>
 
+    <!-- MODAL DE PAGAMENTO COM ANEXO DE COMPROVANTE -->
+    <div class="modal-overlay" id="modal-pay-bill">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-green); font-size: 1.1rem;">✅ Baixar Conta & Anexar Comprovante</h3>
+                <button id="btn-close-pay-bill" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-pay-bill-confirm">
+                <input type="hidden" id="pay-bill-id">
+                <div class="form-group">
+                    <label>Conta</label>
+                    <input type="text" id="pay-bill-title-preview" class="form-control" readonly style="opacity:0.7;">
+                </div>
+                <div class="form-group">
+                    <label>Valor Efefivamente Pago (R$)</label>
+                    <input type="number" step="0.01" id="pay-bill-amount-paid" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Anexar Comprovante de Pagamento (Foto ou PDF)</label>
+                    <input type="file" id="pay-bill-receipt-file" class="form-control" accept="image/*,application/pdf">
+                </div>
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-green); font-size:1rem;">Confirmar Pagamento</button>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL DE EDIÇÃO DE CONTA A PAGAR -->
     <div class="modal-overlay" id="modal-edit-bill">
         <div class="modal-body">
@@ -917,6 +965,10 @@
                         <option value="Crédito">Cartão de Crédito</option>
                         <option value="Dinheiro">Dinheiro</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Alterar/Substituir Boleto (Opcional)</label>
+                    <input type="file" id="edit-bill-doc" class="form-control" accept="image/*,application/pdf">
                 </div>
                 <button type="submit" class="btn-submit" style="background-color: var(--accent-amber); color:#0f172a;">Salvar Alteração</button>
             </form>
@@ -1080,7 +1132,7 @@
                     sebastiao: { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
                 },
                 items: [],
-                bills: [], // { id, title, amount, date, detail, account, paid }
+                bills: [],
                 patients: [],
                 medications: [],
                 exams: [],
@@ -1119,9 +1171,30 @@
                 return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : str;
             }
 
+            function fileToDataUrl(fileInput, callback) {
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    var f = fileInput.files[0];
+                    var r = new FileReader();
+                    r.onload = function(e) {
+                        callback(e.target.result, f.type);
+                    };
+                    r.readAsDataURL(f);
+                } else {
+                    callback(null, null);
+                }
+            }
+
+            function renderAttachHtml(data, type, label) {
+                if (!data) return '';
+                if (type && type.indexOf('pdf') !== -1) {
+                    return '<a href="' + data + '" target="_blank" class="attach-link">📄 ' + (label || 'Ver PDF') + '</a>';
+                }
+                return '<a href="' + data + '" target="_blank" class="attach-link">🖼️ ' + (label || 'Ver Foto') + '</a>';
+            }
+
             function loadData() {
                 try {
-                    var data = localStorage.getItem('sf_app_data_v11');
+                    var data = localStorage.getItem('sf_app_data_v12');
                     if (data) {
                         var parsed = JSON.parse(data);
                         if (parsed.profiles) state.profiles = parsed.profiles;
@@ -1140,7 +1213,7 @@
             function saveData(syncToRemote) {
                 if (syncToRemote === undefined) syncToRemote = true;
                 try {
-                    localStorage.setItem('sf_app_data_v11', JSON.stringify({
+                    localStorage.setItem('sf_app_data_v12', JSON.stringify({
                         profiles: state.profiles,
                         syncRoomId: state.syncRoomId,
                         items: state.items,
@@ -1308,10 +1381,16 @@
                     exps.forEach(function(i) {
                         var authorStr = i.author ? ' • 👤 ' + i.author : '';
                         var idClean = String(i.id).replace(/'/g, "");
+
+                        var docAttach = renderAttachHtml(i.docData, i.docType, 'Boleto');
+                        var receiptAttach = renderAttachHtml(i.receiptData, i.receiptType, 'Comprovante');
+                        var attachesHtml = (docAttach || receiptAttach) ? '<div style="display:flex; gap:6px; flex-wrap:wrap;">' + docAttach + receiptAttach + '</div>' : '';
+
                         expFeed.innerHTML += '<div class="transaction-item">' +
                             '<div class="trans-info">' +
                                 '<span class="trans-title">' + i.title + '</span>' +
                                 '<span class="trans-sub">' + (i.detail || 'Débito/PIX') + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
+                                attachesHtml +
                             '</div>' +
                             '<div class="trans-right">' +
                                 '<span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span>' +
@@ -1361,9 +1440,6 @@
                 });
             }
 
-            // ==========================================
-            // LÓGICA DO MÓDULO DE CONTAS A PAGAR
-            // ==========================================
             function renderBills() {
                 var feed = document.getElementById('bills-feed');
                 feed.innerHTML = '';
@@ -1381,7 +1457,6 @@
                 if (currentBills.length === 0) {
                     feed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma conta pendente para esta conta.</div>';
                 } else {
-                    // Ordena: atrasadas primeiro
                     currentBills.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
                     currentBills.forEach(function(b) {
@@ -1400,17 +1475,21 @@
                         }
 
                         var idClean = String(b.id).replace(/'/g, "");
+                        var docAttach = renderAttachHtml(b.docData, b.docType, 'Ver Boleto / Doc');
 
                         feed.innerHTML += '<div class="transaction-item">' +
                             '<div class="trans-info">' +
                                 '<span class="trans-title">' + b.title + '</span>' +
                                 '<span class="trans-sub">Vencimento: <b>' + formatDate(b.date) + '</b> • ' + (b.detail || 'Boleto/PIX') + '</span>' +
-                                '<div style="margin-top:4px;"><span class="badge-status ' + badgeClass + '">' + badgeText + '</span></div>' +
+                                '<div style="margin-top:4px; display:flex; gap:6px; align-items:center;">' +
+                                    '<span class="badge-status ' + badgeClass + '">' + badgeText + '</span>' +
+                                    docAttach +
+                                '</div>' +
                             '</div>' +
                             '<div class="trans-right">' +
                                 '<span class="trans-amount amount-expense">R$ ' + Number(b.amount).toFixed(2) + '</span>' +
                                 '<div class="item-actions" style="margin-top:4px;">' +
-                                    '<button class="btn-icon" style="background:var(--accent-green); color:#fff; font-weight:bold;" onclick="window.payBill(\'' + idClean + '\')">✅ Pagar</button>' +
+                                    '<button class="btn-icon" style="background:var(--accent-green); color:#fff; font-weight:bold;" onclick="window.openPayBillModal(\'' + idClean + '\')">✅ Pagar</button>' +
                                     '<button class="btn-icon" onclick="window.editBill(\'' + idClean + '\')">✏️</button>' +
                                     '<button class="btn-icon" onclick="window.deleteBill(\'' + idClean + '\')">🗑️</button>' +
                                 '</div>' +
@@ -1423,62 +1502,131 @@
                 document.getElementById('bill-total-late').textContent = 'R$ ' + totalLate.toFixed(2);
             }
 
+            document.getElementById('form-exp').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var desc = document.getElementById('exp-desc').value.trim();
+                var amt = document.getElementById('exp-amount').value;
+                var date = document.getElementById('exp-date').value;
+                var method = document.getElementById('exp-method').value;
+                var fileInp = document.getElementById('exp-file-receipt');
+
+                if (!desc || !amt || !date) return;
+
+                fileToDataUrl(fileInp, function(b64, ftype) {
+                    var acc = state.currentAccount;
+                    var prof = state.profiles[acc] || {};
+
+                    state.items.unshift({
+                        id: Date.now().toString(),
+                        type: 'expense',
+                        title: desc,
+                        detail: method,
+                        amount: parseFloat(amt),
+                        date: date,
+                        account: acc,
+                        author: prof.name || '',
+                        receiptData: b64,
+                        receiptType: ftype
+                    });
+
+                    saveData();
+                    renderFeeds();
+                    renderReports();
+
+                    document.getElementById('exp-desc').value = '';
+                    document.getElementById('exp-amount').value = '';
+                    fileInp.value = '';
+                });
+            });
+
             document.getElementById('form-bill').addEventListener('submit', function(e) {
                 e.preventDefault();
                 var desc = document.getElementById('bill-desc').value.trim();
                 var amt = document.getElementById('bill-amount').value;
                 var date = document.getElementById('bill-date').value;
                 var method = document.getElementById('bill-method').value;
+                var fileInp = document.getElementById('bill-file-doc');
 
                 if (!desc || !amt || !date) return;
 
-                state.bills.unshift({
-                    id: Date.now().toString(),
-                    title: desc,
-                    amount: parseFloat(amt),
-                    date: date,
-                    detail: method,
-                    account: state.currentAccount,
-                    paid: false
+                fileToDataUrl(fileInp, function(b64, ftype) {
+                    state.bills.unshift({
+                        id: Date.now().toString(),
+                        title: desc,
+                        amount: parseFloat(amt),
+                        date: date,
+                        detail: method,
+                        account: state.currentAccount,
+                        paid: false,
+                        docData: b64,
+                        docType: ftype
+                    });
+
+                    saveData();
+                    renderBills();
+
+                    document.getElementById('bill-desc').value = '';
+                    document.getElementById('bill-amount').value = '';
+                    fileInp.value = '';
                 });
-
-                saveData();
-                renderBills();
-
-                document.getElementById('bill-desc').value = '';
-                document.getElementById('bill-amount').value = '';
             });
 
-            window.payBill = function(id) {
+            window.openPayBillModal = function(id) {
                 var targetId = String(id);
                 var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
                 if (!bill) return;
 
-                if (confirm("Confirmar o pagamento da conta '" + bill.title + "' no valor de R$ " + Number(bill.amount).toFixed(2) + "? Ela será movida para as Despesas.")) {
+                document.getElementById('pay-bill-id').value = String(bill.id);
+                document.getElementById('pay-bill-title-preview').value = bill.title;
+                document.getElementById('pay-bill-amount-paid').value = bill.amount;
+                document.getElementById('pay-bill-receipt-file').value = '';
+
+                document.getElementById('modal-pay-bill').classList.add('active');
+            };
+
+            document.getElementById('btn-close-pay-bill').addEventListener('click', function() {
+                document.getElementById('modal-pay-bill').classList.remove('active');
+            });
+
+            document.getElementById('form-pay-bill-confirm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var id = document.getElementById('pay-bill-id').value;
+                var targetId = String(id);
+                var amountPaid = parseFloat(document.getElementById('pay-bill-amount-paid').value);
+                var fileInp = document.getElementById('pay-bill-receipt-file');
+
+                var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
+                if (!bill) return;
+
+                fileToDataUrl(fileInp, function(receiptB64, receiptFtype) {
                     var acc = state.currentAccount;
                     var prof = state.profiles[acc] || {};
 
-                    // Marca conta como paga
                     bill.paid = true;
 
-                    // Cria a despesa correspondente
                     state.items.unshift({
                         id: Date.now().toString(),
                         type: 'expense',
                         title: bill.title + ' (Conta Paga)',
                         detail: bill.detail || 'Boleto/PIX',
-                        amount: Number(bill.amount),
+                        amount: amountPaid,
                         date: getTodayStr(),
                         account: acc,
-                        author: prof.name || ''
+                        author: prof.name || '',
+                        docData: bill.docData || null,
+                        docType: bill.docType || null,
+                        receiptData: receiptB64 || null,
+                        receiptType: receiptFtype || null
                     });
 
                     saveData();
                     renderBills();
                     renderFeeds();
                     renderReports();
-                }
-            };
+
+                    document.getElementById('modal-pay-bill').classList.remove('active');
+                });
+            });
 
             window.deleteBill = function(id) {
                 if (confirm("Deseja apagar esta conta a pagar?")) {
@@ -1499,6 +1647,7 @@
                 document.getElementById('edit-bill-amount').value = bill.amount;
                 document.getElementById('edit-bill-date').value = bill.date;
                 document.getElementById('edit-bill-method').value = bill.detail || 'Boleto/PIX';
+                document.getElementById('edit-bill-doc').value = '';
 
                 document.getElementById('modal-edit-bill').classList.add('active');
             };
@@ -1511,6 +1660,7 @@
                 e.preventDefault();
                 var id = document.getElementById('edit-bill-id').value;
                 var targetId = String(id);
+                var fileInp = document.getElementById('edit-bill-doc');
 
                 var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
                 if (bill) {
@@ -1519,9 +1669,15 @@
                     bill.date = document.getElementById('edit-bill-date').value;
                     bill.detail = document.getElementById('edit-bill-method').value;
 
-                    saveData();
-                    renderBills();
-                    document.getElementById('modal-edit-bill').classList.remove('active');
+                    fileToDataUrl(fileInp, function(b64, ftype) {
+                        if (b64) {
+                            bill.docData = b64;
+                            bill.docType = ftype;
+                        }
+                        saveData();
+                        renderBills();
+                        document.getElementById('modal-edit-bill').classList.remove('active');
+                    });
                 }
             });
 
@@ -1684,14 +1840,7 @@
                 } else {
                     currentExams.forEach(function(e) {
                         var idClean = String(e.id).replace(/'/g, "");
-                        var fileHtml = '';
-                        if (e.fileData) {
-                            if (e.fileType && e.fileType.indexOf('pdf') !== -1) {
-                                fileHtml = '<br><a href="' + e.fileData + '" target="_blank" style="color:var(--accent-blue); font-size:0.8rem; font-weight:bold;">📄 Abrir Documento PDF do Laudo</a>';
-                            } else {
-                                fileHtml = '<br><img src="' + e.fileData + '" class="attachment-preview" onclick="window.open(this.src)">';
-                            }
-                        }
+                        var fileHtml = renderAttachHtml(e.fileData, e.fileType, 'Abrir Anexo do Exame');
 
                         examsFeed.innerHTML += '<div class="transaction-item" style="flex-direction:column; align-items:flex-start; gap:6px;">' +
                             '<div style="width:100%; display:flex; justify-content:space-between; align-items:center;">' +
@@ -1884,7 +2033,7 @@
 
                 if (!title || !date) return;
 
-                var saveExamObj = function(fileBase64, fileType) {
+                fileToDataUrl(fileInput, function(fileBase64, fileType) {
                     state.exams.unshift({
                         id: Date.now().toString(),
                         title: title,
@@ -1904,18 +2053,7 @@
                     document.getElementById('exam-doctor').value = '';
                     document.getElementById('exam-notes').value = '';
                     fileInput.value = '';
-                };
-
-                if (fileInput.files && fileInput.files[0]) {
-                    var file = fileInput.files[0];
-                    var reader = new FileReader();
-                    reader.onload = function(evt) {
-                        saveExamObj(evt.target.result, file.type);
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    saveExamObj(null, null);
-                }
+                });
             });
 
             window.deleteExam = function(id) {
@@ -2102,37 +2240,6 @@
                 renderBills();
                 renderReports();
                 renderHealthData();
-            });
-
-            document.getElementById('form-exp').addEventListener('submit', function(e) {
-                e.preventDefault();
-                var desc = document.getElementById('exp-desc').value.trim();
-                var amt = document.getElementById('exp-amount').value;
-                var date = document.getElementById('exp-date').value;
-                var method = document.getElementById('exp-method').value;
-
-                if (!desc || !amt || !date) return;
-
-                var acc = state.currentAccount;
-                var prof = state.profiles[acc] || {};
-
-                state.items.unshift({
-                    id: Date.now().toString(),
-                    type: 'expense',
-                    title: desc,
-                    detail: method,
-                    amount: parseFloat(amt),
-                    date: date,
-                    account: acc,
-                    author: prof.name || ''
-                });
-
-                saveData();
-                renderFeeds();
-                renderReports();
-
-                document.getElementById('exp-desc').value = '';
-                document.getElementById('exp-amount').value = '';
             });
 
             document.getElementById('form-inc').addEventListener('submit', function(e) {
@@ -2343,6 +2450,7 @@
                 document.getElementById('voice-status-desc').textContent = 'Reconhecimento de voz não suportado neste navegador.';
             }
 
+            // IMPORTAÇÃO EXCEL EXPANDIDA (SUPORTA CONTAS A PAGAR/BOLETOS)
             var fileInput = document.getElementById('excel-import-input');
             if (fileInput) {
                 fileInput.addEventListener('change', function(e) {
@@ -2357,7 +2465,9 @@
                             var firstSheet = workbook.SheetNames[0];
                             var rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
 
-                            var count = 0;
+                            var countItems = 0;
+                            var countBills = 0;
+
                             rows.forEach(function(row) {
                                 var getVal = function(keys) {
                                     for (var k in row) {
@@ -2366,32 +2476,46 @@
                                     return null;
                                 };
 
-                                var tipo = String(getVal(['tipo']) || 'Despesa').toLowerCase();
+                                var tipo = String(getVal(['tipo', 'categoria']) || 'Despesa').toLowerCase();
                                 var desc = String(getVal(['descrição', 'descricao', 'nome', 'titulo']) || 'Importado');
                                 var valor = parseFloat(getVal(['valor', 'monto', 'quantia']) || 0);
-                                var dataItem = String(getVal(['data']) || getTodayStr());
-                                var forma = String(getVal(['formapagamento', 'forma', 'pagamento']) || 'Débito/PIX');
+                                var dataItem = String(getVal(['data', 'vencimento']) || getTodayStr());
+                                var forma = String(getVal(['formapagamento', 'forma', 'pagamento']) || 'Boleto/PIX');
 
-                                var isInc = tipo.indexOf('receita') !== -1 || tipo.indexOf('renda') !== -1;
-                                state.items.unshift({
-                                    id: Date.now().toString() + Math.random(),
-                                    type: isInc ? 'income' : 'expense',
-                                    title: desc,
-                                    detail: isInc ? 'Receita Registrada' : forma,
-                                    amount: valor,
-                                    date: dataItem,
-                                    account: state.currentAccount,
-                                    author: (state.profiles[state.currentAccount] || {}).name || ''
-                                });
-                                count++;
+                                if (tipo.indexOf('pagar') !== -1 || tipo.indexOf('boleto') !== -1 || tipo.indexOf('pendente') !== -1) {
+                                    state.bills.unshift({
+                                        id: Date.now().toString() + Math.random(),
+                                        title: desc,
+                                        amount: valor,
+                                        date: dataItem,
+                                        detail: forma,
+                                        account: state.currentAccount,
+                                        paid: false
+                                    });
+                                    countBills++;
+                                } else {
+                                    var isInc = tipo.indexOf('receita') !== -1 || tipo.indexOf('renda') !== -1;
+                                    state.items.unshift({
+                                        id: Date.now().toString() + Math.random(),
+                                        type: isInc ? 'income' : 'expense',
+                                        title: desc,
+                                        detail: isInc ? 'Receita Registrada' : forma,
+                                        amount: valor,
+                                        date: dataItem,
+                                        account: state.currentAccount,
+                                        author: (state.profiles[state.currentAccount] || {}).name || ''
+                                    });
+                                    countItems++;
+                                }
                             });
 
                             saveData();
                             applyProfileState();
                             renderFeeds();
+                            renderBills();
                             renderReports();
 
-                            alert(count + ' registro(s) importado(s) com sucesso da planilha!');
+                            alert('Importação concluída!\n• ' + countItems + ' Lançamentos (Despesas/Receitas)\n• ' + countBills + ' Contas a Pagar');
                         } catch(err) {
                             alert('Erro ao ler a planilha. Verifique o formato do arquivo.');
                         }
