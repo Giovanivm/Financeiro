@@ -435,15 +435,6 @@
                 <div class="voice-box" id="voice-text-preview">Microfone desligado. Clique no botão acima para ouvir.</div>
             </div>
 
-            <!-- BOTÃO DE IMPORTAR EXCEL NA PRIMEIRA TELA -->
-            <div class="card">
-                <div class="card-title">📥 Importar Dados via Excel (.xlsx / .csv)</div>
-                <div class="file-import-box">
-                    <input type="file" class="excel-import-input" accept=".xlsx, .xls, .csv" style="display: none;">
-                    <button type="button" class="btn-action btn-excel" onclick="this.previousElementSibling.click()">📂 Selecionar Planilha Excel</button>
-                </div>
-            </div>
-
             <div class="card">
                 <div class="card-title">➕ Nova Despesa Manual</div>
                 <form id="form-exp">
@@ -549,11 +540,15 @@
                 <h2 id="rep-balance" style="font-size: 1.8rem; margin-top: 4px;">R$ 0,00</h2>
             </div>
 
+            <!-- BOTÃO EXCLUSIVO DE IMPORTAR EXCEL NA ABA RELATÓRIOS -->
             <div class="card">
-                <div class="card-title">📥 Importar Dados via Excel (.xlsx / .csv)</div>
+                <div class="card-title">📥 Importar Dados de Planilha Excel (.xlsx / .csv)</div>
+                <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px;">
+                    Suporta colunas: <b>Data, Tipo (Despesa/Receita/Paciente), Descrição, FormaPagamento, Valor</b>.
+                </p>
                 <div class="file-import-box">
-                    <input type="file" class="excel-import-input" accept=".xlsx, .xls, .csv" style="display: none;">
-                    <button type="button" class="btn-action btn-excel" onclick="this.previousElementSibling.click()">📂 Selecionar Planilha Excel</button>
+                    <input type="file" id="excel-import-input" accept=".xlsx, .xls, .csv" style="display: none;">
+                    <button type="button" class="btn-action btn-excel" onclick="document.getElementById('excel-import-input').click()">📂 Selecionar Planilha Excel</button>
                 </div>
             </div>
 
@@ -605,9 +600,9 @@
                 <button class="btn-action btn-pwa" id="btn-install-pwa" style="margin-bottom: 12px; display: none;">📱 Instalar Aplicativo Agora</button>
                 <p style="font-size: 0.85rem; color: var(--text-sub); line-height: 1.4;">
                     Para instalar este app manualmente:<br>
-                    • <b>Android / Chrome:</b> Clique no botão acima ou nos 3 pontos superiores > <i>"Adicionar à tela inicial"</i>.<br>
-                    • <b>iPhone / Safari:</b> Toque no ícone de Compartilhar (quadrado com seta) > <i>"Adicionar à Tela de Início"</i>.<br>
-                    • <b>Computador (Chrome/Edge):</b> Clique no botão acima ou no ícone ⊕ na barra de endereço.
+                    • <b>Android / Chrome:</b> Abra no Chrome > 3 pontos superiores > <i>"Adicionar à tela inicial"</i>.<br>
+                    • <b>iPhone / Safari:</b> Abra no Safari > Botão Compartilhar > <i>"Adicionar à Tela de Início"</i>.<br>
+                    • <b>Computador (Chrome/Edge):</b> Clique no ícone ⊕ na barra de endereço.
                 </p>
             </div>
         </div>
@@ -696,7 +691,7 @@
                 navigator.serviceWorker.register('./sw.js').catch(function(){});
             }
 
-            // CAPTURA DO EVENTO DE INSTALAÇÃO DO PWA (ANDROID E COMPUTADOR)
+            // CAPTURA DO EVENTO DE INSTALAÇÃO DO PWA
             var deferredPrompt = null;
             var btnInstallPWA = document.getElementById('btn-install-pwa');
 
@@ -945,7 +940,6 @@
                     });
                 }
 
-                // VINCULAÇÃO DIRETA DE EVENTOS DE EDITAR E DELETAR (GARANTE FUNCIONAMENTO EM QUALQUER DISPOSITIVO)
                 document.querySelectorAll('.btn-delete-action').forEach(function(btn) {
                     btn.onclick = function() {
                         var id = this.getAttribute('data-id');
@@ -961,7 +955,6 @@
                 });
             }
 
-            // CORREÇÃO: COMPARAÇÃO DE ID PADRONIZADA PARA STRING
             window.deleteItem = function(id) {
                 if (confirm("Tem certeza que deseja apagar este lançamento?")) {
                     var targetId = String(id);
@@ -1333,10 +1326,11 @@
             }
 
             // ==========================================
-            // IMPORTAÇÃO DE PLANILHAS EXCEL (.XLSX / .CSV)
+            // IMPORTAÇÃO DE PLANILHAS EXCEL (EXCLUSIVO NA ABA RELATÓRIOS)
             // ==========================================
-            document.querySelectorAll('.excel-import-input').forEach(function(inputEl) {
-                inputEl.addEventListener('change', function(e) {
+            var fileInput = document.getElementById('excel-import-input');
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
                     var file = e.target.files[0];
                     if (!file) return;
 
@@ -1350,12 +1344,20 @@
 
                             var count = 0;
                             rows.forEach(function(row) {
-                                var tipo = (row.Tipo || row.tipo || 'Despesa').toString().toLowerCase();
-                                var desc = row.Descrição || row.Descricao || row.Nome || row.nome || 'Importado';
-                                var valor = parseFloat(row.Valor || row.valor || 0);
-                                var dataItem = row.Data || row.data || getTodayStr();
-                                var forma = row.FormaPagamento || row.Forma || row.Pagamento || 'Débito/PIX';
-                                var telefone = row.Telefone || row.phone || '';
+                                // Mapeamento flexível de chaves da planilha
+                                var getVal = function(keys) {
+                                    for (var k in row) {
+                                        if (keys.indexOf(k.toLowerCase().trim()) !== -1) return row[k];
+                                    }
+                                    return null;
+                                };
+
+                                var tipo = String(getVal(['tipo']) || 'Despesa').toLowerCase();
+                                var desc = String(getVal(['descrição', 'descricao', 'nome', 'titulo']) || 'Importado');
+                                var valor = parseFloat(getVal(['valor', 'monto', 'quantia']) || 0);
+                                var dataItem = String(getVal(['data']) || getTodayStr());
+                                var forma = String(getVal(['formapagamento', 'forma', 'pagamento']) || 'Débito/PIX');
+                                var telefone = String(getVal(['telefone', 'phone', 'contato']) || '');
 
                                 if (tipo.indexOf('paciente') !== -1) {
                                     state.patients.unshift({
@@ -1365,10 +1367,6 @@
                                         val: valor,
                                         active: true
                                     });
-                                    count++;
-                                } else if (tipo.indexOf('perfil') !== -1) {
-                                    state.localProfile.name = desc;
-                                    if (row.Email || row.email) state.localProfile.email = row.Email || row.email;
                                     count++;
                                 } else {
                                     var isInc = tipo.indexOf('receita') !== -1 || tipo.indexOf('renda') !== -1;
@@ -1399,7 +1397,7 @@
                     };
                     reader.readAsArrayBuffer(file);
                 });
-            });
+            }
 
             // Exportações
             document.getElementById('btn-export-pdf').addEventListener('click', function() {
