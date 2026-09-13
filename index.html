@@ -372,6 +372,24 @@
             border: 1px solid var(--accent-red);
         }
 
+        .badge-due-late {
+            background-color: rgba(239, 68, 68, 0.25);
+            color: #f87171;
+            border: 1px solid var(--accent-red);
+        }
+
+        .badge-due-today {
+            background-color: rgba(245, 158, 11, 0.25);
+            color: #fbbf24;
+            border: 1px solid var(--accent-amber);
+        }
+
+        .badge-due-ok {
+            background-color: rgba(16, 185, 129, 0.25);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -526,6 +544,53 @@
             </div>
         </div>
 
+        <!-- ABA NOVA: CONTAS A PAGAR -->
+        <div id="tab-bills" class="tab-content">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span>Total Pendente</span>
+                    <h3 style="color: var(--accent-amber);" id="bill-total-pending">R$ 0,00</h3>
+                </div>
+                <div class="summary-card">
+                    <span>Total em Atraso</span>
+                    <h3 style="color: var(--accent-red);" id="bill-total-late">R$ 0,00</h3>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📅 Agendar Conta a Pagar / Boleto</div>
+                <form id="form-bill">
+                    <div class="form-group">
+                        <label>Descrição da Conta</label>
+                        <input type="text" id="bill-desc" class="form-control" placeholder="Ex: Energia / Condomínio / Remedios" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Previsto (R$)</label>
+                        <input type="number" step="0.01" id="bill-amount" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data de Vencimento</label>
+                        <input type="date" id="bill-date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Forma Prevista de Pagamento</label>
+                        <select id="bill-method" class="form-control">
+                            <option value="Boleto/PIX">Boleto / PIX</option>
+                            <option value="Débito">Débito em Conta</option>
+                            <option value="Crédito">Cartão de Crédito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-submit" style="background-color: var(--accent-amber); color:#0f172a;">Cadastrar Conta a Pagar</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📋 Contas Pendentes e Atrasadas</div>
+                <div id="bills-feed"></div>
+            </div>
+        </div>
+
         <!-- ABA 2: RENDAS -->
         <div id="tab-incomes" class="tab-content">
             <div class="card">
@@ -580,7 +645,7 @@
             </div>
         </div>
 
-        <!-- ABA NOVAS DE SAÚDE (PENSIONISTA / APOSENTADO - SR. SEBASTIÃO) -->
+        <!-- ABA DE SAÚDE (PENSIONISTA / APOSENTADO - SR. SEBASTIÃO) -->
         <div id="tab-health" class="tab-content">
             
             <div class="subnav-container">
@@ -823,6 +888,41 @@
 
     </div>
 
+    <!-- MODAL DE EDIÇÃO DE CONTA A PAGAR -->
+    <div class="modal-overlay" id="modal-edit-bill">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-amber); font-size: 1.1rem;">✏️ Editar Conta a Pagar</h3>
+                <button id="btn-close-edit-bill" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-edit-bill">
+                <input type="hidden" id="edit-bill-id">
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="edit-bill-desc" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" step="0.01" id="edit-bill-amount" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Vencimento</label>
+                    <input type="date" id="edit-bill-date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Forma Prevista</label>
+                    <select id="edit-bill-method" class="form-control">
+                        <option value="Boleto/PIX">Boleto / PIX</option>
+                        <option value="Débito">Débito em Conta</option>
+                        <option value="Crédito">Cartão de Crédito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-amber); color:#0f172a;">Salvar Alteração</button>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL DE EDIÇÃO DE MEDICAMENTO -->
     <div class="modal-overlay" id="modal-edit-med">
         <div class="modal-body">
@@ -910,6 +1010,10 @@
             <span class="nav-icon">🎤</span>
             <span>Despesas</span>
         </button>
+        <button class="nav-item" data-tab="bills">
+            <span class="nav-icon">📅</span>
+            <span>A Pagar</span>
+        </button>
         <button class="nav-item" data-tab="incomes">
             <span class="nav-icon">💰</span>
             <span>Rendas</span>
@@ -976,6 +1080,7 @@
                     sebastiao: { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
                 },
                 items: [],
+                bills: [], // { id, title, amount, date, detail, account, paid }
                 patients: [],
                 medications: [],
                 exams: [],
@@ -1016,11 +1121,12 @@
 
             function loadData() {
                 try {
-                    var data = localStorage.getItem('sf_app_data_v10');
+                    var data = localStorage.getItem('sf_app_data_v11');
                     if (data) {
                         var parsed = JSON.parse(data);
                         if (parsed.profiles) state.profiles = parsed.profiles;
                         if (parsed.items) state.items = parsed.items;
+                        if (parsed.bills) state.bills = parsed.bills;
                         if (parsed.patients) state.patients = parsed.patients;
                         if (parsed.medications) state.medications = parsed.medications;
                         if (parsed.exams) state.exams = parsed.exams;
@@ -1034,10 +1140,11 @@
             function saveData(syncToRemote) {
                 if (syncToRemote === undefined) syncToRemote = true;
                 try {
-                    localStorage.setItem('sf_app_data_v10', JSON.stringify({
+                    localStorage.setItem('sf_app_data_v11', JSON.stringify({
                         profiles: state.profiles,
                         syncRoomId: state.syncRoomId,
                         items: state.items,
+                        bills: state.bills,
                         patients: state.patients,
                         medications: state.medications,
                         exams: state.exams,
@@ -1050,6 +1157,7 @@
                     dbRef.set({
                         profiles: state.profiles,
                         items: state.items,
+                        bills: state.bills,
                         patients: state.patients,
                         medications: state.medications,
                         exams: state.exams,
@@ -1096,6 +1204,7 @@
                             isRemoteUpdate = true;
                             if (data.profiles) state.profiles = data.profiles;
                             state.items = data.items || [];
+                            state.bills = data.bills || [];
                             state.patients = data.patients || [];
                             state.medications = data.medications || [];
                             state.exams = data.exams || [];
@@ -1105,6 +1214,7 @@
                             saveData(false);
                             applyProfileState();
                             renderFeeds();
+                            renderBills();
                             renderReports();
                             renderPatients();
                             renderHealthData();
@@ -1113,6 +1223,7 @@
                             dbRef.set({
                                 profiles: state.profiles,
                                 items: state.items,
+                                bills: state.bills,
                                 patients: state.patients,
                                 medications: state.medications,
                                 exams: state.exams,
@@ -1249,6 +1360,170 @@
                     };
                 });
             }
+
+            // ==========================================
+            // LÓGICA DO MÓDULO DE CONTAS A PAGAR
+            // ==========================================
+            function renderBills() {
+                var feed = document.getElementById('bills-feed');
+                feed.innerHTML = '';
+
+                var acc = state.currentAccount;
+                var today = getTodayStr();
+
+                var currentBills = state.bills.filter(function(b) {
+                    return (b.account || 'main') === acc && !b.paid;
+                });
+
+                var totalPending = 0;
+                var totalLate = 0;
+
+                if (currentBills.length === 0) {
+                    feed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma conta pendente para esta conta.</div>';
+                } else {
+                    // Ordena: atrasadas primeiro
+                    currentBills.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+                    currentBills.forEach(function(b) {
+                        totalPending += Number(b.amount);
+
+                        var badgeClass = 'badge-due-ok';
+                        var badgeText = 'A Vencer';
+
+                        if (b.date < today) {
+                            badgeClass = 'badge-due-late';
+                            badgeText = '🔴 EM ATRASO';
+                            totalLate += Number(b.amount);
+                        } else if (b.date === today) {
+                            badgeClass = 'badge-due-today';
+                            badgeText = '🟡 VENCE HOJE';
+                        }
+
+                        var idClean = String(b.id).replace(/'/g, "");
+
+                        feed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title">' + b.title + '</span>' +
+                                '<span class="trans-sub">Vencimento: <b>' + formatDate(b.date) + '</b> • ' + (b.detail || 'Boleto/PIX') + '</span>' +
+                                '<div style="margin-top:4px;"><span class="badge-status ' + badgeClass + '">' + badgeText + '</span></div>' +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<span class="trans-amount amount-expense">R$ ' + Number(b.amount).toFixed(2) + '</span>' +
+                                '<div class="item-actions" style="margin-top:4px;">' +
+                                    '<button class="btn-icon" style="background:var(--accent-green); color:#fff; font-weight:bold;" onclick="window.payBill(\'' + idClean + '\')">✅ Pagar</button>' +
+                                    '<button class="btn-icon" onclick="window.editBill(\'' + idClean + '\')">✏️</button>' +
+                                    '<button class="btn-icon" onclick="window.deleteBill(\'' + idClean + '\')">🗑️</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+
+                document.getElementById('bill-total-pending').textContent = 'R$ ' + totalPending.toFixed(2);
+                document.getElementById('bill-total-late').textContent = 'R$ ' + totalLate.toFixed(2);
+            }
+
+            document.getElementById('form-bill').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var desc = document.getElementById('bill-desc').value.trim();
+                var amt = document.getElementById('bill-amount').value;
+                var date = document.getElementById('bill-date').value;
+                var method = document.getElementById('bill-method').value;
+
+                if (!desc || !amt || !date) return;
+
+                state.bills.unshift({
+                    id: Date.now().toString(),
+                    title: desc,
+                    amount: parseFloat(amt),
+                    date: date,
+                    detail: method,
+                    account: state.currentAccount,
+                    paid: false
+                });
+
+                saveData();
+                renderBills();
+
+                document.getElementById('bill-desc').value = '';
+                document.getElementById('bill-amount').value = '';
+            });
+
+            window.payBill = function(id) {
+                var targetId = String(id);
+                var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
+                if (!bill) return;
+
+                if (confirm("Confirmar o pagamento da conta '" + bill.title + "' no valor de R$ " + Number(bill.amount).toFixed(2) + "? Ela será movida para as Despesas.")) {
+                    var acc = state.currentAccount;
+                    var prof = state.profiles[acc] || {};
+
+                    // Marca conta como paga
+                    bill.paid = true;
+
+                    // Cria a despesa correspondente
+                    state.items.unshift({
+                        id: Date.now().toString(),
+                        type: 'expense',
+                        title: bill.title + ' (Conta Paga)',
+                        detail: bill.detail || 'Boleto/PIX',
+                        amount: Number(bill.amount),
+                        date: getTodayStr(),
+                        account: acc,
+                        author: prof.name || ''
+                    });
+
+                    saveData();
+                    renderBills();
+                    renderFeeds();
+                    renderReports();
+                }
+            };
+
+            window.deleteBill = function(id) {
+                if (confirm("Deseja apagar esta conta a pagar?")) {
+                    var targetId = String(id);
+                    state.bills = state.bills.filter(function(b) { return String(b.id) !== targetId; });
+                    saveData();
+                    renderBills();
+                }
+            };
+
+            window.editBill = function(id) {
+                var targetId = String(id);
+                var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
+                if (!bill) return;
+
+                document.getElementById('edit-bill-id').value = String(bill.id);
+                document.getElementById('edit-bill-desc').value = bill.title;
+                document.getElementById('edit-bill-amount').value = bill.amount;
+                document.getElementById('edit-bill-date').value = bill.date;
+                document.getElementById('edit-bill-method').value = bill.detail || 'Boleto/PIX';
+
+                document.getElementById('modal-edit-bill').classList.add('active');
+            };
+
+            document.getElementById('btn-close-edit-bill').addEventListener('click', function() {
+                document.getElementById('modal-edit-bill').classList.remove('active');
+            });
+
+            document.getElementById('form-edit-bill').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var id = document.getElementById('edit-bill-id').value;
+                var targetId = String(id);
+
+                var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
+                if (bill) {
+                    bill.title = document.getElementById('edit-bill-desc').value.trim();
+                    bill.amount = parseFloat(document.getElementById('edit-bill-amount').value);
+                    bill.date = document.getElementById('edit-bill-date').value;
+                    bill.detail = document.getElementById('edit-bill-method').value;
+
+                    saveData();
+                    renderBills();
+                    document.getElementById('modal-edit-bill').classList.remove('active');
+                }
+            });
 
             window.deleteItem = function(id) {
                 if (confirm("Tem certeza que deseja apagar este lançamento?")) {
@@ -1824,6 +2099,7 @@
                 state.currentAccount = e.target.value;
                 applyProfileState();
                 renderFeeds();
+                renderBills();
                 renderReports();
                 renderHealthData();
             });
@@ -2192,11 +2468,13 @@
 
             var today = getTodayStr();
             document.getElementById('exp-date').value = today;
+            document.getElementById('bill-date').value = today;
             document.getElementById('inc-date').value = today;
 
             loadData();
             applyProfileState();
             renderFeeds();
+            renderBills();
             renderReports();
             renderPatients();
             renderHealthData();
