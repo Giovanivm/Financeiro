@@ -1,0 +1,2610 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sucesso Financeiro & Saúde</title>
+    
+    <!-- Configurações para PWA / Instalação Nativas -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanças">
+    <link rel="manifest" href="data:application/json;charset=utf-8,%7B%22short_name%22%3A%22Finan%C3%A7as%22%2C%22name%22%3A%22Sucesso%20Financeiro%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2845%2F2845531.png%22%2C%22type%22%3A%22image%2Fpng%22%2C%22sizes%22%3A%22192x192%22%7D%2C%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2845%2F2845531.png%22%2C%22type%22%3A%22image%2Fpng%22%2C%22sizes%22%3A%22512x512%22%7D%5D%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%230f172a%22%2C%22theme_color%22%3A%22%230f172a%22%2C%22display%22%3A%22standalone%22%7D">
+
+    <!-- Firebase SDK v9 (Compatibilizado) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <!-- Bibliotecas para Exportação e Importação (PDF e Excel) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent-green: #10b981;
+            --accent-blue: #38bdf8;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+            --accent-amber: #f59e0b;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            background-color: var(--bg-card);
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .top-bar h1 {
+            font-size: 1rem;
+            color: var(--accent-blue);
+            font-weight: 700;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .btn-gear {
+            background: #334155;
+            color: #f8fafc;
+            font-size: 1.1rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .sync-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background-color: #64748b;
+        }
+
+        .sync-active { background-color: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+
+        .btn-reset {
+            background: #334155;
+            color: #f8fafc;
+            font-size: 0.7rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .account-selector-bar {
+            background-color: #1e293b;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--accent-blue);
+        }
+
+        .account-selector-bar label {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
+        .account-select {
+            background-color: var(--bg-input);
+            color: var(--accent-blue);
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            outline: none;
+        }
+
+        .content-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: 85px;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-main);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .voice-section {
+            text-align: center;
+            padding: 12px;
+        }
+
+        .btn-voice {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0284c7, #38bdf8);
+            border: none;
+            color: white;
+            font-size: 1.8rem;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(56, 189, 248, 0.4);
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-voice.listening {
+            background: var(--accent-red) !important;
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.6) !important;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+
+        .voice-box {
+            background-color: var(--bg-input);
+            border: 1px dashed var(--accent-blue);
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: var(--accent-blue);
+            margin-top: 8px;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-word;
+        }
+
+        .form-group { margin-bottom: 12px; }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-bottom: 4px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background-color: var(--accent-green);
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+
+        .btn-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-action:active { opacity: 0.8; }
+
+        .btn-pdf { background-color: #ef4444; }
+        .btn-excel { background-color: #10b981; }
+        .btn-wsp { background-color: #25d366; }
+        .btn-email { background-color: #38bdf8; }
+        .btn-pwa { background-color: #a855f7; font-size: 0.95rem; padding: 12px; }
+
+        .export-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .transaction-item:last-child { border-bottom: none; }
+
+        .trans-info { flex: 1; padding-right: 8px; }
+        .trans-title { font-weight: 600; font-size: 0.9rem; display: block; }
+        .trans-sub { font-size: 0.75rem; color: var(--text-sub); }
+        .trans-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+        .trans-amount { font-weight: 700; font-size: 0.95rem; }
+
+        .item-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-icon {
+            background: #334155;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-main);
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+
+        .btn-icon:hover { background: #475569; }
+
+        .amount-expense { color: var(--accent-red); }
+        .amount-income { color: var(--accent-green); }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .summary-card {
+            background-color: var(--bg-card);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .summary-card span { font-size: 0.7rem; color: var(--text-sub); }
+        .summary-card h3 { font-size: 1.1rem; margin-top: 4px; }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 65px;
+            background-color: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            font-size: 0.75rem;
+            cursor: pointer;
+            flex: 1;
+            padding: 8px 0;
+        }
+
+        .nav-item.active { color: var(--accent-blue); font-weight: 700; }
+        .nav-icon { font-size: 1.3rem; }
+
+        .badge-status {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .badge-active {
+            background-color: rgba(16, 185, 129, 0.2);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+        }
+
+        .badge-inactive {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: var(--accent-red);
+            border: 1px solid var(--accent-red);
+        }
+
+        .badge-due-late {
+            background-color: rgba(239, 68, 68, 0.25);
+            color: #f87171;
+            border: 1px solid var(--accent-red);
+        }
+
+        .badge-due-today {
+            background-color: rgba(245, 158, 11, 0.25);
+            color: #fbbf24;
+            border: 1px solid var(--accent-amber);
+        }
+
+        .badge-due-ok {
+            background-color: rgba(16, 185, 129, 0.25);
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal-body {
+            background-color: var(--bg-card);
+            border-radius: 14px;
+            padding: 20px;
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid var(--border-color);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .file-import-box {
+            background-color: var(--bg-input);
+            border: 2px dashed var(--border-color);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        .subnav-container {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            margin-bottom: 12px;
+            padding-bottom: 4px;
+        }
+
+        .subnav-btn {
+            background: var(--bg-input);
+            color: var(--text-sub);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .subnav-btn.active {
+            background: var(--accent-blue);
+            color: #0f172a;
+            border-color: var(--accent-blue);
+        }
+
+        .month-selector-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-input);
+            padding: 8px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .month-selector-bar select {
+            background: transparent;
+            color: var(--text-main);
+            border: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .attachment-preview {
+            max-width: 100%;
+            max-height: 180px;
+            border-radius: 8px;
+            margin-top: 8px;
+            object-fit: cover;
+            border: 1px solid var(--border-color);
+        }
+
+        .attach-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: var(--accent-blue);
+            text-decoration: none;
+            margin-top: 4px;
+            background: rgba(56, 189, 248, 0.1);
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <h1>Sucesso Financeiro & Saúde</h1>
+        <div class="top-actions">
+            <button class="btn-gear" id="btn-open-sync" title="Conexão em Tempo Real">
+                ⚙️
+                <span class="sync-indicator" id="sync-status-dot"></span>
+            </button>
+            <button class="btn-reset" id="btn-force-reset">RECARREGAR APP</button>
+        </div>
+    </div>
+
+    <div class="account-selector-bar">
+        <label for="global-account-select">GESTÃO DE:</label>
+        <select id="global-account-select" class="account-select">
+            <option value="main">Finanças Principais (Família)</option>
+            <option value="sebastiao">Sr. Sebastião (Pai)</option>
+        </select>
+    </div>
+
+    <div class="content-container">
+
+        <!-- ABA 1: DESPESAS -->
+        <div id="tab-expenses" class="tab-content active">
+            <div class="card voice-section">
+                <button class="btn-voice" id="btn-voice-input">🎤</button>
+                <div style="font-weight: 600; font-size: 0.95rem;" id="voice-status-title">Lançamento por Voz com Espera</div>
+                <div style="font-size: 0.8rem; color: var(--text-sub);" id="voice-status-desc">Toque para acionar. Após a primeira palavra, o app aguarda até 10s pelo valor.</div>
+                <div class="voice-box" id="voice-text-preview">Microfone desligado. Clique no botão acima para ouvir.</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">➕ Nova Despesa Manual</div>
+                <form id="form-exp">
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <input type="text" id="exp-desc" class="form-control" placeholder="Ex: Farmácia / Mercado" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" step="0.01" id="exp-amount" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="exp-date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Forma de Pagamento</label>
+                        <select id="exp-method" class="form-control" required>
+                            <option value="Débito/PIX">Débito / PIX</option>
+                            <option value="Crédito">Cartão de Crédito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Anexar Comprovante ou Foto (Opcional)</label>
+                        <input type="file" id="exp-file-receipt" class="form-control" accept="image/*,application/pdf">
+                    </div>
+                    <button type="submit" class="btn-submit">Salvar Despesa</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📋 Despesas Recentes</div>
+                <div id="expenses-feed"></div>
+            </div>
+        </div>
+
+        <!-- ABA CONTAS A PAGAR -->
+        <div id="tab-bills" class="tab-content">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span>Total Pendente</span>
+                    <h3 style="color: var(--accent-amber);" id="bill-total-pending">R$ 0,00</h3>
+                </div>
+                <div class="summary-card">
+                    <span>Total em Atraso</span>
+                    <h3 style="color: var(--accent-red);" id="bill-total-late">R$ 0,00</h3>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📅 Agendar Conta a Pagar / Boleto</div>
+                <form id="form-bill">
+                    <div class="form-group">
+                        <label>Descrição da Conta</label>
+                        <input type="text" id="bill-desc" class="form-control" placeholder="Ex: Energia / Condomínio / Remédios" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Previsto (R$)</label>
+                        <input type="number" step="0.01" id="bill-amount" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data de Vencimento</label>
+                        <input type="date" id="bill-date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Forma Prevista de Pagamento</label>
+                        <select id="bill-method" class="form-control">
+                            <option value="Boleto/PIX">Boleto / PIX</option>
+                            <option value="Débito">Débito em Conta</option>
+                            <option value="Crédito">Cartão de Crédito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Anexar Boleto / Documento (PDF ou Foto)</label>
+                        <input type="file" id="bill-file-doc" class="form-control" accept="image/*,application/pdf">
+                    </div>
+                    <button type="submit" class="btn-submit" style="background-color: var(--accent-amber); color:#0f172a;">Cadastrar Conta a Pagar</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📋 Contas Pendentes e Atrasadas</div>
+                <div id="bills-feed"></div>
+            </div>
+        </div>
+
+        <!-- ABA 2: RENDAS -->
+        <div id="tab-incomes" class="tab-content">
+            <div class="card">
+                <div class="card-title">💰 Lançar Receita</div>
+                <form id="form-inc">
+                    <div class="form-group">
+                        <label>Origem / Categoria</label>
+                        <select id="inc-desc-select" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" step="0.01" id="inc-amount" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="inc-date" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Salvar Receita</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📈 Receitas Registradas</div>
+                <div id="incomes-feed"></div>
+            </div>
+        </div>
+
+        <!-- ABA 3: PACIENTES (NUTRI) -->
+        <div id="tab-patients" class="tab-content">
+            <div class="card">
+                <div class="card-title">👤 Cadastrar Novo Paciente</div>
+                <form id="form-patient">
+                    <div class="form-group">
+                        <label>Nome do Paciente</label>
+                        <input type="text" id="pat-name" class="form-control" placeholder="Nome completo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telefone / Contato</label>
+                        <input type="text" id="pat-phone" class="form-control" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Mensal (R$)</label>
+                        <input type="number" step="0.01" id="pat-val" class="form-control" placeholder="0,00" required>
+                    </div>
+                    <button type="submit" class="btn-submit" style="background-color: var(--accent-purple);">Salvar Paciente</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📋 Lista de Pacientes</div>
+                <div id="patients-feed"></div>
+            </div>
+        </div>
+
+        <!-- ABA DE SAÚDE (SR. SEBASTIÃO) -->
+        <div id="tab-health" class="tab-content">
+            <div class="subnav-container">
+                <button class="subnav-btn active" data-sub="meds">💊 Medicações do Mês</button>
+                <button class="subnav-btn" data-sub="exams">🔬 Exames & Laudos</button>
+                <button class="subnav-btn" data-sub="appts">🩺 Consultas Médicas</button>
+                <button class="subnav-btn" data-sub="vitals">❤️ Sinais Vitais / Medições</button>
+            </div>
+
+            <!-- SUB-ABA: MEDICAÇÕES -->
+            <div id="subtab-meds">
+                <div class="month-selector-bar">
+                    <span style="font-size: 0.8rem; color: var(--text-sub);">Mês de Referência:</span>
+                    <select id="health-month-select"></select>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span>💊 Cadastrar / Alterar Medicamento</span>
+                        <button class="btn-action btn-excel" id="btn-migrate-meds" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">🔁 Copiar do Mês Anterior</button>
+                    </div>
+                    <form id="form-med">
+                        <div class="form-group">
+                            <label>Nome do Medicamento</label>
+                            <input type="text" id="med-name" class="form-control" placeholder="Ex: Losartana / Sinalfa" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Dosagem / Quantidade</label>
+                            <input type="text" id="med-dosage" class="form-control" placeholder="Ex: 50mg / 1 comprimido / 10 gotas" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Horários de Administração</label>
+                            <input type="text" id="med-times" class="form-control" placeholder="Ex: 08:00, 14:00 e 20:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Instruções / Observações</label>
+                            <input type="text" id="med-notes" class="form-control" placeholder="Ex: Tomar após o café da manhã">
+                        </div>
+                        <button type="submit" class="btn-submit" style="background-color: var(--accent-green);">Salvar Medicamento no Mês</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📋 Grade de Medicações do Mês</div>
+                    <div id="meds-feed"></div>
+                </div>
+            </div>
+
+            <!-- SUB-ABA: EXAMES E LAUDOS -->
+            <div id="subtab-exams" style="display: none;">
+                <div class="card">
+                    <div class="card-title">🔬 Registrar Exame / Laudo</div>
+                    <form id="form-exam">
+                        <div class="form-group">
+                            <label>Nome do Exame</label>
+                            <input type="text" id="exam-title" class="form-control" placeholder="Ex: Hemograma Completo / ECG" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Data da Realização</label>
+                            <input type="date" id="exam-date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Médico Solicitante / Laboratório</label>
+                            <input type="text" id="exam-doctor" class="form-control" placeholder="Ex: Dr. Carlos / Lab Sabin">
+                        </div>
+                        <div class="form-group">
+                            <label>Resumo do Laudo / Resultado</label>
+                            <textarea id="exam-notes" class="form-control" rows="3" placeholder="Digite as conclusões ou laudo do exame..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Anexar Foto ou PDF do Exame/Laudo</label>
+                            <input type="file" id="exam-file" class="form-control" accept="image/*,application/pdf">
+                        </div>
+                        <button type="submit" class="btn-submit" style="background-color: var(--accent-purple);">Salvar Registro de Exame</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📄 Histórico de Exames Cadastrados</div>
+                    <div id="exams-feed"></div>
+                </div>
+            </div>
+
+            <!-- SUB-ABA: CONSULTAS MÉDICAS -->
+            <div id="subtab-appts" style="display: none;">
+                <div class="card">
+                    <div class="card-title">🩺 Agendar Consulta Médica</div>
+                    <form id="form-appt">
+                        <div class="form-group">
+                            <label>Especialidade / Motivo</label>
+                            <input type="text" id="appt-spec" class="form-control" placeholder="Ex: Cardiologista / Geriatra" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nome do Médico</label>
+                            <input type="text" id="appt-doc" class="form-control" placeholder="Ex: Dr. Roberto Silva" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Data e Horário</label>
+                            <input type="datetime-local" id="appt-datetime" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Local / Clínica / Endereço</label>
+                            <input type="text" id="appt-location" class="form-control" placeholder="Ex: Hospital do Coração - Sala 302">
+                        </div>
+                        <div class="form-group">
+                            <label>Preparo / Anotações para o dia</label>
+                            <input type="text" id="appt-notes" class="form-control" placeholder="Ex: Levar exames de sangue recentes e jejum 8h">
+                        </div>
+                        <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Agendar Consulta</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📅 Consultas Agendadas e Anteriores</div>
+                    <div id="appts-feed"></div>
+                </div>
+            </div>
+
+            <!-- SUB-ABA: SINAIS VITAIS -->
+            <div id="subtab-vitals" style="display: none;">
+                <div class="card">
+                    <div class="card-title">❤️ Aferição de Pressão & Glicemia</div>
+                    <form id="form-vital">
+                        <div class="form-group">
+                            <label>Pressão Arterial (mmHg)</label>
+                            <input type="text" id="vital-pa" class="form-control" placeholder="Ex: 120 x 80">
+                        </div>
+                        <div class="form-group">
+                            <label>Glicemia (mg/dL)</label>
+                            <input type="number" id="vital-glicemia" class="form-control" placeholder="Ex: 98">
+                        </div>
+                        <div class="form-group">
+                            <label>Data e Hora</label>
+                            <input type="datetime-local" id="vital-datetime" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn-submit" style="background-color: var(--accent-amber);">Registrar Medição</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📈 Histórico de Medições</div>
+                    <div id="vitals-feed"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📄 Relatório Completo de Saúde</div>
+                <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 10px;">
+                    Gere um documento em PDF com as medicações do mês, consultas e exames recentes para apresentar em consultas médicas.
+                </p>
+                <button class="btn-action btn-pdf" id="btn-export-health-pdf">📄 Baixar Relatório de Saúde (PDF)</button>
+            </div>
+        </div>
+
+        <!-- ABA 4: RELATÓRIOS FINANCEIROS -->
+        <div id="tab-reports" class="tab-content">
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <span>Total Receitas</span>
+                    <h3 style="color: var(--accent-green);" id="rep-income">R$ 0,00</h3>
+                </div>
+                <div class="summary-card">
+                    <span>Total Despesas</span>
+                    <h3 style="color: var(--accent-red);" id="rep-expense">R$ 0,00</h3>
+                </div>
+            </div>
+
+            <div class="card" style="text-align: center;">
+                <span>Balanço Geral da Conta Selecionada</span>
+                <h2 id="rep-balance" style="font-size: 1.8rem; margin-top: 4px;">R$ 0,00</h2>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📥 Importar Dados de Planilha Excel (.xlsx / .csv)</div>
+                <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px;">
+                    Suporta os tipos: <b>Despesa, Receita, Contas a Pagar (Boleto) e Pacientes</b>.<br>
+                    Colunas recomendadas: <code>Data, Tipo, Descrição, FormaPagamento, Valor</code>.
+                </p>
+                <div class="file-import-box">
+                    <input type="file" id="excel-import-input" accept=".xlsx, .xls, .csv" style="display: none;">
+                    <button type="button" class="btn-action btn-excel" onclick="document.getElementById('excel-import-input').click()">📂 Selecionar Planilha Excel</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📄 Exportar Relatórios Financeiros</div>
+                <div class="export-grid">
+                    <button class="btn-action btn-pdf" id="btn-export-pdf">📄 Baixar PDF</button>
+                    <button class="btn-action btn-excel" id="btn-export-excel">📊 Baixar Excel</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📲 Compartilhar Resumo</div>
+                <div class="export-grid">
+                    <button class="btn-action btn-wsp" id="btn-share-wsp">💬 WhatsApp</button>
+                    <button class="btn-action btn-email" id="btn-share-email">✉️ E-mail</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 5: PERFIL -->
+        <div id="tab-profile" class="tab-content">
+            <div class="card">
+                <div class="card-title" id="profile-card-title">⚙️ Perfil da Conta Selecionada</div>
+                <form id="form-profile">
+                    <div class="form-group">
+                        <label>Nome (Identificação da Conta)</label>
+                        <input type="text" id="prof-name" class="form-control" placeholder="Digite seu nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Profissão / Categoria Principal</label>
+                        <select id="prof-job" class="form-control">
+                            <option value="penal">Policial Penal</option>
+                            <option value="nutri">Nutricionista</option>
+                            <option value="aposentado">Aposentado / Pensionista</option>
+                            <option value="outras">Outra Profissão</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail / Contato</label>
+                        <input type="email" id="prof-email" class="form-control" placeholder="email@exemplo.com">
+                    </div>
+                    <button type="submit" class="btn-submit">Salvar Perfil Desta Conta</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📱 Atalho na Tela Inicial / Computador</div>
+                <button class="btn-action btn-pwa" id="btn-install-pwa" style="margin-bottom: 12px; display: none;">📱 Instalar Aplicativo Agora</button>
+                <p style="font-size: 0.85rem; color: var(--text-sub); line-height: 1.4;">
+                    Para instalar este app manualmente:<br>
+                    • <b>Android / Chrome:</b> Abra no Chrome > 3 pontos superiores > <i>"Adicionar à tela inicial"</i>.<br>
+                    • <b>iPhone / Safari:</b> Abra no Safari > Botão Compartilhar > <i>"Adicionar à Tela de Início"</i>.<br>
+                    • <b>Computador (Chrome/Edge):</b> Clique no ícone ⊕ na barra de endereço.
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAL DE PAGAMENTO COM ANEXO DE COMPROVANTE -->
+    <div class="modal-overlay" id="modal-pay-bill">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-green); font-size: 1.1rem;">✅ Baixar Conta & Anexar Comprovante</h3>
+                <button id="btn-close-pay-bill" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-pay-bill-confirm">
+                <input type="hidden" id="pay-bill-id">
+                <div class="form-group">
+                    <label>Conta</label>
+                    <input type="text" id="pay-bill-title-preview" class="form-control" readonly style="opacity:0.7;">
+                </div>
+                <div class="form-group">
+                    <label>Valor Efefivamente Pago (R$)</label>
+                    <input type="number" step="0.01" id="pay-bill-amount-paid" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Anexar Comprovante de Pagamento (Foto ou PDF)</label>
+                    <input type="file" id="pay-bill-receipt-file" class="form-control" accept="image/*,application/pdf">
+                </div>
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-green); font-size:1rem;">Confirmar Pagamento</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE EDIÇÃO DE CONTA A PAGAR -->
+    <div class="modal-overlay" id="modal-edit-bill">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-amber); font-size: 1.1rem;">✏️ Editar Conta a Pagar</h3>
+                <button id="btn-close-edit-bill" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-edit-bill">
+                <input type="hidden" id="edit-bill-id">
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="edit-bill-desc" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" step="0.01" id="edit-bill-amount" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Data de Vencimento</label>
+                    <input type="date" id="edit-bill-date" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Forma Prevista</label>
+                    <select id="edit-bill-method" class="form-control">
+                        <option value="Boleto/PIX">Boleto / PIX</option>
+                        <option value="Débito">Débito em Conta</option>
+                        <option value="Crédito">Cartão de Crédito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Alterar/Substituir Boleto (Opcional)</label>
+                    <input type="file" id="edit-bill-doc" class="form-control" accept="image/*,application/pdf">
+                </div>
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-amber); color:#0f172a;">Salvar Alteração</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE EDIÇÃO DE MEDICAMENTO -->
+    <div class="modal-overlay" id="modal-edit-med">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">✏️ Editar Medicamento</h3>
+                <button id="btn-close-edit-med" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-edit-med">
+                <input type="hidden" id="edit-med-id">
+                <div class="form-group">
+                    <label>Nome do Medicamento</label>
+                    <input type="text" id="edit-med-name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Dosagem</label>
+                    <input type="text" id="edit-med-dosage" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Horários</label>
+                    <input type="text" id="edit-med-times" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Observações</label>
+                    <input type="text" id="edit-med-notes" class="form-control">
+                </div>
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Salvar Alteração</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE EDIÇÃO DE FINANCEIRO -->
+    <div class="modal-overlay" id="modal-edit">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">✏️ Editar Lançamento</h3>
+                <button id="btn-close-edit" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-edit">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <input type="text" id="edit-title" class="form-control" required>
+                </div>
+                <div class="form-group" id="edit-detail-container">
+                    <label>Forma de Pagamento</label>
+                    <select id="edit-detail" class="form-control">
+                        <option value="Débito/PIX">Débito / PIX</option>
+                        <option value="Crédito">Cartão de Crédito</option>
+                        <option value="Dinheiro">Dinheiro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" step="0.01" id="edit-amount" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" id="edit-date" class="form-control" required>
+                </div>
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONEXÃO EM TEMPO REAL -->
+    <div class="modal-overlay" id="modal-sync">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;">🔗 Sincronizar Aparelhos</h3>
+                <button id="btn-close-sync" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-sub); margin-bottom: 16px; line-height: 1.4;">
+                Para conectar celulares diferentes, digite a <b>mesma senha de sala</b> em todos os aparelhos (Exemplo: <code>familia</code> ou <code>casa123</code>).
+            </p>
+            <div class="form-group">
+                <label style="font-weight: bold; color: var(--accent-blue);">Senha da Sala Compartilhada</label>
+                <input type="text" id="sync-room-id" class="form-control" placeholder="Ex: familia" style="font-size: 1.1rem; text-align: center; font-weight: bold; letter-spacing: 1px;">
+            </div>
+            <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue); font-size: 1rem; padding: 12px; margin-top: 10px;">Conectar Aparelhos</button>
+        </div>
+    </div>
+
+    <nav class="nav-bar">
+        <button class="nav-item active" data-tab="expenses">
+            <span class="nav-icon">🎤</span>
+            <span>Despesas</span>
+        </button>
+        <button class="nav-item" data-tab="bills">
+            <span class="nav-icon">📅</span>
+            <span>A Pagar</span>
+        </button>
+        <button class="nav-item" data-tab="incomes">
+            <span class="nav-icon">💰</span>
+            <span>Rendas</span>
+        </button>
+        <button class="nav-item" id="nav-health" data-tab="health" style="display: none;">
+            <span class="nav-icon">💊</span>
+            <span>Saúde</span>
+        </button>
+        <button class="nav-item" id="nav-patients" data-tab="patients" style="display: none;">
+            <span class="nav-icon">🩺</span>
+            <span>Pacientes</span>
+        </button>
+        <button class="nav-item" data-tab="reports">
+            <span class="nav-icon">📊</span>
+            <span>Relatórios</span>
+        </button>
+        <button class="nav-item" data-tab="profile">
+            <span class="nav-icon">⚙️</span>
+            <span>Perfil</span>
+        </button>
+    </nav><script>
+        (function() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch(function(){});
+            }
+
+            var deferredPrompt = null;
+            var btnInstallPWA = document.getElementById('btn-install-pwa');
+
+            window.addEventListener('beforeinstallprompt', function(e) {
+                e.preventDefault();
+                deferredPrompt = e;
+                btnInstallPWA.style.display = 'block';
+            });
+
+            btnInstallPWA.addEventListener('click', function() {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(function(choiceResult) {
+                        if (choiceResult.outcome === 'accepted') {
+                            btnInstallPWA.style.display = 'none';
+                        }
+                        deferredPrompt = null;
+                    });
+                }
+            });
+
+            var FIXED_DB_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/"; 
+            var FIXED_API_KEY = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE"; 
+            var DEFAULT_ROOM  = "familia";
+
+            var dbRef = null;
+            var isRemoteUpdate = false;
+
+            document.getElementById('btn-force-reset').addEventListener('click', function() {
+                window.location.reload(true);
+            });
+
+            var state = {
+                currentAccount: 'main',
+                syncRoomId: DEFAULT_ROOM,
+                profiles: {
+                    main: { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' },
+                    sebastiao: { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
+                },
+                items: [],
+                bills: [],
+                patients: [],
+                medications: [],
+                exams: [],
+                appointments: [],
+                vitals: []
+            };
+
+            var jobIncomes = {
+                penal: ['Subsídio / Salário', 'AC4 / Plantão Extra', 'Indenizações', 'Adicionais'],
+                nutri: ['Consulta Individual', 'Mensalidade Paciente', 'Pacote Alimentar', 'Mentoria / Cursos'],
+                aposentado: ['Aposentadoria / Benefício', 'Pensão', 'Aluguel / Arrendamento', 'Renda de Investimentos', 'Outras Receitas'],
+                outras: ['Salário', 'Renda Extra', 'Serviços Prestados', 'Vendas']
+            };
+
+            function getAccountLabel() {
+                var sel = document.getElementById('global-account-select');
+                return sel.options[sel.selectedIndex].text;
+            }
+
+            function getTodayStr() {
+                var d = new Date();
+                var m = (d.getMonth() + 1);
+                var day = d.getDate();
+                return d.getFullYear() + '-' + (m < 10 ? '0' + m : m) + '-' + (day < 10 ? '0' + day : day);
+            }
+
+            function getCurrentMonthKey() {
+                var d = new Date();
+                var m = (d.getMonth() + 1);
+                return d.getFullYear() + '-' + (m < 10 ? '0' + m : m);
+            }
+
+            function formatDate(str) {
+                if (!str) return '';
+                var p = str.split('T')[0].split('-');
+                return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : str;
+            }
+
+            function fileToDataUrl(fileInput, callback) {
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    var f = fileInput.files[0];
+                    var r = new FileReader();
+                    r.onload = function(e) {
+                        callback(e.target.result, f.type);
+                    };
+                    r.readAsDataURL(f);
+                } else {
+                    callback(null, null);
+                }
+            }
+
+            function renderAttachHtml(data, type, label) {
+                if (!data) return '';
+                if (type && type.indexOf('pdf') !== -1) {
+                    return '<a href="' + data + '" target="_blank" class="attach-link">📄 ' + (label || 'Ver PDF') + '</a>';
+                }
+                return '<a href="' + data + '" target="_blank" class="attach-link">🖼️ ' + (label || 'Ver Foto') + '</a>';
+            }
+
+            function loadData() {
+                try {
+                    var data = localStorage.getItem('sf_app_data_v12');
+                    if (data) {
+                        var parsed = JSON.parse(data);
+                        if (parsed.profiles) state.profiles = parsed.profiles;
+                        if (parsed.items) state.items = parsed.items;
+                        if (parsed.bills) state.bills = parsed.bills;
+                        if (parsed.patients) state.patients = parsed.patients;
+                        if (parsed.medications) state.medications = parsed.medications;
+                        if (parsed.exams) state.exams = parsed.exams;
+                        if (parsed.appointments) state.appointments = parsed.appointments;
+                        if (parsed.vitals) state.vitals = parsed.vitals;
+                        if (parsed.syncRoomId) state.syncRoomId = parsed.syncRoomId;
+                    }
+                } catch(e) {}
+            }
+
+            function saveData(syncToRemote) {
+                if (syncToRemote === undefined) syncToRemote = true;
+                try {
+                    localStorage.setItem('sf_app_data_v12', JSON.stringify({
+                        profiles: state.profiles,
+                        syncRoomId: state.syncRoomId,
+                        items: state.items,
+                        bills: state.bills,
+                        patients: state.patients,
+                        medications: state.medications,
+                        exams: state.exams,
+                        appointments: state.appointments,
+                        vitals: state.vitals
+                    }));
+                } catch(e) {}
+
+                if (syncToRemote && dbRef && !isRemoteUpdate) {
+                    dbRef.set({
+                        profiles: state.profiles,
+                        items: state.items,
+                        bills: state.bills,
+                        patients: state.patients,
+                        medications: state.medications,
+                        exams: state.exams,
+                        appointments: state.appointments,
+                        vitals: state.vitals
+                    }).catch(function(err) {
+                        console.error('Erro no Firebase:', err);
+                    });
+                }
+            }
+
+            function initFirebaseSync() {
+                var dot = document.getElementById('sync-status-dot');
+                var roomId = (state.syncRoomId || DEFAULT_ROOM).trim().toLowerCase();
+                if (!roomId) roomId = DEFAULT_ROOM;
+
+                try {
+                    if (dbRef) dbRef.off();
+
+                    if (firebase.apps.length === 0) {
+                        firebase.initializeApp({
+                            databaseURL: FIXED_DB_URL,
+                            apiKey: FIXED_API_KEY
+                        });
+                    }
+
+                    var cleanRoom = roomId.replace(/[^a-z0-9_-]/g, '');
+                    if (!cleanRoom) cleanRoom = 'familia';
+
+                    dbRef = firebase.database().ref('rooms/' + cleanRoom);
+
+                    var connectedRef = firebase.database().ref('.info/connected');
+                    connectedRef.on('value', function(snap) {
+                        if (snap.val() === true) {
+                            dot.classList.add('sync-active');
+                        } else {
+                            dot.classList.remove('sync-active');
+                        }
+                    });
+
+                    dbRef.on('value', function(snapshot) {
+                        var data = snapshot.val();
+                        if (data) {
+                            isRemoteUpdate = true;
+                            if (data.profiles) state.profiles = data.profiles;
+                            state.items = data.items || [];
+                            state.bills = data.bills || [];
+                            state.patients = data.patients || [];
+                            state.medications = data.medications || [];
+                            state.exams = data.exams || [];
+                            state.appointments = data.appointments || [];
+                            state.vitals = data.vitals || [];
+
+                            saveData(false);
+                            applyProfileState();
+                            renderFeeds();
+                            renderBills();
+                            renderReports();
+                            renderPatients();
+                            renderHealthData();
+                            isRemoteUpdate = false;
+                        } else {
+                            dbRef.set({
+                                profiles: state.profiles,
+                                items: state.items,
+                                bills: state.bills,
+                                patients: state.patients,
+                                medications: state.medications,
+                                exams: state.exams,
+                                appointments: state.appointments,
+                                vitals: state.vitals
+                            });
+                        }
+                    });
+
+                } catch(err) {
+                    dot.classList.remove('sync-active');
+                }
+            }
+
+            function applyProfileState() {
+                var acc = state.currentAccount;
+                if (!state.profiles[acc]) {
+                    state.profiles[acc] = acc === 'sebastiao' 
+                        ? { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
+                        : { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' };
+                }
+
+                var activeProfile = state.profiles[acc];
+
+                document.getElementById('prof-name').value = activeProfile.name || '';
+                document.getElementById('prof-job').value = activeProfile.job || 'penal';
+                document.getElementById('prof-email').value = activeProfile.email || '';
+
+                var patNav = document.getElementById('nav-patients');
+                var healthNav = document.getElementById('nav-health');
+
+                if (activeProfile.job === 'nutri') {
+                    patNav.style.display = 'flex';
+                } else {
+                    patNav.style.display = 'none';
+                }
+
+                if (activeProfile.job === 'aposentado') {
+                    healthNav.style.display = 'flex';
+                } else {
+                    healthNav.style.display = 'none';
+                    if (document.getElementById('tab-health').classList.contains('active')) {
+                        switchTab('expenses');
+                    }
+                }
+
+                renderIncomeOptions();
+            }
+
+            function renderIncomeOptions() {
+                var sel = document.getElementById('inc-desc-select');
+                sel.innerHTML = '';
+                
+                var acc = state.currentAccount;
+                var activeProfile = state.profiles[acc] || { job: 'penal' };
+                var opts = jobIncomes[activeProfile.job] || jobIncomes.penal;
+
+                for (var i = 0; i < opts.length; i++) {
+                    var opt = document.createElement('option');
+                    opt.value = opts[i];
+                    opt.textContent = opts[i];
+                    sel.appendChild(opt);
+                }
+            }
+
+            function renderFeeds() {
+                var expFeed = document.getElementById('expenses-feed');
+                var incFeed = document.getElementById('incomes-feed');
+                expFeed.innerHTML = '';
+                incFeed.innerHTML = '';
+
+                var exps = state.items.filter(function(i){ 
+                    return i.type === 'expense' && (i.account || 'main') === state.currentAccount; 
+                });
+                var incs = state.items.filter(function(i){ 
+                    return i.type === 'income' && (i.account || 'main') === state.currentAccount; 
+                });
+
+                if (exps.length === 0) {
+                    expFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma despesa para esta conta.</div>';
+                } else {
+                    exps.forEach(function(i) {
+                        var authorStr = i.author ? ' • 👤 ' + i.author : '';
+                        var idClean = String(i.id).replace(/'/g, "");
+
+                        var docAttach = renderAttachHtml(i.docData, i.docType, 'Boleto');
+                        var receiptAttach = renderAttachHtml(i.receiptData, i.receiptType, 'Comprovante');
+                        var attachesHtml = (docAttach || receiptAttach) ? '<div style="display:flex; gap:6px; flex-wrap:wrap;">' + docAttach + receiptAttach + '</div>' : '';
+
+                        expFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title">' + i.title + '</span>' +
+                                '<span class="trans-sub">' + (i.detail || 'Débito/PIX') + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
+                                attachesHtml +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<span class="trans-amount amount-expense">- R$ ' + Number(i.amount).toFixed(2) + '</span>' +
+                                '<div class="item-actions">' +
+                                    '<button class="btn-icon btn-edit-action" data-id="' + idClean + '">✏️ Editar</button>' +
+                                    '<button class="btn-icon btn-delete-action" data-id="' + idClean + '">🗑️ Apagar</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+
+                if (incs.length === 0) {
+                    incFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma receita para esta conta.</div>';
+                } else {
+                    incs.forEach(function(i) {
+                        var authorStr = i.author ? ' • 👤 ' + i.author : '';
+                        var idClean = String(i.id).replace(/'/g, "");
+                        incFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title">' + i.title + '</span>' +
+                                '<span class="trans-sub">' + (i.detail || 'Receita Registrada') + ' • 📅 ' + formatDate(i.date) + authorStr + '</span>' +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<span class="trans-amount amount-income">+ R$ ' + Number(i.amount).toFixed(2) + '</span>' +
+                                '<div class="item-actions">' +
+                                    '<button class="btn-icon btn-edit-action" data-id="' + idClean + '">✏️ Editar</button>' +
+                                    '<button class="btn-icon btn-delete-action" data-id="' + idClean + '">🗑️ Apagar</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+
+                document.querySelectorAll('.btn-delete-action').forEach(function(btn) {
+                    btn.onclick = function() {
+                        var id = this.getAttribute('data-id');
+                        window.deleteItem(id);
+                    };
+                });
+
+                document.querySelectorAll('.btn-edit-action').forEach(function(btn) {
+                    btn.onclick = function() {
+                        var id = this.getAttribute('data-id');
+                        window.editItem(id);
+                    };
+                });
+            }
+
+            function renderBills() {
+                var feed = document.getElementById('bills-feed');
+                feed.innerHTML = '';
+
+                var acc = state.currentAccount;
+                var today = getTodayStr();
+
+                var currentBills = state.bills.filter(function(b) {
+                    return (b.account || 'main') === acc && !b.paid;
+                });
+
+                var totalPending = 0;
+                var totalLate = 0;
+
+                if (currentBills.length === 0) {
+                    feed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma conta pendente para esta conta.</div>';
+                } else {
+                    currentBills.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+                    currentBills.forEach(function(b) {
+                        totalPending += Number(b.amount);
+
+                        var badgeClass = 'badge-due-ok';
+                        var badgeText = 'A Vencer';
+
+                        if (b.date < today) {
+                            badgeClass = 'badge-due-late';
+                            badgeText = '🔴 EM ATRASO';
+                            totalLate += Number(b.amount);
+                        } else if (b.date === today) {
+                            badgeClass = 'badge-due-today';
+                            badgeText = '🟡 VENCE HOJE';
+                        }
+
+                        var idClean = String(b.id).replace(/'/g, "");
+                        var docAttach = renderAttachHtml(b.docData, b.docType, 'Ver Boleto / Doc');
+
+                        feed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title">' + b.title + '</span>' +
+                                '<span class="trans-sub">Vencimento: <b>' + formatDate(b.date) + '</b> • ' + (b.detail || 'Boleto/PIX') + '</span>' +
+                                '<div style="margin-top:4px; display:flex; gap:6px; align-items:center;">' +
+                                    '<span class="badge-status ' + badgeClass + '">' + badgeText + '</span>' +
+                                    docAttach +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<span class="trans-amount amount-expense">R$ ' + Number(b.amount).toFixed(2) + '</span>' +
+                                '<div class="item-actions" style="margin-top:4px;">' +
+                                    '<button class="btn-icon" style="background:var(--accent-green); color:#fff; font-weight:bold;" onclick="window.openPayBillModal(\'' + idClean + '\')">✅ Pagar</button>' +
+                                    '<button class="btn-icon" onclick="window.editBill(\'' + idClean + '\')">✏️</button>' +
+                                    '<button class="btn-icon" onclick="window.deleteBill(\'' + idClean + '\')">🗑️</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+
+                document.getElementById('bill-total-pending').textContent = 'R$ ' + totalPending.toFixed(2);
+                document.getElementById('bill-total-late').textContent = 'R$ ' + totalLate.toFixed(2);
+            }
+
+            document.getElementById('form-exp').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var desc = document.getElementById('exp-desc').value.trim();
+                var amt = document.getElementById('exp-amount').value;
+                var date = document.getElementById('exp-date').value;
+                var method = document.getElementById('exp-method').value;
+                var fileInp = document.getElementById('exp-file-receipt');
+
+                if (!desc || !amt || !date) return;
+
+                fileToDataUrl(fileInp, function(b64, ftype) {
+                    var acc = state.currentAccount;
+                    var prof = state.profiles[acc] || {};
+
+                    state.items.unshift({
+                        id: Date.now().toString(),
+                        type: 'expense',
+                        title: desc,
+                        detail: method,
+                        amount: parseFloat(amt),
+                        date: date,
+                        account: acc,
+                        author: prof.name || '',
+                        receiptData: b64,
+                        receiptType: ftype
+                    });
+
+                    saveData();
+                    renderFeeds();
+                    renderReports();
+
+                    document.getElementById('exp-desc').value = '';
+                    document.getElementById('exp-amount').value = '';
+                    fileInp.value = '';
+                });
+            });
+
+            document.getElementById('form-bill').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var desc = document.getElementById('bill-desc').value.trim();
+                var amt = document.getElementById('bill-amount').value;
+                var date = document.getElementById('bill-date').value;
+                var method = document.getElementById('bill-method').value;
+                var fileInp = document.getElementById('bill-file-doc');
+
+                if (!desc || !amt || !date) return;
+
+                fileToDataUrl(fileInp, function(b64, ftype) {
+                    state.bills.unshift({
+                        id: Date.now().toString(),
+                        title: desc,
+                        amount: parseFloat(amt),
+                        date: date,
+                        detail: method,
+                        account: state.currentAccount,
+                        paid: false,
+                        docData: b64,
+                        docType: ftype
+                    });
+
+                    saveData();
+                    renderBills();
+
+                    document.getElementById('bill-desc').value = '';
+                    document.getElementById('bill-amount').value = '';
+                    fileInp.value = '';
+                });
+            });
+
+            window.openPayBillModal = function(id) {
+                var targetId = String(id);
+                var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
+                if (!bill) return;
+
+                document.getElementById('pay-bill-id').value = String(bill.id);
+                document.getElementById('pay-bill-title-preview').value = bill.title;
+                document.getElementById('pay-bill-amount-paid').value = bill.amount;
+                document.getElementById('pay-bill-receipt-file').value = '';
+
+                document.getElementById('modal-pay-bill').classList.add('active');
+            };
+
+            document.getElementById('btn-close-pay-bill').addEventListener('click', function() {
+                document.getElementById('modal-pay-bill').classList.remove('active');
+            });
+
+            document.getElementById('form-pay-bill-confirm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var id = document.getElementById('pay-bill-id').value;
+                var targetId = String(id);
+                var amountPaid = parseFloat(document.getElementById('pay-bill-amount-paid').value);
+                var fileInp = document.getElementById('pay-bill-receipt-file');
+
+                var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
+                if (!bill) return;
+
+                fileToDataUrl(fileInp, function(receiptB64, receiptFtype) {
+                    var acc = state.currentAccount;
+                    var prof = state.profiles[acc] || {};
+
+                    bill.paid = true;
+
+                    state.items.unshift({
+                        id: Date.now().toString(),
+                        type: 'expense',
+                        title: bill.title + ' (Conta Paga)',
+                        detail: bill.detail || 'Boleto/PIX',
+                        amount: amountPaid,
+                        date: getTodayStr(),
+                        account: acc,
+                        author: prof.name || '',
+                        docData: bill.docData || null,
+                        docType: bill.docType || null,
+                        receiptData: receiptB64 || null,
+                        receiptType: receiptFtype || null
+                    });
+
+                    saveData();
+                    renderBills();
+                    renderFeeds();
+                    renderReports();
+
+                    document.getElementById('modal-pay-bill').classList.remove('active');
+                });
+            });
+
+            window.deleteBill = function(id) {
+                if (confirm("Deseja apagar esta conta a pagar?")) {
+                    var targetId = String(id);
+                    state.bills = state.bills.filter(function(b) { return String(b.id) !== targetId; });
+                    saveData();
+                    renderBills();
+                }
+            };
+
+            window.editBill = function(id) {
+                var targetId = String(id);
+                var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
+                if (!bill) return;
+
+                document.getElementById('edit-bill-id').value = String(bill.id);
+                document.getElementById('edit-bill-desc').value = bill.title;
+                document.getElementById('edit-bill-amount').value = bill.amount;
+                document.getElementById('edit-bill-date').value = bill.date;
+                document.getElementById('edit-bill-method').value = bill.detail || 'Boleto/PIX';
+                document.getElementById('edit-bill-doc').value = '';
+
+                document.getElementById('modal-edit-bill').classList.add('active');
+            };
+
+            document.getElementById('btn-close-edit-bill').addEventListener('click', function() {
+                document.getElementById('modal-edit-bill').classList.remove('active');
+            });
+
+            document.getElementById('form-edit-bill').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var id = document.getElementById('edit-bill-id').value;
+                var targetId = String(id);
+                var fileInp = document.getElementById('edit-bill-doc');
+
+                var bill = state.bills.find(function(b) { return String(b.id) === targetId; });
+                if (bill) {
+                    bill.title = document.getElementById('edit-bill-desc').value.trim();
+                    bill.amount = parseFloat(document.getElementById('edit-bill-amount').value);
+                    bill.date = document.getElementById('edit-bill-date').value;
+                    bill.detail = document.getElementById('edit-bill-method').value;
+
+                    fileToDataUrl(fileInp, function(b64, ftype) {
+                        if (b64) {
+                            bill.docData = b64;
+                            bill.docType = ftype;
+                        }
+                        saveData();
+                        renderBills();
+                        document.getElementById('modal-edit-bill').classList.remove('active');
+                    });
+                }
+            });
+
+            window.deleteItem = function(id) {
+                if (confirm("Tem certeza que deseja apagar este lançamento?")) {
+                    var targetId = String(id);
+                    state.items = state.items.filter(function(item) { 
+                        return String(item.id) !== targetId; 
+                    });
+                    saveData();
+                    renderFeeds();
+                    renderReports();
+                }
+            };
+
+            window.editItem = function(id) {
+                var targetId = String(id);
+                var item = state.items.find(function(i) { return String(i.id) === targetId; });
+                if (!item) return;
+
+                document.getElementById('edit-id').value = String(item.id);
+                document.getElementById('edit-title').value = item.title;
+                document.getElementById('edit-detail').value = item.detail || 'Débito/PIX';
+                document.getElementById('edit-amount').value = item.amount;
+                document.getElementById('edit-date').value = item.date;
+
+                document.getElementById('modal-edit').classList.add('active');
+            };
+
+            document.getElementById('btn-close-edit').addEventListener('click', function() {
+                document.getElementById('modal-edit').classList.remove('active');
+            });
+
+            document.getElementById('form-edit').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var id = document.getElementById('edit-id').value;
+                var title = document.getElementById('edit-title').value.trim();
+                var detail = document.getElementById('edit-detail').value.trim();
+                var amount = parseFloat(document.getElementById('edit-amount').value);
+                var date = document.getElementById('edit-date').value;
+
+                var targetId = String(id);
+                var item = state.items.find(function(i) { return String(i.id) === targetId; });
+                if (item) {
+                    item.title = title;
+                    item.detail = detail;
+                    item.amount = amount;
+                    item.date = date;
+
+                    saveData();
+                    renderFeeds();
+                    renderReports();
+                    document.getElementById('modal-edit').classList.remove('active');
+                }
+            });
+
+            function renderPatients() {
+                var feed = document.getElementById('patients-feed');
+                feed.innerHTML = '';
+
+                if (state.patients.length === 0) {
+                    feed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhum paciente cadastrado.</div>';
+                    return;
+                }
+
+                state.patients.forEach(function(p, idx) {
+                    var badgeClass = p.active ? 'badge-active' : 'badge-inactive';
+                    var badgeText = p.active ? 'Ativo (Pagando)' : 'Inativo (Suspenso)';
+
+                    feed.innerHTML += '<div class="transaction-item">' +
+                        '<div>' +
+                            '<span class="trans-title">' + p.name + '</span>' +
+                            '<span class="trans-sub">' + (p.phone ? p.phone + ' • ' : '') + 'R$ ' + Number(p.val).toFixed(2) + '/mês</span>' +
+                        '</div>' +
+                        '<div>' +
+                            '<span class="badge-status ' + badgeClass + '" onclick="window.togglePatientStatus(' + idx + ')">' + badgeText + '</span>' +
+                        '</div>' +
+                    '</div>';
+                });
+            }
+
+            window.togglePatientStatus = function(idx) {
+                if (state.patients[idx]) {
+                    state.patients[idx].active = !state.patients[idx].active;
+                    saveData();
+                    renderPatients();
+                }
+            };
+
+            function initHealthMonthSelector() {
+                var sel = document.getElementById('health-month-select');
+                if (sel.options.length > 0) return;
+
+                var currentKey = getCurrentMonthKey();
+                var d = new Date();
+                
+                for (var i = 0; i < 12; i++) {
+                    var yr = d.getFullYear();
+                    var mo = d.getMonth() + 1;
+                    var key = yr + '-' + (mo < 10 ? '0' + mo : mo);
+                    var label = d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                    label = label.charAt(0).toUpperCase() + label.slice(1);
+
+                    var opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = label;
+                    if (key === currentKey) opt.selected = true;
+                    sel.appendChild(opt);
+
+                    d.setMonth(d.getMonth() - 1);
+                }
+
+                sel.addEventListener('change', function() {
+                    renderHealthData();
+                });
+            }
+
+            function renderHealthData() {
+                initHealthMonthSelector();
+                var selectedMonth = document.getElementById('health-month-select').value || getCurrentMonthKey();
+                var acc = state.currentAccount;
+
+                // MEDICAÇÕES
+                var medsFeed = document.getElementById('meds-feed');
+                medsFeed.innerHTML = '';
+                var currentMeds = state.medications.filter(function(m) {
+                    return m.monthKey === selectedMonth && (m.account || 'sebastiao') === acc;
+                });
+
+                if (currentMeds.length === 0) {
+                    medsFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhum medicamento registrado para este mês. Use o botão de cadastrar ou "Copiar do Mês Anterior".</div>';
+                } else {
+                    currentMeds.forEach(function(m) {
+                        var idClean = String(m.id).replace(/'/g, "");
+                        medsFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title" style="color: var(--accent-green);">' + m.name + ' (' + m.dosage + ')</span>' +
+                                '<span class="trans-sub">⏰ Horários: <b>' + m.times + '</b></span>' +
+                                (m.notes ? '<span class="trans-sub" style="color: var(--text-main);">📝 ' + m.notes + '</span>' : '') +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<div class="item-actions">' +
+                                    '<button class="btn-icon" onclick="window.editMed(\'' + idClean + '\')">✏️ Editar</button>' +
+                                    '<button class="btn-icon" onclick="window.deleteMed(\'' + idClean + '\')">🗑️ Apagar</button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+
+                // EXAMES
+                var examsFeed = document.getElementById('exams-feed');
+                examsFeed.innerHTML = '';
+                var currentExams = state.exams.filter(function(e) {
+                    return (e.account || 'sebastiao') === acc;
+                });
+
+                if (currentExams.length === 0) {
+                    examsFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhum exame cadastrado.</div>';
+                } else {
+                    currentExams.forEach(function(e) {
+                        var idClean = String(e.id).replace(/'/g, "");
+                        var fileHtml = renderAttachHtml(e.fileData, e.fileType, 'Abrir Anexo do Exame');
+
+                        examsFeed.innerHTML += '<div class="transaction-item" style="flex-direction:column; align-items:flex-start; gap:6px;">' +
+                            '<div style="width:100%; display:flex; justify-content:space-between; align-items:center;">' +
+                                '<span class="trans-title" style="color: var(--accent-purple);">' + e.title + '</span>' +
+                                '<button class="btn-icon" onclick="window.deleteExam(\'' + idClean + '\')">🗑️ Apagar</button>' +
+                            '</div>' +
+                            '<span class="trans-sub">📅 Data: ' + formatDate(e.date) + (e.doctor ? ' • 👨‍⚕️ ' + e.doctor : '') + '</span>' +
+                            (e.notes ? '<span class="trans-sub" style="color: var(--text-main);">📝 <b>Laudo:</b> ' + e.notes + '</span>' : '') +
+                            fileHtml +
+                        '</div>';
+                    });
+                }
+
+                // CONSULTAS
+                var apptsFeed = document.getElementById('appts-feed');
+                apptsFeed.innerHTML = '';
+                var currentAppts = state.appointments.filter(function(a) {
+                    return (a.account || 'sebastiao') === acc;
+                });
+
+                if (currentAppts.length === 0) {
+                    apptsFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma consulta agendada.</div>';
+                } else {
+                    currentAppts.forEach(function(a) {
+                        var idClean = String(a.id).replace(/'/g, "");
+                        apptsFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title" style="color: var(--accent-blue);">' + a.spec + ' - ' + a.doctor + '</span>' +
+                                '<span class="trans-sub">📅 ' + formatDate(a.datetime) + ' às ' + (a.datetime.split('T')[1] || '') + '</span>' +
+                                (a.location ? '<span class="trans-sub">📍 ' + a.location + '</span>' : '') +
+                                (a.notes ? '<span class="trans-sub" style="color: var(--accent-amber);">⚠️ Preparo: ' + a.notes + '</span>' : '') +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<button class="btn-icon" onclick="window.deleteAppt(\'' + idClean + '\')">🗑️ Apagar</button>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+
+                // SINAIS VITAIS
+                var vitalsFeed = document.getElementById('vitals-feed');
+                vitalsFeed.innerHTML = '';
+                var currentVitals = state.vitals.filter(function(v) {
+                    return (v.account || 'sebastiao') === acc;
+                });
+
+                if (currentVitals.length === 0) {
+                    vitalsFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma medição registrada.</div>';
+                } else {
+                    currentVitals.forEach(function(v) {
+                        var idClean = String(v.id).replace(/'/g, "");
+                        vitalsFeed.innerHTML += '<div class="transaction-item">' +
+                            '<div class="trans-info">' +
+                                '<span class="trans-title">❤️ PA: ' + (v.pa || 'N/A') + ' mmHg • 🩸 Glicemia: ' + (v.glicemia ? v.glicemia + ' mg/dL' : 'N/A') + '</span>' +
+                                '<span class="trans-sub">📅 ' + formatDate(v.datetime) + ' às ' + (v.datetime.split('T')[1] || '') + '</span>' +
+                            '</div>' +
+                            '<div class="trans-right">' +
+                                '<button class="btn-icon" onclick="window.deleteVital(\'' + idClean + '\')">🗑️ Apagar</button>' +
+                            '</div>' +
+                        '</div>';
+                    });
+                }
+            }
+
+            document.getElementById('btn-migrate-meds').addEventListener('click', function() {
+                var selectedMonth = document.getElementById('health-month-select').value;
+                var acc = state.currentAccount;
+
+                var parts = selectedMonth.split('-');
+                var yr = parseInt(parts[0]);
+                var mo = parseInt(parts[1]) - 1;
+                if (mo === 0) { mo = 12; yr--; }
+                var prevKey = yr + '-' + (mo < 10 ? '0' + mo : mo);
+
+                var prevMeds = state.medications.filter(function(m) {
+                    return m.monthKey === prevKey && (m.account || 'sebastiao') === acc;
+                });
+
+                if (prevMeds.length === 0) {
+                    alert('Nenhuma medicação encontrada no mês anterior (' + prevKey + ') para migrar.');
+                    return;
+                }
+
+                var count = 0;
+                prevMeds.forEach(function(m) {
+                    var exists = state.medications.some(function(curr) {
+                        return curr.monthKey === selectedMonth && curr.name.toLowerCase() === m.name.toLowerCase() && (curr.account || 'sebastiao') === acc;
+                    });
+
+                    if (!exists) {
+                        state.medications.push({
+                            id: Date.now().toString() + Math.random(),
+                            name: m.name,
+                            dosage: m.dosage,
+                            times: m.times,
+                            notes: m.notes || '',
+                            monthKey: selectedMonth,
+                            account: acc
+                        });
+                        count++;
+                    }
+                });
+
+                saveData();
+                renderHealthData();
+                alert(count + ' medicação(ões) migrada(s) com sucesso para o mês atual!');
+            });
+
+            document.getElementById('form-med').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var selectedMonth = document.getElementById('health-month-select').value || getCurrentMonthKey();
+                var name = document.getElementById('med-name').value.trim();
+                var dosage = document.getElementById('med-dosage').value.trim();
+                var times = document.getElementById('med-times').value.trim();
+                var notes = document.getElementById('med-notes').value.trim();
+
+                if (!name || !dosage || !times) return;
+
+                state.medications.unshift({
+                    id: Date.now().toString(),
+                    name: name,
+                    dosage: dosage,
+                    times: times,
+                    notes: notes,
+                    monthKey: selectedMonth,
+                    account: state.currentAccount
+                });
+
+                saveData();
+                renderHealthData();
+
+                document.getElementById('med-name').value = '';
+                document.getElementById('med-dosage').value = '';
+                document.getElementById('med-times').value = '';
+                document.getElementById('med-notes').value = '';
+            });
+
+            window.deleteMed = function(id) {
+                if (confirm("Tem certeza que deseja remover esta medicação deste mês? (O histórico de meses anteriores não será afetado)")) {
+                    var targetId = String(id);
+                    state.medications = state.medications.filter(function(m) { return String(m.id) !== targetId; });
+                    saveData();
+                    renderHealthData();
+                }
+            };
+
+            window.editMed = function(id) {
+                var targetId = String(id);
+                var m = state.medications.find(function(item) { return String(item.id) === targetId; });
+                if (!m) return;
+
+                document.getElementById('edit-med-id').value = String(m.id);
+                document.getElementById('edit-med-name').value = m.name;
+                document.getElementById('edit-med-dosage').value = m.dosage;
+                document.getElementById('edit-med-times').value = m.times;
+                document.getElementById('edit-med-notes').value = m.notes || '';
+
+                document.getElementById('modal-edit-med').classList.add('active');
+            };
+
+            document.getElementById('btn-close-edit-med').addEventListener('click', function() {
+                document.getElementById('modal-edit-med').classList.remove('active');
+            });
+
+            document.getElementById('form-edit-med').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var id = document.getElementById('edit-med-id').value;
+                var targetId = String(id);
+
+                var m = state.medications.find(function(item) { return String(item.id) === targetId; });
+                if (m) {
+                    m.name = document.getElementById('edit-med-name').value.trim();
+                    m.dosage = document.getElementById('edit-med-dosage').value.trim();
+                    m.times = document.getElementById('edit-med-times').value.trim();
+                    m.notes = document.getElementById('edit-med-notes').value.trim();
+
+                    saveData();
+                    renderHealthData();
+                    document.getElementById('modal-edit-med').classList.remove('active');
+                }
+            });
+
+            document.getElementById('form-exam').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var title = document.getElementById('exam-title').value.trim();
+                var date = document.getElementById('exam-date').value;
+                var doctor = document.getElementById('exam-doctor').value.trim();
+                var notes = document.getElementById('exam-notes').value.trim();
+                var fileInput = document.getElementById('exam-file');
+
+                if (!title || !date) return;
+
+                fileToDataUrl(fileInput, function(fileBase64, fileType) {
+                    state.exams.unshift({
+                        id: Date.now().toString(),
+                        title: title,
+                        date: date,
+                        doctor: doctor,
+                        notes: notes,
+                        fileData: fileBase64 || null,
+                        fileType: fileType || null,
+                        account: state.currentAccount
+                    });
+
+                    saveData();
+                    renderHealthData();
+
+                    document.getElementById('exam-title').value = '';
+                    document.getElementById('exam-date').value = '';
+                    document.getElementById('exam-doctor').value = '';
+                    document.getElementById('exam-notes').value = '';
+                    fileInput.value = '';
+                });
+            });
+
+            window.deleteExam = function(id) {
+                if (confirm("Deseja apagar este registro de exame?")) {
+                    var targetId = String(id);
+                    state.exams = state.exams.filter(function(e) { return String(e.id) !== targetId; });
+                    saveData();
+                    renderHealthData();
+                }
+            };
+
+            document.getElementById('form-appt').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var spec = document.getElementById('appt-spec').value.trim();
+                var doc = document.getElementById('appt-doc').value.trim();
+                var datetime = document.getElementById('appt-datetime').value;
+                var location = document.getElementById('appt-location').value.trim();
+                var notes = document.getElementById('appt-notes').value.trim();
+
+                if (!spec || !doc || !datetime) return;
+
+                state.appointments.unshift({
+                    id: Date.now().toString(),
+                    spec: spec,
+                    doctor: doc,
+                    datetime: datetime,
+                    location: location,
+                    notes: notes,
+                    account: state.currentAccount
+                });
+
+                saveData();
+                renderHealthData();
+
+                document.getElementById('appt-spec').value = '';
+                document.getElementById('appt-doc').value = '';
+                document.getElementById('appt-datetime').value = '';
+                document.getElementById('appt-location').value = '';
+                document.getElementById('appt-notes').value = '';
+            });
+
+            window.deleteAppt = function(id) {
+                if (confirm("Deseja apagar esta consulta?")) {
+                    var targetId = String(id);
+                    state.appointments = state.appointments.filter(function(a) { return String(a.id) !== targetId; });
+                    saveData();
+                    renderHealthData();
+                }
+            };
+
+            document.getElementById('form-vital').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var pa = document.getElementById('vital-pa').value.trim();
+                var glicemia = document.getElementById('vital-glicemia').value.trim();
+                var datetime = document.getElementById('vital-datetime').value;
+
+                if (!datetime) return;
+
+                state.vitals.unshift({
+                    id: Date.now().toString(),
+                    pa: pa,
+                    glicemia: glicemia,
+                    datetime: datetime,
+                    account: state.currentAccount
+                });
+
+                saveData();
+                renderHealthData();
+
+                document.getElementById('vital-pa').value = '';
+                document.getElementById('vital-glicemia').value = '';
+                document.getElementById('vital-datetime').value = '';
+            });
+
+            window.deleteVital = function(id) {
+                if (confirm("Deseja apagar esta medição?")) {
+                    var targetId = String(id);
+                    state.vitals = state.vitals.filter(function(v) { return String(v.id) !== targetId; });
+                    saveData();
+                    renderHealthData();
+                }
+            };
+
+            document.querySelectorAll('.subnav-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var sub = this.getAttribute('data-sub');
+                    
+                    document.querySelectorAll('.subnav-btn').forEach(function(b){ b.classList.remove('active'); });
+                    this.classList.add('active');
+
+                    document.getElementById('subtab-meds').style.display = sub === 'meds' ? 'block' : 'none';
+                    document.getElementById('subtab-exams').style.display = sub === 'exams' ? 'block' : 'none';
+                    document.getElementById('subtab-appts').style.display = sub === 'appts' ? 'block' : 'none';
+                    document.getElementById('subtab-vitals').style.display = sub === 'vitals' ? 'block' : 'none';
+                });
+            });
+
+            document.getElementById('btn-export-health-pdf').addEventListener('click', function() {
+                if (!window.jspdf) return alert('Biblioteca PDF carregando, tente em instantes.');
+                var doc = new window.jspdf.jsPDF();
+                
+                var acc = state.currentAccount;
+                var prof = state.profiles[acc] || {};
+                var selectedMonth = document.getElementById('health-month-select').value || getCurrentMonthKey();
+
+                doc.setFontSize(16);
+                doc.text('Relatório Acompanhamento de Saúde - ' + (prof.name || 'Sr. Sebastião'), 14, 20);
+                doc.setFontSize(10);
+                doc.text('Mês de Referência: ' + selectedMonth, 14, 26);
+
+                var medsData = state.medications
+                    .filter(function(m){ return m.monthKey === selectedMonth && (m.account || 'sebastiao') === acc; })
+                    .map(function(m){ return [m.name, m.dosage, m.times, m.notes || '-']; });
+
+                doc.autoTable({
+                    startY: 32,
+                    head: [['Medicamento', 'Dosagem', 'Horários', 'Observações']],
+                    body: medsData.length > 0 ? medsData : [['Nenhum medicamento registrado', '-', '-', '-']]
+                });
+
+                var apptsData = state.appointments
+                    .filter(function(a){ return (a.account || 'sebastiao') === acc; })
+                    .map(function(a){ return [formatDate(a.datetime), a.spec, a.doctor, a.location || '-']; });
+
+                doc.autoTable({
+                    startY: doc.lastAutoTable.finalY + 10,
+                    head: [['Data', 'Especialidade', 'Médico', 'Local']],
+                    body: apptsData.length > 0 ? apptsData : [['Nenhuma consulta agendada', '-', '-', '-']]
+                });
+
+                doc.save('Relatorio_Saude_' + (prof.name || 'Sebastiao').replace(/\s+/g, '_') + '.pdf');
+            });
+
+            function renderReports() {
+                var totalInc = 0;
+                var totalExp = 0;
+
+                state.items.forEach(function(i) {
+                    if ((i.account || 'main') === state.currentAccount) {
+                        if (i.type === 'income') totalInc += Number(i.amount);
+                        if (i.type === 'expense') totalExp += Number(i.amount);
+                    }
+                });
+
+                var bal = totalInc - totalExp;
+
+                document.getElementById('rep-income').textContent = 'R$ ' + totalInc.toFixed(2);
+                document.getElementById('rep-expense').textContent = 'R$ ' + totalExp.toFixed(2);
+
+                var elBal = document.getElementById('rep-balance');
+                elBal.textContent = 'R$ ' + bal.toFixed(2);
+                elBal.style.color = bal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+            }
+
+            function switchTab(tabId) {
+                var contents = document.querySelectorAll('.tab-content');
+                for (var i = 0; i < contents.length; i++) {
+                    contents[i].classList.remove('active');
+                }
+
+                var navs = document.querySelectorAll('.nav-item');
+                for (var j = 0; j < navs.length; j++) {
+                    navs[j].classList.remove('active');
+                }
+
+                var targetContent = document.getElementById('tab-' + tabId);
+                if (targetContent) targetContent.classList.add('active');
+
+                var targetNav = document.querySelector('.nav-item[data-tab="' + tabId + '"]');
+                if (targetNav) targetNav.classList.add('active');
+            }
+
+            document.querySelectorAll('.nav-item').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var tab = this.getAttribute('data-tab');
+                    if (tab) switchTab(tab);
+                });
+            });
+
+            document.getElementById('global-account-select').addEventListener('change', function(e) {
+                state.currentAccount = e.target.value;
+                applyProfileState();
+                renderFeeds();
+                renderBills();
+                renderReports();
+                renderHealthData();
+            });
+
+            document.getElementById('form-inc').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var desc = document.getElementById('inc-desc-select').value;
+                var amt = document.getElementById('inc-amount').value;
+                var date = document.getElementById('inc-date').value;
+
+                if (!desc || !amt || !date) return;
+
+                var acc = state.currentAccount;
+                var prof = state.profiles[acc] || {};
+
+                state.items.unshift({
+                    id: Date.now().toString(),
+                    type: 'income',
+                    title: desc,
+                    detail: 'Receita Registrada',
+                    amount: parseFloat(amt),
+                    date: date,
+                    account: acc,
+                    author: prof.name || ''
+                });
+
+                saveData();
+                renderFeeds();
+                renderReports();
+
+                document.getElementById('inc-amount').value = '';
+            });
+
+            document.getElementById('form-patient').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var name = document.getElementById('pat-name').value.trim();
+                var phone = document.getElementById('pat-phone').value.trim();
+                var val = document.getElementById('pat-val').value;
+
+                if (!name || !val) return;
+
+                state.patients.unshift({
+                    id: Date.now().toString(),
+                    name: name,
+                    phone: phone,
+                    val: parseFloat(val),
+                    active: true
+                });
+
+                saveData();
+                renderPatients();
+
+                document.getElementById('pat-name').value = '';
+                document.getElementById('pat-phone').value = '';
+                document.getElementById('pat-val').value = '';
+            });
+
+            document.getElementById('form-profile').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var acc = state.currentAccount;
+                if (!state.profiles[acc]) state.profiles[acc] = {};
+
+                state.profiles[acc].name = document.getElementById('prof-name').value.trim();
+                state.profiles[acc].job = document.getElementById('prof-job').value;
+                state.profiles[acc].email = document.getElementById('prof-email').value.trim();
+
+                saveData(true);
+                applyProfileState();
+                alert('Perfil salvo com sucesso para esta conta!');
+            });
+
+            var modalSync = document.getElementById('modal-sync');
+            document.getElementById('btn-open-sync').addEventListener('click', function() {
+                document.getElementById('sync-room-id').value = state.syncRoomId || DEFAULT_ROOM;
+                modalSync.classList.add('active');
+            });
+
+            document.getElementById('btn-close-sync').addEventListener('click', function() {
+                modalSync.classList.remove('active');
+            });
+
+            document.getElementById('btn-save-sync').addEventListener('click', function() {
+                var val = document.getElementById('sync-room-id').value.trim().toLowerCase();
+                if (val) {
+                    state.syncRoomId = val;
+                    saveData(false);
+                    initFirebaseSync();
+                    modalSync.classList.remove('active');
+                    alert('Conectado à sala: ' + val);
+                }
+            });
+
+            var btnVoice = document.getElementById('btn-voice-input');
+            var voiceBox = document.getElementById('voice-text-preview');
+            var recognitionInst = null;
+            var timerInatividade = null;
+            var isListening = false;
+
+            var SpeechRecObj = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (SpeechRecObj) {
+                recognitionInst = new SpeechRecObj();
+                recognitionInst.lang = 'pt-BR';
+                recognitionInst.continuous = true;
+                recognitionInst.interimResults = false;
+
+                btnVoice.addEventListener('click', function() {
+                    if (!isListening) {
+                        voiceBox.textContent = "Ouvindo... Fale a descrição";
+                        limparTimer();
+
+                        try {
+                            recognitionInst.start();
+                            isListening = true;
+                            btnVoice.classList.add('listening');
+                            document.getElementById('voice-status-title').textContent = 'Ouvindo...';
+                            document.getElementById('voice-status-desc').textContent = 'O app aguardará até 10 segundos pelo valor.';
+                        } catch(e){}
+                    } else {
+                        desligarMicrofone();
+                    }
+                });
+
+                recognitionInst.onresult = function(event) {
+                    var textoFinal = "";
+                    for (var i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            textoFinal += event.results[i][0].transcript + " ";
+                        }
+                    }
+
+                    if (!textoFinal.trim()) return;
+
+                    var txt = textoFinal.toLowerCase().trim();
+                    txt = txt.replace(/\b(\w+)\s+\1\b/gi, '$1');
+
+                    voiceBox.textContent = '"' + txt + '"';
+
+                    var match = txt.match(/(.*?)\s+(\d+([.,]\d+)?)\s*(reais|real)?$/);
+
+                    if (match) {
+                        var desc = match[1].trim();
+                        var amt = parseFloat(match[2].replace(',', '.'));
+
+                        desc = desc.split(' ').filter(function(item, pos, self) {
+                            return self.indexOf(item) == pos;
+                        }).join(' ');
+
+                        if (desc && !isNaN(amt)) {
+                            var acc = state.currentAccount;
+                            var prof = state.profiles[acc] || {};
+
+                            state.items.unshift({
+                                id: Date.now().toString(),
+                                type: 'expense',
+                                title: desc.charAt(0).toUpperCase() + desc.slice(1),
+                                detail: 'Débito/PIX',
+                                amount: amt,
+                                date: getTodayStr(),
+                                account: acc,
+                                author: prof.name || ''
+                            });
+
+                            saveData();
+                            renderFeeds();
+                            renderReports();
+
+                            desligarMicrofone();
+                            voiceBox.textContent = '✅ Salvo: ' + desc + ' - R$ ' + amt.toFixed(2);
+                            return;
+                        }
+                    }
+
+                    reiniciarTimerSilencio();
+                };
+
+                recognitionInst.onend = function() {
+                    if (isListening) {
+                        try { recognitionInst.start(); } catch(e){}
+                    } else {
+                        btnVoice.classList.remove('listening');
+                    }
+                };
+
+                function desligarMicrofone() {
+                    isListening = false;
+                    limparTimer();
+                    try { recognitionInst.stop(); } catch(e){}
+                    btnVoice.classList.remove('listening');
+                    document.getElementById('voice-status-title').textContent = 'Lançamento por Voz com Espera';
+                    document.getElementById('voice-status-desc').textContent = 'Toque para acionar. Após a primeira palavra, o app aguarda até 10s pelo valor.';
+                }
+
+                function reiniciarTimerSilencio() {
+                    limparTimer();
+                    timerInatividade = setTimeout(function() {
+                        desligarMicrofone();
+                        voiceBox.textContent = 'Tempo limite (10s) esgotado. Clique no microfone para tentar de novo.';
+                    }, 10000);
+                }
+
+                function limparTimer() {
+                    if (timerInatividade) {
+                        clearTimeout(timerInatividade);
+                        timerInatividade = null;
+                    }
+                }
+            } else {
+                btnVoice.style.display = 'none';
+                document.getElementById('voice-status-desc').textContent = 'Reconhecimento de voz não suportado neste navegador.';
+            }
+
+            // IMPORTAÇÃO EXCEL EXPANDIDA (SUPORTA CONTAS A PAGAR/BOLETOS)
+            var fileInput = document.getElementById('excel-import-input');
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    var file = e.target.files[0];
+                    if (!file) return;
+
+                    var reader = new FileReader();
+                    reader.onload = function(evt) {
+                        try {
+                            var data = new Uint8Array(evt.target.result);
+                            var workbook = XLSX.read(data, { type: 'array' });
+                            var firstSheet = workbook.SheetNames[0];
+                            var rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheet]);
+
+                            var countItems = 0;
+                            var countBills = 0;
+
+                            rows.forEach(function(row) {
+                                var getVal = function(keys) {
+                                    for (var k in row) {
+                                        if (keys.indexOf(k.toLowerCase().trim()) !== -1) return row[k];
+                                    }
+                                    return null;
+                                };
+
+                                var tipo = String(getVal(['tipo', 'categoria']) || 'Despesa').toLowerCase();
+                                var desc = String(getVal(['descrição', 'descricao', 'nome', 'titulo']) || 'Importado');
+                                var valor = parseFloat(getVal(['valor', 'monto', 'quantia']) || 0);
+                                var dataItem = String(getVal(['data', 'vencimento']) || getTodayStr());
+                                var forma = String(getVal(['formapagamento', 'forma', 'pagamento']) || 'Boleto/PIX');
+
+                                if (tipo.indexOf('pagar') !== -1 || tipo.indexOf('boleto') !== -1 || tipo.indexOf('pendente') !== -1) {
+                                    state.bills.unshift({
+                                        id: Date.now().toString() + Math.random(),
+                                        title: desc,
+                                        amount: valor,
+                                        date: dataItem,
+                                        detail: forma,
+                                        account: state.currentAccount,
+                                        paid: false
+                                    });
+                                    countBills++;
+                                } else {
+                                    var isInc = tipo.indexOf('receita') !== -1 || tipo.indexOf('renda') !== -1;
+                                    state.items.unshift({
+                                        id: Date.now().toString() + Math.random(),
+                                        type: isInc ? 'income' : 'expense',
+                                        title: desc,
+                                        detail: isInc ? 'Receita Registrada' : forma,
+                                        amount: valor,
+                                        date: dataItem,
+                                        account: state.currentAccount,
+                                        author: (state.profiles[state.currentAccount] || {}).name || ''
+                                    });
+                                    countItems++;
+                                }
+                            });
+
+                            saveData();
+                            applyProfileState();
+                            renderFeeds();
+                            renderBills();
+                            renderReports();
+
+                            alert('Importação concluída!\n• ' + countItems + ' Lançamentos (Despesas/Receitas)\n• ' + countBills + ' Contas a Pagar');
+                        } catch(err) {
+                            alert('Erro ao ler a planilha. Verifique o formato do arquivo.');
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            document.getElementById('btn-export-pdf').addEventListener('click', function() {
+                if (!window.jspdf) return alert('Biblioteca PDF carregando, tente em instantes.');
+                var doc = new window.jspdf.jsPDF();
+                
+                doc.setFontSize(16);
+                doc.text('Relatório Financeiro - ' + getAccountLabel(), 14, 20);
+                
+                var rows = state.items
+                    .filter(function(i){ return (i.account || 'main') === state.currentAccount; })
+                    .map(function(i){ return [formatDate(i.date), i.type === 'income' ? 'Receita' : 'Despesa', i.title, i.detail, 'R$ ' + Number(i.amount).toFixed(2)]; });
+
+                doc.autoTable({
+                    startY: 30,
+                    head: [['Data', 'Tipo', 'Descrição', 'Pagamento/Detalhe', 'Valor']],
+                    body: rows
+                });
+
+                doc.save('Relatorio_Financeiro.pdf');
+            });
+
+            document.getElementById('btn-export-excel').addEventListener('click', function() {
+                if (!window.XLSX) return alert('Biblioteca Excel carregando, tente em instantes.');
+                var data = state.items
+                    .filter(function(i){ return (i.account || 'main') === state.currentAccount; })
+                    .map(function(i){
+                        return {
+                            Data: formatDate(i.date),
+                            Tipo: i.type === 'income' ? 'Receita' : 'Despesa',
+                            Descrição: i.title,
+                            Pagamento: i.detail,
+                            Valor: Number(i.amount)
+                        };
+                    });
+
+                var ws = XLSX.utils.json_to_sheet(data);
+                var wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Financeiro");
+                XLSX.writeFile(wb, "Relatorio_Financeiro.xlsx");
+            });
+
+            document.getElementById('btn-share-wsp').addEventListener('click', function() {
+                var inc = document.getElementById('rep-income').textContent;
+                var exp = document.getElementById('rep-expense').textContent;
+                var bal = document.getElementById('rep-balance').textContent;
+
+                var txt = '*Resumo Financeiro (' + getAccountLabel() + ')*\n\n' +
+                          '📈 Receitas: ' + inc + '\n' +
+                          '📉 Despesas: ' + exp + '\n' +
+                          '💰 Balanço: ' + bal;
+
+                window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(txt), '_blank');
+            });
+
+            document.getElementById('btn-share-email').addEventListener('click', function() {
+                var inc = document.getElementById('rep-income').textContent;
+                var exp = document.getElementById('rep-expense').textContent;
+                var bal = document.getElementById('rep-balance').textContent;
+
+                var body = 'Resumo Financeiro (' + getAccountLabel() + '):\n\n' +
+                           'Receitas: ' + inc + '\n' +
+                           'Despesas: ' + exp + '\n' +
+                           'Balanço Geral: ' + bal;
+
+                window.location.href = 'mailto:?subject=' + encodeURIComponent('Resumo Financeiro - ' + getAccountLabel()) + '&body=' + encodeURIComponent(body);
+            });
+
+            var today = getTodayStr();
+            document.getElementById('exp-date').value = today;
+            document.getElementById('bill-date').value = today;
+            document.getElementById('inc-date').value = today;
+
+            loadData();
+            applyProfileState();
+            renderFeeds();
+            renderBills();
+            renderReports();
+            renderPatients();
+            renderHealthData();
+            initFirebaseSync();
+
+        })();
+    </script>
+</body>
+</html>
