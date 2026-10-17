@@ -1375,6 +1375,14 @@
                     return i.type === 'income' && (i.account || 'main') === state.currentAccount; 
                 });
 
+                var byDateDesc = function(a, b) {
+    var d = String(b.date || '').localeCompare(String(a.date || ''));
+    if (d !== 0) return d;
+    return String(b.id).localeCompare(String(a.id));
+};
+exps.sort(byDateDesc);
+incs.sort(byDateDesc);
+                
                 if (exps.length === 0) {
                     expFeed.innerHTML = '<div style="color:var(--text-sub); font-size:0.8rem;">Nenhuma despesa para esta conta.</div>';
                 } else {
