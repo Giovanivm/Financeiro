@@ -1342,6 +1342,10 @@
                     • <b>Computador (Chrome/Edge):</b> Clique no ícone ⊕ na barra de endereço.
                 </p>
             </div>
+
+            <div style="text-align:center; font-size:0.75rem; color:var(--text-sub); padding:4px 0 12px;">
+                Versão do app: <b>2026.10.23-salas</b>
+            </div>
         </div>
 
     </div>
@@ -2319,7 +2323,7 @@
                 var el = document.getElementById('auth-info');
                 if (!el) return;
                 el.innerHTML = user
-                    ? 'Conectado como <b>' + esc(user.email) + '</b>'
+                    ? 'Conectado como <b>' + esc(user.email) + '</b><br>Sala sincronizada: <b>' + esc(currentRoomName()) + '</b>'
                     : '<span style="color:var(--accent-amber);">Sem login (sem internet ao abrir o app). Os dados ficam só neste aparelho até conectar.</span>';
             }
 
@@ -2401,6 +2405,44 @@
                 firebase.auth().signOut();
             });
 
+            // ===== SALAS: cada sala tem os seus próprios lançamentos =====
+            var DATA_KEYS = ['items', 'bills', 'billSeries', 'patients', 'medications', 'exams', 'appointments', 'vitals'];
+            var roomCopySource = null; // dados da sala anterior, guardados só para a pergunta "copiar?"
+
+            function dataHasContent(obj) {
+                return DATA_KEYS.some(function(k) { return obj && obj[k] && obj[k].length; });
+            }
+
+            function currentRoomName() {
+                var r = (state.syncRoomId || DEFAULT_ROOM).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+                return r || 'familia';
+            }
+
+            function renderAllData() {
+                applyProfileState();
+                renderFeeds();
+                renderBills();
+                renderReports();
+                renderPatients();
+                renderHealthData();
+            }
+
+            function switchRoom(newRoom) {
+                var oldRoom = currentRoomName();
+                // Guarda uma cópia da sala atual (só para oferecer copiar, se a nova estiver vazia)
+                var snap = JSON.parse(JSON.stringify(DATA_KEYS.reduce(function(o, k) { o[k] = state[k] || []; return o; }, {})));
+                snap.__room = oldRoom;
+                roomCopySource = snap;
+
+                // Esvazia a tela: a sala nova mostra SÓ os dados dela
+                DATA_KEYS.forEach(function(k) { state[k] = []; });
+                state.syncRoomId = newRoom;
+                saveData(false);
+                renderAllData();
+                initFirebaseSync();
+                renderAuthInfo(window.firebase && firebase.auth ? firebase.auth().currentUser : null);
+            }
+
             function initFirebaseSync() {
                 var dot = document.getElementById('sync-status-dot');
                 var roomId = (state.syncRoomId || DEFAULT_ROOM).trim().toLowerCase();
@@ -2464,17 +2506,23 @@
                                 if (ensureSeriesBills()) { saveData(); renderBills(); renderReports(); }
                             }, 0);
                         } else {
-                            dbRef.set({
-                                profiles: sharedProfiles(),
-                                items: state.items,
-                                bills: state.bills,
-                                patients: state.patients,
-                                medications: state.medications,
-                                exams: state.exams,
-                                appointments: state.appointments,
-                                vitals: state.vitals,
-                        billSeries: state.billSeries || []
-                            });
+                            // Sala vazia na nuvem: NUNCA copia nada sozinho — sempre pergunta.
+                            var src = roomCopySource;
+                            roomCopySource = null;
+                            var roomName = cleanRoom;
+                            if (src) {
+                                if (dataHasContent(src) && confirm('A sala "' + roomName + '" está VAZIA.\n\nOK = copiar para ela os lançamentos da sala anterior ("' + src.__room + '")\nCancelar = começar esta sala vazia')) {
+                                    DATA_KEYS.forEach(function(k) { state[k] = src[k] || []; });
+                                    saveData(); // envia para a sala nova
+                                    renderAllData();
+                                }
+                                // Cancelar: a sala fica vazia e nada é gravado
+                            } else if (dataHasContent(state)) {
+                                // Abriu o app numa sala que está vazia na nuvem (ex.: sala apagada no painel)
+                                if (confirm('A sala "' + roomName + '" está vazia na nuvem, mas este aparelho tem lançamentos guardados.\n\nOK = enviar os lançamentos deste aparelho para a sala "' + roomName + '"\nCancelar = não enviar (continuam só neste aparelho)')) {
+                                    saveData();
+                                }
+                            }
                         }
                     });
 
@@ -4655,14 +4703,16 @@
             });
 
             document.getElementById('btn-save-sync').addEventListener('click', function() {
-                var val = document.getElementById('sync-room-id').value.trim().toLowerCase();
-                if (val) {
-                    state.syncRoomId = val;
-                    saveData(false);
-                    initFirebaseSync();
+                var val = document.getElementById('sync-room-id').value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+                if (!val) return alert('Digite o nome da sala (só letras minúsculas e números).');
+                if (val === currentRoomName()) {
                     modalSync.classList.remove('active');
-                    alert('Conectado à sala: ' + val);
+                    initFirebaseSync();
+                    return;
                 }
+                if (!confirm('Mudar para a sala "' + val + '"?\n\nCada sala tem os seus próprios lançamentos. Os dados da sala atual ("' + currentRoomName() + '") continuam guardados nela.')) return;
+                modalSync.classList.remove('active');
+                switchRoom(val);
             });
 
             var btnVoice = document.getElementById('btn-voice-input');
