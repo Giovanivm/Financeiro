@@ -1344,7 +1344,7 @@
             </div>
 
             <div style="text-align:center; font-size:0.75rem; color:var(--text-sub); padding:4px 0 12px;">
-                Versão do app: <b>2026.10.23-salas</b>
+                Versão do app: <b>2026.10.23-salas-senha</b>
             </div>
         </div>
 
@@ -1520,6 +1520,32 @@
                 </div>
                 <button type="submit" class="btn-submit" style="background-color: var(--accent-blue);">Salvar Alterações</button>
             </form>
+        </div>
+    </div>
+
+    <!-- MODAL: SALA VAZIA / COPIAR DADOS (exige senha) -->
+    <div class="modal-overlay" id="modal-copy-room">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.05rem;" id="copy-room-title">Sala vazia</h3>
+                <button id="btn-close-copy-room" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <p style="font-size: 0.88rem; line-height: 1.45; margin-bottom: 14px;" id="copy-room-intro"></p>
+
+            <button type="button" class="btn-submit" id="btn-copy-room-empty" style="background-color: var(--accent-blue); color:#0f172a;">✅ Usar a sala vazia (não copiar nada)</button>
+
+            <button type="button" class="link-btn" id="btn-copy-room-show" style="display:block; width:100%; margin-top:16px;">Quero copiar os dados para esta sala…</button>
+
+            <div id="copy-room-advanced" style="display:none; margin-top: 16px; border: 1px solid var(--accent-amber); border-radius: 10px; padding: 12px;">
+                <div style="font-weight: 700; color: var(--accent-amber); margin-bottom: 8px;">⚠️ Copiar dados</div>
+                <p style="font-size: 0.82rem; line-height: 1.45; margin-bottom: 12px;" id="copy-room-what"></p>
+                <div class="form-group">
+                    <label>Digite a sua <b>senha de acesso ao app</b> para confirmar</label>
+                    <input type="password" id="copy-room-pass" class="form-control" autocomplete="current-password">
+                </div>
+                <button type="button" class="btn-submit" id="btn-copy-room-confirm" style="background-color: var(--accent-amber); color:#0f172a;">🔐 Confirmar e Copiar</button>
+                <div id="copy-room-msg" style="font-size: 0.82rem; color: var(--accent-red); margin-top: 8px; min-height: 1.1em;"></div>
+            </div>
         </div>
     </div>
 
@@ -2427,6 +2453,86 @@
                 renderHealthData();
             }
 
+            // ===== COPIAR DADOS PARA UMA SALA VAZIA (exige a senha de acesso) =====
+            var copyRoomPending = null;
+
+            function countData(src) {
+                return {
+                    items: (src.items || []).length,
+                    bills: (src.bills || []).length,
+                    series: (src.billSeries || []).length,
+                    others: (src.patients || []).length + (src.medications || []).length + (src.exams || []).length + (src.appointments || []).length + (src.vitals || []).length
+                };
+            }
+
+            function openCopyRoomModal(src, roomName, mode) {
+                copyRoomPending = { src: src, room: roomName };
+                var c = countData(src);
+                document.getElementById('copy-room-title').textContent = 'A sala "' + roomName + '" está vazia';
+                document.getElementById('copy-room-intro').innerHTML = mode === 'local'
+                    ? 'Não há nenhum lançamento nesta sala na nuvem, mas <b>este aparelho</b> tinha dados guardados (eles não foram apagados).'
+                    : 'Você entrou numa sala nova. <b>Nada foi copiado.</b> Ela começa vazia.';
+                document.getElementById('copy-room-what').innerHTML =
+                    'Copiar <b>' + c.items + '</b> lançamento(s), <b>' + c.bills + '</b> conta(s) a pagar, <b>' + c.series + '</b> parcelamento(s)' +
+                    (c.others ? ' e <b>' + c.others + '</b> registro(s) de pacientes/saúde' : '') +
+                    '<br>de <b>' + esc(mode === 'local' ? 'este aparelho' : 'sala "' + src.__room + '"') + '</b> ➜ para <b>sala "' + esc(roomName) + '"</b>.' +
+                    (mode === 'local' ? '' : '<br><span style="color:var(--text-sub);">A sala "' + esc(src.__room) + '" continua com os dados dela.</span>');
+                document.getElementById('copy-room-pass').value = '';
+                document.getElementById('copy-room-msg').textContent = '';
+                document.getElementById('copy-room-advanced').style.display = 'none';
+                document.getElementById('btn-copy-room-show').style.display = 'block';
+                document.getElementById('modal-copy-room').classList.add('active');
+            }
+
+            function closeCopyRoomModal() {
+                copyRoomPending = null;
+                document.getElementById('copy-room-pass').value = '';
+                document.getElementById('modal-copy-room').classList.remove('active');
+            }
+
+            document.getElementById('btn-copy-room-empty').addEventListener('click', closeCopyRoomModal);
+            document.getElementById('btn-close-copy-room').addEventListener('click', closeCopyRoomModal);
+
+            document.getElementById('btn-copy-room-show').addEventListener('click', function() {
+                this.style.display = 'none';
+                document.getElementById('copy-room-advanced').style.display = 'block';
+                document.getElementById('copy-room-pass').focus();
+            });
+
+            document.getElementById('btn-copy-room-confirm').addEventListener('click', function() {
+                var msg = document.getElementById('copy-room-msg');
+                var pass = document.getElementById('copy-room-pass').value;
+                var p = copyRoomPending;
+                if (!p) return closeCopyRoomModal();
+                if (!pass) { msg.textContent = 'Digite a sua senha de acesso ao app.'; return; }
+                var user = window.firebase && firebase.auth ? firebase.auth().currentUser : null;
+                if (!user) { msg.textContent = 'Você precisa estar conectado (com internet) para copiar.'; return; }
+
+                var btn = this;
+                btn.disabled = true;
+                btn.textContent = 'Conferindo senha...';
+                msg.textContent = '';
+                var cred = firebase.auth.EmailAuthProvider.credential(user.email, pass);
+                user.reauthenticateWithCredential(cred).then(function() {
+                    if (currentRoomName() !== p.room) throw { code: 'room-changed' };
+                    DATA_KEYS.forEach(function(k) { state[k] = p.src[k] || []; });
+                    saveData(); // grava na sala nova
+                    renderAllData();
+                    try { localStorage.removeItem('sf_orphan_data'); } catch(e) {}
+                    closeCopyRoomModal();
+                    alert('✅ Dados copiados para a sala "' + p.room + '".');
+                }).catch(function(err) {
+                    var code = err && err.code;
+                    msg.textContent = code === 'room-changed' ? 'Você mudou de sala no meio do caminho. Nada foi copiado.'
+                        : (code === 'auth/too-many-requests' ? 'Muitas tentativas. Espere alguns minutos.'
+                        : (code === 'auth/network-request-failed' ? 'Sem internet. Nada foi copiado.'
+                        : 'Senha incorreta. Nada foi copiado.'));
+                }).then(function() {
+                    btn.disabled = false;
+                    btn.textContent = '🔐 Confirmar e Copiar';
+                });
+            });
+
             function switchRoom(newRoom) {
                 var oldRoom = currentRoomName();
                 // Guarda uma cópia da sala atual (só para oferecer copiar, se a nova estiver vazia)
@@ -2506,22 +2612,22 @@
                                 if (ensureSeriesBills()) { saveData(); renderBills(); renderReports(); }
                             }, 0);
                         } else {
-                            // Sala vazia na nuvem: NUNCA copia nada sozinho — sempre pergunta.
+                            // Sala vazia na nuvem: NADA é copiado sem a senha da pessoa.
                             var src = roomCopySource;
                             roomCopySource = null;
                             var roomName = cleanRoom;
                             if (src) {
-                                if (dataHasContent(src) && confirm('A sala "' + roomName + '" está VAZIA.\n\nOK = copiar para ela os lançamentos da sala anterior ("' + src.__room + '")\nCancelar = começar esta sala vazia')) {
-                                    DATA_KEYS.forEach(function(k) { state[k] = src[k] || []; });
-                                    saveData(); // envia para a sala nova
-                                    renderAllData();
-                                }
-                                // Cancelar: a sala fica vazia e nada é gravado
+                                if (dataHasContent(src)) openCopyRoomModal(src, roomName, 'switch');
                             } else if (dataHasContent(state)) {
-                                // Abriu o app numa sala que está vazia na nuvem (ex.: sala apagada no painel)
-                                if (confirm('A sala "' + roomName + '" está vazia na nuvem, mas este aparelho tem lançamentos guardados.\n\nOK = enviar os lançamentos deste aparelho para a sala "' + roomName + '"\nCancelar = não enviar (continuam só neste aparelho)')) {
-                                    saveData();
-                                }
+                                // Abriu o app numa sala vazia na nuvem com dados guardados no aparelho.
+                                // Tira os dados da tela (para não irem junto no próximo lançamento) e guarda uma cópia no aparelho.
+                                var localSnap = JSON.parse(JSON.stringify(DATA_KEYS.reduce(function(o, k) { o[k] = state[k] || []; return o; }, {})));
+                                localSnap.__room = 'este aparelho';
+                                try { localStorage.setItem('sf_orphan_data', JSON.stringify(localSnap)); } catch(e) {}
+                                DATA_KEYS.forEach(function(k) { state[k] = []; });
+                                saveData(false);
+                                renderAllData();
+                                openCopyRoomModal(localSnap, roomName, 'local');
                             }
                         }
                     });
@@ -4710,7 +4816,7 @@
                     initFirebaseSync();
                     return;
                 }
-                if (!confirm('Mudar para a sala "' + val + '"?\n\nCada sala tem os seus próprios lançamentos. Os dados da sala atual ("' + currentRoomName() + '") continuam guardados nela.')) return;
+                if (!confirm('Mudar para a sala "' + val + '"?\n\nCada sala tem os seus próprios lançamentos. NADA será copiado.\nOs dados da sala atual ("' + currentRoomName() + '") continuam guardados nela.')) return;
                 modalSync.classList.remove('active');
                 switchRoom(val);
             });
