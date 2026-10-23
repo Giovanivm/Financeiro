@@ -1328,7 +1328,7 @@
                     <button type="button" class="btn-action btn-excel" id="btn-backup-download">💾 Baixar Backup</button>
                     <button type="button" class="btn-action btn-email" id="btn-backup-share">📤 Enviar Backup</button>
                 </div>
-                <input type="file" id="backup-file-input" accept=".json,application/json" style="display:none;">
+                <input type="file" id="backup-file-input" accept=".json,.txt,application/json,text/plain" style="display:none;">
                 <button type="button" class="btn-action" id="btn-backup-restore" style="background: var(--bg-input); border: 1px solid var(--border-color); margin-top: 10px;">♻️ Restaurar a partir de um Backup</button>
             </div>
 
@@ -4503,27 +4503,42 @@
             }
 
             function downloadBackup() {
-                var blob = backupBlob();
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url;
-                a.download = backupFileName();
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
-                markBackupDone();
+                try {
+                    var blob = backupBlob();
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = backupFileName();
+                    a.style.display = 'none';
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(function() { a.remove(); URL.revokeObjectURL(url); }, 60000);
+                    markBackupDone();
+                    alert('✅ Backup gerado: ' + a.download + '\n\nEle fica na pasta "Downloads" do aparelho. Recomendo enviar uma cópia para o Google Drive ou para o seu e-mail.');
+                } catch(err) {
+                    alert('Não foi possível gerar o backup: ' + (err && err.message ? err.message : err));
+                }
             }
 
+            // O Android não deixa compartilhar arquivos .json; por isso o envio vai como .txt
+            // (o conteúdo é o mesmo e o "Restaurar" aceita os dois formatos).
             function shareBackup() {
-                var file;
-                try { file = new File([backupBlob()], backupFileName(), { type: 'application/json' }); } catch(e) { file = null; }
-                if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({ files: [file], title: 'Backup Finanças', text: 'Backup do app Sucesso Financeiro' })
+                var file = null;
+                try {
+                    var json = JSON.stringify(buildBackup());
+                    file = new File([json], backupFileName().replace(/\.json$/, '.txt'), { type: 'text/plain' });
+                } catch(e) { file = null; }
+
+                if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({ files: [file], title: 'Backup Finanças' })
                         .then(markBackupDone)
-                        .catch(function() {});
+                        .catch(function(err) {
+                            if (err && err.name === 'AbortError') return; // a pessoa fechou a janela de envio
+                            alert('O envio não funcionou neste aparelho. Vou baixar o arquivo; depois é só enviar pelo WhatsApp, e-mail ou Drive.');
+                            downloadBackup();
+                        });
                 } else {
-                    alert('Este aparelho não permite enviar direto. O arquivo será baixado; depois é só enviar pelo WhatsApp, e-mail ou Drive.');
+                    alert('Este aparelho não permite enviar direto. Vou baixar o arquivo; depois é só enviar pelo WhatsApp, e-mail ou Drive.');
                     downloadBackup();
                 }
             }
@@ -4556,7 +4571,7 @@
                     rem.innerHTML = '<div style="display:flex; align-items:center; gap:10px;">' +
                         '<div style="flex:1; font-size:0.8rem;">💾 ' + (days === null ? 'Você ainda não fez nenhum backup.' : 'Faz ' + days + ' dias desde o último backup.') + ' Leva 1 segundo.</div>' +
                         '<button type="button" class="btn-icon" id="btn-backup-quick" style="background:var(--accent-green); color:#fff; font-weight:bold; padding:6px 10px;">Fazer agora</button></div>';
-                    document.getElementById('btn-backup-quick').onclick = function() { shareBackup(); };
+                    document.getElementById('btn-backup-quick').onclick = function() { downloadBackup(); };
                 } else {
                     rem.style.display = 'none';
                 }
