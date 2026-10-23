@@ -687,6 +687,12 @@
         </div>
     </div>
 
+    <!-- FAIXA DE ATUALIZAÇÃO (aparece quando existe versão nova publicada) -->
+    <div id="update-banner" style="display:none; align-items:center; gap:10px; background: var(--accent-green); color:#fff; padding: 8px 16px; font-size: 0.85rem; font-weight: 600;">
+        <span style="flex:1;">🔄 Nova versão do app disponível (<span id="update-banner-ver"></span>)</span>
+        <button type="button" id="btn-update-now" style="background:#fff; color:#065f46; border:none; border-radius:6px; padding:6px 12px; font-weight:700; cursor:pointer;">Atualizar agora</button>
+    </div>
+
     <div class="top-bar">
         <h1>Sucesso Financeiro & Saúde</h1>
         <div class="top-actions">
@@ -1301,7 +1307,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>E-mail / Contato</label>
+                        <label>E-mail / Contato <span id="prof-email-req" style="color:var(--accent-red);">(obrigatório)</span></label>
                         <input type="email" id="prof-email" class="form-control" placeholder="email@exemplo.com">
                     </div>
                     <button type="submit" class="btn-submit">Salvar Perfil Desta Conta</button>
@@ -1344,7 +1350,7 @@
             </div>
 
             <div style="text-align:center; font-size:0.75rem; color:var(--text-sub); padding:4px 0 12px;">
-                Versão do app: <b>2026.10.23-salas-senha</b>
+                Versão do app: <b id="app-version"></b>
             </div>
         </div>
 
@@ -1627,16 +1633,25 @@
 
             var FIXED_DB_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/";
             var FIXED_API_KEY = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE";
-            var DEFAULT_ROOM  = "familia";
+            var DEFAULT_ROOM  = "riqueza";
 
             var dbRef = null;
             var isRemoteUpdate = false;
 
-            // Recarregar de verdade: limpa caches e atualiza o service worker antes de recarregar
-            document.getElementById('btn-force-reset').addEventListener('click', function() {
-                var done = function() { window.location.reload(); };
+            // ===================== VERSÃO E ATUALIZAÇÃO =====================
+            // Ao publicar uma versão nova, basta mudar este número.
+            var APP_VERSION = '2026.10.23-email-obrigatorio';
+
+            // Busca a versão nova direto do GitHub (ignorando a cópia guardada no aparelho) e recarrega
+            function hardReload() {
+                var base = location.pathname.replace(/[^\/]*$/, '');
+                var done = function() { location.replace(base + 'index.html?v=' + Date.now()); };
                 try {
-                    var tasks = [];
+                    var tasks = [
+                        fetch(base + 'index.html', { cache: 'reload' }).catch(function() {}),
+                        fetch(base, { cache: 'reload' }).catch(function() {}),
+                        fetch(base + 'sw.js', { cache: 'reload' }).catch(function() {})
+                    ];
                     if (window.caches && caches.keys) {
                         tasks.push(caches.keys().then(function(keys) {
                             return Promise.all(keys.map(function(k) { return caches.delete(k); }));
@@ -1648,8 +1663,39 @@
                         }));
                     }
                     Promise.all(tasks).then(done, done);
+                    setTimeout(done, 4000); // não deixa a pessoa esperando se a internet estiver lenta
                 } catch(e) { done(); }
+            }
+
+            document.getElementById('btn-force-reset').addEventListener('click', hardReload);
+
+            // Confere se existe versão mais nova publicada; se existir, mostra a faixa "Atualizar"
+            var lastUpdateCheck = 0;
+            function checkForUpdate() {
+                if (!/^https?:/.test(location.protocol) || !window.fetch) return;
+                if (Date.now() - lastUpdateCheck < 60000) return;
+                lastUpdateCheck = Date.now();
+                var base = location.pathname.replace(/[^\/]*$/, '');
+                fetch(base + 'index.html?check=' + Date.now(), { cache: 'no-store' })
+                    .then(function(r) { return r.ok ? r.text() : ''; })
+                    .then(function(txt) {
+                        var m = txt.match(/var APP_VERSION = '([^']+)'/);
+                        if (m && m[1] !== APP_VERSION) {
+                            var bn = document.getElementById('update-banner');
+                            document.getElementById('update-banner-ver').textContent = m[1];
+                            bn.style.display = 'flex';
+                        }
+                    })
+                    .catch(function() {});
+            }
+
+            document.getElementById('btn-update-now').addEventListener('click', hardReload);
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible') checkForUpdate();
             });
+            setInterval(checkForUpdate, 30 * 60 * 1000);
+            setTimeout(checkForUpdate, 3000);
+            document.getElementById('app-version').textContent = APP_VERSION;
 
             var state = {
                 currentAccount: 'main',
@@ -1782,7 +1828,10 @@
                 });
 
                 var banner = document.getElementById('device-user-banner');
-                if (u) {
+                if (u && !(deviceProfile && deviceProfile.email)) {
+                    banner.innerHTML = '⚠️ Falta o seu e-mail no perfil (obrigatório). <a href="#" id="lnk-change-user" style="color:var(--accent-blue); font-weight:bold;">Abrir perfil</a>';
+                    banner.style.color = 'var(--accent-amber)';
+                } else if (u) {
                     banner.innerHTML = '👤 Lançando como: <b>' + esc(u) + '</b> <a href="#" id="lnk-change-user" style="color:var(--accent-blue);">perfil</a>';
                     banner.style.color = 'var(--text-sub)';
                 } else {
@@ -2368,7 +2417,7 @@
                     if (user) {
                         try { localStorage.setItem(LAST_EMAIL_KEY, user.email || ''); } catch(e) {}
                         showLogin(false);
-                        initFirebaseSync();
+                        syncUserRoom(user);
                     } else {
                         if (dbRef) { try { dbRef.off(); } catch(e) {} dbRef = null; }
                         document.getElementById('sync-status-dot').classList.remove('sync-active');
@@ -2533,6 +2582,42 @@
                 });
             });
 
+            // ===== SALA SALVA NA CONTA (users/<uid>/room no Firebase) =====
+            // Assim, ao entrar com e-mail e senha em qualquer aparelho, o app já abre na sala certa.
+            function userRoomRef(user) {
+                return firebase.database().ref('users/' + user.uid + '/room');
+            }
+
+            function saveUserRoom(room) {
+                try {
+                    var u = window.firebase && firebase.auth ? firebase.auth().currentUser : null;
+                    if (u && u.uid) userRoomRef(u).set(room).catch(function() {});
+                } catch(e) {}
+            }
+
+            function syncUserRoom(user) {
+                var go = function() { initFirebaseSync(); renderAuthInfo(user); applyProfileState(); renderDeviceUser(); };
+                try {
+                    if (!user || !user.uid) return go();
+                    var ref = userRoomRef(user);
+                    if (!ref.once) return go();
+                    ref.once('value').then(function(snap) {
+                        var saved = snap && snap.val ? snap.val() : null;
+                        saved = saved ? String(saved).toLowerCase().replace(/[^a-z0-9_-]/g, '') : '';
+                        if (saved && saved !== currentRoomName()) {
+                            // A conta usa outra sala: troca sem copiar nada (os dados vêm da nuvem)
+                            DATA_KEYS.forEach(function(k) { state[k] = []; });
+                            state.syncRoomId = saved;
+                            saveData(false);
+                            renderAllData();
+                        } else if (!saved) {
+                            saveUserRoom(currentRoomName());
+                        }
+                        go();
+                    }).catch(go);
+                } catch(e) { go(); }
+            }
+
             function switchRoom(newRoom) {
                 var oldRoom = currentRoomName();
                 // Guarda uma cópia da sala atual (só para oferecer copiar, se a nova estiver vazia)
@@ -2547,6 +2632,7 @@
                 renderAllData();
                 initFirebaseSync();
                 renderAuthInfo(window.firebase && firebase.auth ? firebase.auth().currentUser : null);
+                saveUserRoom(newRoom);
             }
 
             function initFirebaseSync() {
@@ -2658,7 +2744,13 @@
 
                 document.getElementById('prof-name').value = activeProfile.name || '';
                 document.getElementById('prof-job').value = activeProfile.job || 'penal';
-                document.getElementById('prof-email').value = activeProfile.email || '';
+                var emailInp = document.getElementById('prof-email');
+                var loginEmail = '';
+                try { loginEmail = (window.firebase && firebase.auth && firebase.auth().currentUser || {}).email || ''; } catch(e) {}
+                // No perfil deste aparelho o e-mail é obrigatório (já vem preenchido com o e-mail do login)
+                emailInp.value = activeProfile.email || (acc === 'main' ? loginEmail : '');
+                emailInp.required = acc === 'main';
+                document.getElementById('prof-email-req').style.display = acc === 'main' ? 'inline' : 'none';
 
                 var patNav = document.getElementById('nav-patients');
                 var healthNav = document.getElementById('nav-health');
@@ -4601,6 +4693,18 @@
                 e.preventDefault();
                 var acc = state.currentAccount;
                 if (!state.profiles[acc]) state.profiles[acc] = {};
+
+                var emailVal = document.getElementById('prof-email').value.trim();
+                if (acc === 'main' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(emailVal)) {
+                    alert('Preencha um e-mail válido. Ele é obrigatório no perfil.');
+                    document.getElementById('prof-email').focus();
+                    return;
+                }
+                if (!document.getElementById('prof-name').value.trim()) {
+                    alert('Preencha o nome.');
+                    document.getElementById('prof-name').focus();
+                    return;
+                }
 
                 state.profiles[acc].name = document.getElementById('prof-name').value.trim();
                 state.profiles[acc].job = document.getElementById('prof-job').value;
