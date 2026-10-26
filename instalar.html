@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Instalar · Sucesso Financeiro</title>
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanças">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <style>
+        :root {
+            --bg: #0f172a; --card: #1e293b; --input: #334155; --text: #f8fafc; --sub: #94a3b8;
+            --green: #10b981; --blue: #38bdf8; --purple: #a855f7; --amber: #f59e0b; --border: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        html, body { background: var(--bg); color: var(--text); min-height: 100%; }
+        body {
+            display: flex; align-items: center; justify-content: center;
+            padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+            min-height: 100vh; min-height: 100dvh;
+        }
+        .box { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 26px 20px; text-align: center; }
+        .logo { width: 96px; height: 96px; border-radius: 22px; }
+        h1 { font-size: 1.35rem; margin: 14px 0 4px; color: var(--blue); }
+        .lead { color: var(--sub); font-size: 0.92rem; line-height: 1.45; margin-bottom: 20px; }
+        .btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+            padding: 15px; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer;
+            text-decoration: none;
+        }
+        .btn-install { background: var(--purple); color: #fff; }
+        .btn-install:disabled { background: var(--input); color: var(--sub); cursor: not-allowed; }
+        .btn-open { background: var(--green); color: #fff; margin-top: 12px; }
+        .btn-sec { background: var(--input); color: var(--text); margin-top: 12px; font-size: 0.92rem; font-weight: 600; padding: 12px; }
+        .status { font-size: 0.92rem; line-height: 1.45; margin-top: 16px; padding: 12px; border-radius: 10px; display: none; text-align: left; }
+        .status.ok { display: block; background: rgba(16,185,129,0.15); border: 1px solid var(--green); }
+        .status.warn { display: block; background: rgba(245,158,11,0.15); border: 1px solid var(--amber); }
+        .steps { text-align: left; font-size: 0.92rem; line-height: 1.7; margin-top: 16px; display: none; }
+        .steps.show { display: block; }
+        .foot { color: var(--sub); font-size: 0.75rem; margin-top: 18px; line-height: 1.4; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <img class="logo" src="icon-192.png" alt="">
+        <h1>Sucesso Financeiro</h1>
+        <p class="lead">Instale o app no seu aparelho. Ele ganha um ícone na <b>tela inicial do celular</b> ou na <b>área de trabalho do computador</b> e abre como um aplicativo normal.</p>
+
+        <button class="btn btn-install" id="btn-install">📲 Instalar o App</button>
+        <a class="btn btn-open" id="btn-open" href="index.html" style="display:none;">▶️ Abrir o App</a>
+
+        <div class="status" id="status"></div>
+        <div class="steps" id="steps"></div>
+        <button class="btn btn-sec" id="btn-copy" style="display:none;">📋 Copiar link do instalador</button>
+
+        <p class="foot">O app não precisa de loja (Play Store / App Store) e não instala nada além do atalho do próprio app.</p>
+    </div>
+
+    <script>
+    (function() {
+        var INSTALLER_URL = 'https://giovanivm.github.io/Financeiro/instalar.html';
+        var deferredPrompt = null;
+        var btn = document.getElementById('btn-install');
+        var openBtn = document.getElementById('btn-open');
+        var statusEl = document.getElementById('status');
+        var stepsEl = document.getElementById('steps');
+        var copyBtn = document.getElementById('btn-copy');
+
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(function() {});
+
+        function flag(v) {
+            try {
+                if (v === undefined) return localStorage.getItem('sf_installed') === '1';
+                localStorage.setItem('sf_installed', v ? '1' : '0');
+            } catch(e) { return false; }
+        }
+
+        function isStandalone() {
+            return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+        }
+
+        var ua = navigator.userAgent || '';
+        var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var isAndroid = /Android/i.test(ua);
+        var inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)|GSA\//i.test(ua);
+        var iosOtherBrowser = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+
+        function show(type, html) {
+            statusEl.className = 'status ' + type;
+            statusEl.innerHTML = html;
+        }
+
+        // ===== JÁ ESTÁ INSTALADO: bloqueia o botão =====
+        function blockInstalled(extra) {
+            flag(true);
+            btn.disabled = true;
+            btn.textContent = '✅ App já instalado';
+            openBtn.style.display = 'flex';
+            stepsEl.className = 'steps';
+            copyBtn.style.display = 'none';
+            show('ok', '<b>O app já está instalado neste aparelho.</b><br>' +
+                (extra || 'Procure o ícone 💲 <b>Finanças</b> na tela inicial do celular ou na área de trabalho do computador.'));
+        }
+
+        function stepsHtml() {
+            if (isIOS && (inApp || iosOtherBrowser)) {
+                copyBtn.style.display = 'flex';
+                return '<b>Você abriu pelo WhatsApp ou outro aplicativo.</b> No iPhone, só dá para instalar pelo <b>Safari</b>:<br>' +
+                    '1️⃣ Toque em <b>"Copiar link do instalador"</b> (abaixo).<br>' +
+                    '2️⃣ Abra o <b>Safari</b> (bússola azul) e cole o link.<br>' +
+                    '3️⃣ Toque em <b>Compartilhar</b> (quadrado com seta ⬆️).<br>' +
+                    '4️⃣ Toque em <b>"Adicionar à Tela de Início"</b> → <b>Adicionar</b>.';
+            }
+            if (isIOS) {
+                return '1️⃣ Toque em <b>Compartilhar</b> (quadrado com seta ⬆️) na barra do Safari.<br>' +
+                    '2️⃣ Role e toque em <b>"Adicionar à Tela de Início"</b>.<br>' +
+                    '3️⃣ Toque em <b>Adicionar</b>. Pronto: o ícone 💲 aparece na tela do iPhone.';
+            }
+            if (isAndroid && inApp) {
+                copyBtn.style.display = 'flex';
+                return '<b>Você abriu pelo WhatsApp ou outro aplicativo.</b><br>' +
+                    '1️⃣ Toque nos <b>3 pontinhos ⋮</b> lá em cima → <b>"Abrir no Chrome"</b>.<br>' +
+                    '2️⃣ No Chrome, toque de novo em <b>"Instalar o App"</b>.';
+            }
+            if (isAndroid) {
+                return '1️⃣ No Chrome, toque nos <b>3 pontinhos ⋮</b> lá em cima.<br>' +
+                    '2️⃣ Toque em <b>"Instalar app"</b> ou <b>"Adicionar à tela inicial"</b> → <b>Instalar</b>.';
+            }
+            return '1️⃣ No <b>Chrome</b> ou <b>Edge</b>, clique no ícone de instalar (🖥️⬇ ou ⊕) no lado direito da barra de endereço.<br>' +
+                '2️⃣ Ou: Chrome → menu <b>⋮</b> → <b>"Transmitir, salvar e compartilhar"</b> → <b>"Instalar página como app"</b>. Edge → <b>⋯</b> → <b>Aplicativos</b> → <b>Instalar este site como um aplicativo</b>.<br>' +
+                '3️⃣ Se perguntar, marque <b>"Criar atalho na área de trabalho"</b>.';
+        }
+
+        // Aberto já como app instalado
+        if (isStandalone()) {
+            blockInstalled('Você já está dentro do app instalado.');
+            return;
+        }
+
+        // Android / computador: o navegador avisa se o app já está instalado
+        if (navigator.getInstalledRelatedApps) {
+            navigator.getInstalledRelatedApps().then(function(apps) {
+                if (apps && apps.length) blockInstalled();
+            }).catch(function() {});
+        }
+
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Se o navegador oferece instalar, então NÃO está instalado
+            flag(false);
+            if (!btn.disabled) {
+                statusEl.className = 'status';
+                stepsEl.className = 'steps';
+            }
+        });
+
+        window.addEventListener('appinstalled', function() {
+            blockInstalled('Instalação concluída! 🎉 O ícone 💲 <b>Finanças</b> já está na tela inicial / área de trabalho.');
+        });
+
+        // Chrome/Edge no computador ou Android que não oferecem instalar: provavelmente já instalado
+        if (!isIOS && flag()) {
+            setTimeout(function() { if (!deferredPrompt) blockInstalled(); }, 1500);
+        }
+
+        btn.addEventListener('click', function() {
+            if (btn.disabled) return;
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(function(choice) {
+                    deferredPrompt = null;
+                    if (choice.outcome === 'accepted') {
+                        blockInstalled('Instalação concluída! 🎉 O ícone 💲 <b>Finanças</b> já está na tela inicial / área de trabalho.');
+                    } else {
+                        show('warn', 'Instalação cancelada. Toque em <b>"Instalar o App"</b> quando quiser.');
+                    }
+                });
+                return;
+            }
+            // Sem instalação automática (iPhone, ou navegador que não oferece): mostra o passo a passo
+            stepsEl.innerHTML = stepsHtml();
+            stepsEl.className = 'steps show';
+            if (isIOS && !inApp && !iosOtherBrowser) {
+                show('warn', 'No iPhone a instalação é feita pelo próprio Safari. Se o ícone 💲 <b>Finanças</b> já estiver na sua tela inicial, o app <b>já está instalado</b>.');
+            }
+        });
+
+        copyBtn.addEventListener('click', function() {
+            var done = function() { alert('Link copiado! Cole no Safari (iPhone) ou no Chrome (Android).'); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(INSTALLER_URL).then(done).catch(function() { prompt('Copie o link:', INSTALLER_URL); });
+            } else {
+                prompt('Copie o link:', INSTALLER_URL);
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
