@@ -719,11 +719,10 @@
         </div>
     </div>
 
-    <div class="account-selector-bar">
+    <div class="account-selector-bar" style="display:none;">
         <label for="global-account-select">GESTÃO DE:</label>
         <select id="global-account-select" class="account-select">
-            <option value="main">Finanças Principais (Família)</option>
-            <option value="sebastiao">Sr. Sebastião (Pai)</option>
+            <option value="main">Minhas Finanças</option>
         </select>
     </div>
 
@@ -739,11 +738,6 @@
 
         <!-- ABA 1: DESPESAS -->
         <div id="tab-expenses" class="tab-content active">
-            <div id="install-banner" class="card" style="display:none; align-items:center; gap:10px; padding:12px; border-color: var(--accent-purple);">
-                <div style="flex:1; font-size:0.82rem;">📲 <b>Instale o app</b> na tela inicial para abrir com um toque.</div>
-                <button type="button" class="btn-icon" id="btn-install-banner" style="background:var(--accent-purple); color:#fff; font-weight:bold; padding:6px 10px;">Instalar</button>
-                <button type="button" id="btn-install-banner-close" title="Agora não" style="background:none; border:none; color:var(--text-sub); font-size:1.3rem; cursor:pointer;">&times;</button>
-            </div>
             <div id="device-user-banner" style="font-size:0.8rem; margin-bottom:10px;"></div>
             <div id="backup-reminder" class="card" style="display:none; border-color: var(--accent-amber); padding:12px;"></div>
             <div class="summary-grid">
@@ -783,6 +777,10 @@
                         <label>Vencimento Original da Conta (opcional)</label>
                         <input type="date" id="exp-due" class="form-control">
                         <div style="font-size:0.72rem; color:var(--text-sub); margin-top:4px;">A despesa fica no mês da data acima (pagamento); o vencimento aparece junto, para referência.</div>
+                    </div>
+                    <div class="form-group" id="exp-for-wrap" style="display:none;">
+                        <label>Referente a</label>
+                        <select id="exp-for" class="form-control"></select>
                     </div>
                     <div class="form-group">
                         <label>Forma de Pagamento</label>
@@ -845,6 +843,10 @@
                     <div class="form-group">
                         <label>Data de Vencimento</label>
                         <input type="date" id="bill-date" class="form-control" required>
+                    </div>
+                    <div class="form-group" id="bill-for-wrap" style="display:none;">
+                        <label>Referente a</label>
+                        <select id="bill-for" class="form-control"></select>
                     </div>
                     <div class="form-group">
                         <label>Forma Prevista de Pagamento</label>
@@ -917,6 +919,10 @@
                         <label>Origem / Categoria</label>
                         <select id="inc-desc-select" class="form-control"></select>
                     </div>
+                    <div class="form-group" id="inc-for-wrap" style="display:none;">
+                        <label>Referente a</label>
+                        <select id="inc-for" class="form-control"></select>
+                    </div>
                     <div class="form-group">
                         <label>Valor (R$)</label>
                         <input type="number" step="0.01" id="inc-amount" class="form-control" placeholder="0,00" required>
@@ -964,6 +970,10 @@
 
         <!-- ABA DE SAÚDE (SR. SEBASTIÃO) -->
         <div id="tab-health" class="tab-content">
+            <div class="month-selector-bar" id="health-person-wrap" style="display:none;">
+                <span style="font-size: 0.8rem; color: var(--text-sub);">Saúde de:</span>
+                <select id="health-person-select"></select>
+            </div>
             <div class="subnav-container">
                 <button class="subnav-btn active" data-sub="meds">💊 Medicações do Mês</button>
                 <button class="subnav-btn" data-sub="exams">🔬 Exames & Laudos</button>
@@ -1211,6 +1221,7 @@
                             <option value="title">Descrição</option>
                             <option value="method">Forma de Pagamento</option>
                             <option value="author">Quem lançou</option>
+                            <option value="person">Referente a (dependente)</option>
                             <option value="account">Conta</option>
                         </select>
                     </div>
@@ -1320,6 +1331,7 @@
                     <div class="form-group">
                         <label>Profissão / Categoria Principal</label>
                         <select id="prof-job" class="form-control">
+                            <option value="">Selecione...</option>
                             <option value="penal">Policial Penal</option>
                             <option value="nutri">Nutricionista</option>
                             <option value="aposentado">Aposentado / Pensionista</option>
@@ -1332,6 +1344,23 @@
                     </div>
                     <button type="submit" class="btn-submit">Salvar Perfil Desta Conta</button>
                 </form>
+            </div>
+
+            <!-- DEPENDENTES E SAÚDE -->
+            <div class="card" style="border-color: var(--accent-blue);">
+                <div class="card-title">👥 Dependentes (pessoas que você cuida)</div>
+                <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 10px; line-height: 1.4;">
+                    Cadastre aqui pai, mãe, filho ou outra pessoa cujas finanças você acompanha. Vale para todos os aparelhos da sua sala.
+                </p>
+                <div id="dependents-list"></div>
+                <button type="button" class="btn-action" id="btn-add-dependent" style="background: var(--accent-blue); color:#0f172a; margin-top: 10px;">➕ Adicionar dependente</button>
+
+                <div style="border-top: 1px solid var(--border-color); margin-top: 16px; padding-top: 12px;">
+                    <label style="display:flex; align-items:flex-start; gap:10px; font-size:0.88rem; line-height:1.4; cursor:pointer;">
+                        <input type="checkbox" id="main-health-toggle" style="margin-top:3px; width:18px; height:18px;">
+                        <span>❤️ <b>Quero usar a parte de Saúde para mim</b><br><span style="color:var(--text-sub); font-size:0.8rem;">Remédios, exames, consultas e medições de pressão/glicemia em "Minhas Finanças".</span></span>
+                    </label>
+                </div>
             </div>
 
             <div class="card">
@@ -1359,11 +1388,11 @@
             </div>
 
             <div class="card" style="border-color: var(--accent-purple);">
-                <div class="card-title">📲 Instalar o App</div>
+                <div class="card-title">📲 Instalador do App</div>
                 <div id="install-status" style="font-size: 0.85rem; margin-bottom: 10px; line-height: 1.4;"></div>
                 <div class="export-grid">
-                    <button type="button" class="btn-action btn-pwa" id="btn-install-pwa">📲 Instalar neste aparelho</button>
-                    <button type="button" class="btn-action" id="btn-share-app" style="background: var(--bg-input); border: 1px solid var(--border-color);">🔗 Enviar link do app</button>
+                    <button type="button" class="btn-action btn-pwa" id="btn-install-pwa">📲 Abrir instalador</button>
+                    <button type="button" class="btn-action" id="btn-share-app" style="background: var(--bg-input); border: 1px solid var(--border-color);">🔗 Enviar link do instalador</button>
                 </div>
             </div>
 
@@ -1464,6 +1493,57 @@
                     <input type="checkbox" id="edit-bill-apply-series"> Aplicar novo valor e forma de pagamento às próximas parcelas
                 </label>
                 <button type="submit" class="btn-submit" style="background-color: var(--accent-amber); color:#0f172a;">Salvar Alteração</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADICIONAR / EDITAR DEPENDENTE -->
+    <div class="modal-overlay" id="modal-dependent">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.1rem;" id="dep-modal-title">👥 Novo Dependente</h3>
+                <button type="button" id="btn-close-dependent" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <form id="form-dependent">
+                <input type="hidden" id="dep-id">
+                <div class="form-group">
+                    <label>Nome do dependente</label>
+                    <input type="text" id="dep-name" class="form-control" placeholder="Ex: Maria (minha mãe)" required>
+                </div>
+                <div class="form-group">
+                    <label>Parentesco (opcional)</label>
+                    <input type="text" id="dep-relation" class="form-control" placeholder="Ex: Mãe, Pai, Filho, Sogra">
+                </div>
+
+                <div class="form-group">
+                    <label>As finanças dele(a) são:</label>
+                    <label style="display:flex; gap:10px; align-items:flex-start; background:var(--bg-input); border-radius:8px; padding:10px; margin-bottom:8px; cursor:pointer;">
+                        <input type="radio" name="dep-mode" value="separate" checked style="margin-top:3px;">
+                        <span><b>Separadas (100% independentes)</b><br><span style="font-size:0.8rem; color:var(--text-sub);">Ganha uma conta própria em "Gestão de", com despesas, rendas, contas a pagar e relatórios só dele(a). Nada se mistura com as suas.</span></span>
+                    </label>
+                    <label style="display:flex; gap:10px; align-items:flex-start; background:var(--bg-input); border-radius:8px; padding:10px; cursor:pointer;">
+                        <input type="radio" name="dep-mode" value="joint" style="margin-top:3px;">
+                        <span><b>Em conjunto com as minhas</b><br><span style="font-size:0.8rem; color:var(--text-sub);">Os lançamentos entram em "Minhas Finanças", marcados com o nome dele(a) no campo "Referente a".</span></span>
+                    </label>
+                    <div id="dep-mode-locked" style="display:none; font-size:0.78rem; color:var(--accent-amber); margin-top:6px;">Este dependente já tem lançamentos; o tipo não pode ser trocado para não misturar dados.</div>
+                </div>
+
+                <div class="form-group" id="dep-job-wrap">
+                    <label>Principal fonte de renda dele(a)</label>
+                    <select id="dep-job" class="form-control">
+                        <option value="aposentado">Aposentadoria / Pensão</option>
+                        <option value="outras">Salário / Outras</option>
+                        <option value="nutri">Nutricionista</option>
+                        <option value="penal">Policial Penal</option>
+                    </select>
+                </div>
+
+                <label style="display:flex; gap:10px; align-items:flex-start; font-size:0.88rem; margin-bottom:14px; cursor:pointer;">
+                    <input type="checkbox" id="dep-health" style="margin-top:3px; width:18px; height:18px;">
+                    <span>❤️ <b>Usar a parte de Saúde para ele(a)</b><br><span style="font-size:0.8rem; color:var(--text-sub);">Remédios, exames, consultas e medições.</span></span>
+                </label>
+
+                <button type="submit" class="btn-submit" style="background-color: var(--accent-blue); color:#0f172a;">Salvar Dependente</button>
             </form>
         </div>
     </div>
@@ -1605,8 +1685,12 @@
                 Para conectar celulares diferentes, digite a <b>mesma senha de sala</b> em todos os aparelhos (Exemplo: <code>familia</code> ou <code>casa123</code>).
             </p>
             <div class="form-group">
+                <div id="sync-room-hint" style="display:none; background: rgba(245,158,11,0.15); border: 1px solid var(--accent-amber); border-radius: 8px; padding: 10px; font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px;">
+                    👋 <b>Primeiro acesso:</b> digite o nome da sala que a sua família usa (peça a quem te convidou).
+                    Se for começar do zero, invente um nome novo: a sala começa vazia.
+                </div>
                 <label style="font-weight: bold; color: var(--accent-blue);">Senha da Sala Compartilhada</label>
-                <input type="text" id="sync-room-id" class="form-control" placeholder="Ex: familia" style="font-size: 1.1rem; text-align: center; font-weight: bold; letter-spacing: 1px;">
+                <input type="text" id="sync-room-id" class="form-control" placeholder="Nome da sala" style="font-size: 1.1rem; text-align: center; font-weight: bold; letter-spacing: 1px;">
             </div>
             <button class="btn-submit" id="btn-save-sync" style="background-color: var(--accent-blue); font-size: 1rem; padding: 12px; margin-top: 10px;">Conectar Aparelhos</button>
         </div>
@@ -1652,7 +1736,7 @@
             // ===================== INSTALADOR (tela inicial do celular / atalho no computador) =====================
             var deferredPrompt = null;
             var btnInstallPWA = document.getElementById('btn-install-pwa');
-            var APP_URL = 'https://giovanivm.github.io/Financeiro/';
+            var APP_URL = 'https://giovanivm.github.io/Financeiro/instalar.html';
 
             function isStandalone() {
                 return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
@@ -1701,52 +1785,32 @@
                 document.getElementById('modal-install').classList.add('active');
             }
 
+            // O instalador fica numa página separada (instalar.html). Aqui só mostramos o status e o atalho para ela.
             function renderInstallStatus() {
                 var el = document.getElementById('install-status');
                 if (!el) return;
                 if (isStandalone()) {
-                    el.innerHTML = '<span style="color:var(--accent-green);">✅ Você está usando o app instalado.</span>';
+                    try { localStorage.setItem('sf_installed', '1'); } catch(e) {}
+                    el.innerHTML = '<span style="color:var(--accent-green);">✅ App instalado neste aparelho.</span> Para instalar em outro aparelho, envie o link do instalador.';
                     btnInstallPWA.style.display = 'none';
                 } else {
-                    el.innerHTML = 'Coloque o app na <b>tela inicial do celular</b> ou na <b>área de trabalho do computador</b>. Ele abre em tela cheia, como um aplicativo normal.';
+                    el.innerHTML = 'Para instalar o app na <b>tela inicial do celular</b> ou na <b>área de trabalho do computador</b>, use o instalador.';
                     btnInstallPWA.style.display = 'flex';
-                }
-                var bn = document.getElementById('install-banner');
-                var dismissed = false;
-                try { dismissed = localStorage.getItem('sf_install_dismissed') === '1'; } catch(e) {}
-                if (bn) bn.style.display = (!isStandalone() && !dismissed) ? 'flex' : 'none';
-            }
-
-            function doInstall() {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then(function(choice) {
-                        deferredPrompt = null;
-                        if (choice.outcome === 'accepted') {
-                            try { localStorage.setItem('sf_install_dismissed', '1'); } catch(e) {}
-                        }
-                        renderInstallStatus();
-                    });
-                } else {
-                    openInstallHelp();
                 }
             }
 
             window.addEventListener('beforeinstallprompt', function(e) {
                 e.preventDefault();
                 deferredPrompt = e;
-                renderInstallStatus();
+                try { localStorage.setItem('sf_installed', '0'); } catch(e2) {}
             });
             window.addEventListener('appinstalled', function() {
-                try { localStorage.setItem('sf_install_dismissed', '1'); } catch(e) {}
+                try { localStorage.setItem('sf_installed', '1'); } catch(e) {}
                 renderInstallStatus();
             });
 
-            btnInstallPWA.addEventListener('click', doInstall);
-            document.getElementById('btn-install-banner').addEventListener('click', doInstall);
-            document.getElementById('btn-install-banner-close').addEventListener('click', function() {
-                try { localStorage.setItem('sf_install_dismissed', '1'); } catch(e) {}
-                renderInstallStatus();
+            btnInstallPWA.addEventListener('click', function() {
+                location.href = 'instalar.html';
             });
             document.getElementById('btn-close-install').addEventListener('click', function() {
                 document.getElementById('modal-install').classList.remove('active');
@@ -1763,7 +1827,7 @@
             document.getElementById('btn-install-copy').addEventListener('click', copyAppLink);
 
             document.getElementById('btn-share-app').addEventListener('click', function() {
-                var text = 'App Sucesso Financeiro. No iPhone, abra este link no Safari; no Android, no Chrome. Depois toque em "Instalar" no Perfil:';
+                var text = 'Instalador do app Sucesso Financeiro. No iPhone, abra este link no Safari; no Android, no Chrome:';
                 if (navigator.share) {
                     navigator.share({ title: 'Sucesso Financeiro', text: text, url: APP_URL }).catch(function() {});
                 } else {
@@ -1775,14 +1839,15 @@
 
             var FIXED_DB_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/";
             var FIXED_API_KEY = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE";
-            var DEFAULT_ROOM  = "riqueza";
+            // Sem sala padrão: um aparelho novo só entra numa sala salva na conta ou escolhida pela pessoa
+            var DEFAULT_ROOM  = "";
 
             var dbRef = null;
             var isRemoteUpdate = false;
 
             // ===================== VERSÃO E ATUALIZAÇÃO =====================
             // Ao publicar uma versão nova, basta mudar este número.
-            var APP_VERSION = '2026.10.26-instalar';
+            var APP_VERSION = '2026.10.26-dependentes';
 
             // Busca a versão nova direto do GitHub (ignorando a cópia guardada no aparelho) e recarrega
             function hardReload() {
@@ -1844,8 +1909,7 @@
                 currentMonth: null,
                 syncRoomId: DEFAULT_ROOM,
                 profiles: {
-                    main: { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' },
-                    sebastiao: { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
+                    main: { name: '', job: '', email: '' }
                 },
                 items: [],
                 bills: [],
@@ -1854,7 +1918,11 @@
                 exams: [],
                 appointments: [],
                 vitals: [],
-                billSeries: []
+                billSeries: [],
+                // Dependentes: [{ id, name, relation, mode: 'separate'|'joint', health: true|false }]
+                dependents: [],
+                // Configurações da sala (ex.: mainHealth = usar a parte de Saúde em "Minhas Finanças")
+                settings: {}
             };
 
             var jobIncomes = {
@@ -1864,18 +1932,241 @@
                 outras: ['Salário', 'Renda Extra', 'Serviços Prestados', 'Vendas']
             };
 
-            function getAccountLabel() {
-                var sel = document.getElementById('global-account-select');
-                return sel.options[sel.selectedIndex].text;
+            // ===================== CONTAS E DEPENDENTES =====================
+            // "main" = Minhas Finanças. Dependentes com finanças SEPARADAS viram contas próprias (100% independentes).
+            // Dependentes EM CONJUNTO não têm conta própria: os lançamentos entram em "Minhas Finanças", marcados com o nome.
+            var MAIN_LABEL = 'Minhas Finanças';
+
+            function getDependents() { return state.dependents || []; }
+            function getDependent(id) { return getDependents().find(function(d) { return d.id === id; }) || null; }
+            function separateDeps() { return getDependents().filter(function(d) { return d.mode === 'separate'; }); }
+            function jointDeps() { return getDependents().filter(function(d) { return d.mode !== 'separate'; }); }
+
+            function accountExists(acc) {
+                if (acc === 'main') return true;
+                var d = getDependent(acc);
+                return !!(d && d.mode === 'separate');
             }
 
             function getAccountLabelById(acc) {
-                var sel = document.getElementById('global-account-select');
-                for (var i = 0; i < sel.options.length; i++) {
-                    if (sel.options[i].value === acc) return sel.options[i].text;
-                }
-                return acc;
+                if (!acc || acc === 'main') return MAIN_LABEL;
+                var d = getDependent(acc);
+                if (d) return d.name + (d.relation ? ' (' + d.relation + ')' : '');
+                var p = state.profiles[acc];
+                return (p && p.name) || acc;
             }
+
+            function getAccountLabel() { return getAccountLabelById(state.currentAccount); }
+
+            function personName(id) {
+                if (!id || id === 'main') return getAuthorName() || 'Eu';
+                var d = getDependent(id);
+                return d ? d.name : id;
+            }
+
+            // Converte o antigo "Sr. Sebastião" (fixo no app) em dependente separado com Saúde — sem mexer nos dados
+            function migrateDependents() {
+                if (!state.dependents) state.dependents = [];
+                if (getDependent('sebastiao')) return false;
+                var usesSeb = ['items', 'bills', 'medications', 'exams', 'appointments', 'vitals', 'billSeries'].some(function(k) {
+                    return (state[k] || []).some(function(x) { return x.account === 'sebastiao'; });
+                }) || !!state.profiles.sebastiao;
+                // Registros de saúde antigos sem "account" eram do Sr. Sebastião
+                if (!usesSeb) usesSeb = ['medications', 'exams', 'appointments', 'vitals'].some(function(k) {
+                    return (state[k] || []).some(function(x) { return !x.account; });
+                });
+                if (!usesSeb) return false;
+                var p = state.profiles.sebastiao || {};
+                state.dependents.push({ id: 'sebastiao', name: p.name || 'Sr. Sebastião', relation: 'Pai', mode: 'separate', health: true });
+                state.profiles.sebastiao = { name: p.name || 'Sr. Sebastião', job: p.job || 'aposentado', email: p.email || '' };
+                return true;
+            }
+
+            function renderAccountSelect() {
+                var sel = document.getElementById('global-account-select');
+                var cur = state.currentAccount;
+                sel.innerHTML = '';
+                var add = function(v, t) { var o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); };
+                add('main', MAIN_LABEL);
+                separateDeps().forEach(function(d) { add(d.id, '👤 ' + getAccountLabelById(d.id)); });
+                if (!accountExists(cur)) cur = state.currentAccount = 'main';
+                sel.value = cur;
+                // Só mostra a barra "Gestão de" quando existe algum dependente separado
+                document.querySelector('.account-selector-bar').style.display = separateDeps().length ? 'flex' : 'none';
+                renderForPersonSelects();
+            }
+
+            // "Referente a": aparece nos formulários de Minhas Finanças quando há dependentes EM CONJUNTO
+            function renderForPersonSelects() {
+                var show = state.currentAccount === 'main' && jointDeps().length > 0;
+                ['exp-for', 'inc-for', 'bill-for'].forEach(function(id) {
+                    var sel = document.getElementById(id);
+                    if (!sel) return;
+                    var prev = sel.value;
+                    sel.innerHTML = '<option value="">Geral / Eu</option>';
+                    jointDeps().forEach(function(d) {
+                        var o = document.createElement('option');
+                        o.value = d.id; o.textContent = d.name + (d.relation ? ' (' + d.relation + ')' : '');
+                        sel.appendChild(o);
+                    });
+                    if (prev && getDependent(prev)) sel.value = prev;
+                    document.getElementById(id + '-wrap').style.display = show ? 'block' : 'none';
+                });
+            }
+
+            function forPersonValue(id) {
+                var sel = document.getElementById(id);
+                return (state.currentAccount === 'main' && sel && sel.value) ? sel.value : '';
+            }
+
+            // ===== SAÚDE: para quem está ligada, dentro da conta que está aberta =====
+            function healthPeopleForCurrent() {
+                var acc = state.currentAccount;
+                if (acc !== 'main') {
+                    var d = getDependent(acc);
+                    return d && d.health ? [{ id: d.id, name: d.name }] : [];
+                }
+                var list = [];
+                if (state.settings && state.settings.mainHealth) list.push({ id: 'main', name: (getAuthorName() || 'Eu') + ' (eu)' });
+                jointDeps().forEach(function(d) { if (d.health) list.push({ id: d.id, name: d.name }); });
+                return list;
+            }
+
+            function healthPerson() {
+                var sel = document.getElementById('health-person-select');
+                var people = healthPeopleForCurrent();
+                if (sel && sel.value && people.some(function(p) { return p.id === sel.value; })) return sel.value;
+                return people.length ? people[0].id : state.currentAccount;
+            }
+
+            function renderHealthPersonSelect() {
+                var sel = document.getElementById('health-person-select');
+                var wrap = document.getElementById('health-person-wrap');
+                if (!sel) return;
+                var people = healthPeopleForCurrent();
+                var prev = sel.value;
+                sel.innerHTML = '';
+                people.forEach(function(p) { var o = document.createElement('option'); o.value = p.id; o.textContent = p.name; sel.appendChild(o); });
+                if (prev && people.some(function(p) { return p.id === prev; })) sel.value = prev;
+                wrap.style.display = people.length > 1 ? 'flex' : 'none';
+            }
+
+            // Registro de saúde pertence à pessoa? (registros antigos sem "account" eram do Sr. Sebastião)
+            function healthBelongs(rec, person) {
+                return (rec.account || 'sebastiao') === person;
+            }
+
+            function dependentHasData(id) {
+                return ['items', 'bills', 'billSeries'].some(function(k) {
+                    return (state[k] || []).some(function(x) { return x.account === id || x.forPerson === id; });
+                });
+            }
+
+            function renderDependentsManager() {
+                var box = document.getElementById('dependents-list');
+                if (!box) return;
+                var deps = getDependents();
+                document.getElementById('main-health-toggle').checked = !!(state.settings && state.settings.mainHealth);
+                if (!deps.length) {
+                    box.innerHTML = '<div style="font-size:0.82rem; color:var(--text-sub);">Nenhum dependente cadastrado.</div>';
+                    return;
+                }
+                box.innerHTML = deps.map(function(d) {
+                    return '<div class="transaction-item">' +
+                        '<div class="trans-info">' +
+                            '<span class="trans-title">' + esc(d.name) + (d.relation ? ' <span style="color:var(--text-sub); font-weight:400;">(' + esc(d.relation) + ')</span>' : '') + '</span>' +
+                            '<span class="trans-sub">' + (d.mode === 'separate' ? '🔒 Finanças separadas' : '🤝 Em conjunto com as minhas') + (d.health ? ' • ❤️ Saúde' : '') + '</span>' +
+                        '</div>' +
+                        '<div class="item-actions">' +
+                            '<button type="button" class="btn-icon" data-dep-edit="' + esc(d.id) + '">✏️</button>' +
+                            '<button type="button" class="btn-icon" data-dep-del="' + esc(d.id) + '">🗑️</button>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+                box.querySelectorAll('[data-dep-edit]').forEach(function(b) { b.onclick = function() { openDependentModal(this.getAttribute('data-dep-edit')); }; });
+                box.querySelectorAll('[data-dep-del]').forEach(function(b) { b.onclick = function() { deleteDependent(this.getAttribute('data-dep-del')); }; });
+            }
+
+            function setDepMode(mode) {
+                document.querySelectorAll('input[name="dep-mode"]').forEach(function(r) { r.checked = r.value === mode; });
+                document.getElementById('dep-job-wrap').style.display = mode === 'separate' ? 'block' : 'none';
+            }
+
+            function openDependentModal(id) {
+                var d = id ? getDependent(id) : null;
+                document.getElementById('dep-modal-title').textContent = d ? '✏️ Editar Dependente' : '👥 Novo Dependente';
+                document.getElementById('dep-id').value = d ? d.id : '';
+                document.getElementById('dep-name').value = d ? d.name : '';
+                document.getElementById('dep-relation').value = d ? (d.relation || '') : '';
+                document.getElementById('dep-health').checked = d ? !!d.health : false;
+                document.getElementById('dep-job').value = d && state.profiles[d.id] && state.profiles[d.id].job ? state.profiles[d.id].job : 'aposentado';
+                setDepMode(d ? d.mode : 'separate');
+                var locked = !!(d && dependentHasData(d.id));
+                document.querySelectorAll('input[name="dep-mode"]').forEach(function(r) { r.disabled = locked; });
+                document.getElementById('dep-mode-locked').style.display = locked ? 'block' : 'none';
+                document.getElementById('modal-dependent').classList.add('active');
+            }
+
+            function deleteDependent(id) {
+                var d = getDependent(id);
+                if (!d) return;
+                var hasData = dependentHasData(id);
+                var msg = 'Remover "' + d.name + '" dos dependentes?' +
+                    (hasData ? '\n\nOs lançamentos dele(a) NÃO serão apagados — ficam guardados e voltam a aparecer se você cadastrar de novo.' : '');
+                if (!confirm(msg)) return;
+                state.dependents = getDependents().filter(function(x) { return x.id !== id; });
+                if (state.currentAccount === id) state.currentAccount = 'main';
+                saveData();
+                renderAccountSelect();
+                renderAllData();
+            }
+
+            document.getElementById('btn-add-dependent').addEventListener('click', function() { openDependentModal(null); });
+            document.getElementById('btn-close-dependent').addEventListener('click', function() {
+                document.getElementById('modal-dependent').classList.remove('active');
+            });
+            document.querySelectorAll('input[name="dep-mode"]').forEach(function(r) {
+                r.addEventListener('change', function() { setDepMode(this.value); });
+            });
+
+            document.getElementById('form-dependent').addEventListener('submit', function(e) {
+                e.preventDefault();
+                var name = document.getElementById('dep-name').value.trim();
+                if (!name) return alert('Digite o nome do dependente.');
+                var id = document.getElementById('dep-id').value;
+                var modeEl = document.querySelector('input[name="dep-mode"]:checked');
+                var mode = modeEl ? modeEl.value : 'separate';
+                var d = id ? getDependent(id) : null;
+                if (!d) {
+                    d = { id: 'dep' + Date.now().toString(36) };
+                    state.dependents = getDependents().concat([d]);
+                }
+                d.name = name;
+                d.relation = document.getElementById('dep-relation').value.trim();
+                if (!(id && dependentHasData(id))) d.mode = mode;
+                d.health = document.getElementById('dep-health').checked;
+                state.profiles[d.id] = state.profiles[d.id] || { email: '' };
+                state.profiles[d.id].name = name;
+                state.profiles[d.id].job = d.mode === 'separate' ? document.getElementById('dep-job').value : '';
+                saveData();
+                document.getElementById('modal-dependent').classList.remove('active');
+                renderAccountSelect();
+                renderAllData();
+                alert(d.mode === 'separate'
+                    ? '✅ "' + name + '" cadastrado(a) com finanças separadas.\n\nPara lançar as contas dele(a), escolha "' + name + '" em "Gestão de", no topo da tela.'
+                    : '✅ "' + name + '" cadastrado(a) em conjunto.\n\nNos seus lançamentos, escolha "' + name + '" no campo "Referente a".');
+            });
+
+            document.getElementById('main-health-toggle').addEventListener('change', function() {
+                state.settings = state.settings || {};
+                state.settings.mainHealth = this.checked;
+                saveData();
+                applyProfileState();
+            });
+
+            document.getElementById('health-person-select').addEventListener('change', function() {
+                renderHealthData();
+            });
 
             function pad2(n) { n = Number(n); return n < 10 ? '0' + n : String(n); }
 
@@ -1927,7 +2218,7 @@
                 deviceProfile = loadDeviceProfile();
                 if (!deviceProfile) {
                     var old = state.profiles.main || {};
-                    deviceProfile = { name: old.name || '', job: old.job || 'penal', email: old.email || '', confirmed: false };
+                    deviceProfile = { name: old.name || '', job: old.job || '', email: old.email || '', confirmed: false };
                     saveDeviceProfile();
                 }
                 state.profiles.main = deviceProfile;
@@ -2111,6 +2402,7 @@
                     date: due,
                     detail: s.detail || 'Boleto/PIX',
                     account: s.account || 'main',
+                    forPerson: s.forPerson || '',
                     author: s.author || '',
                     paid: false
                 };
@@ -2205,7 +2497,12 @@
             }
 
             function billLabel(b) {
-                return b.title + (b.ref ? ' (' + b.ref + ')' : '');
+                return b.title + (b.ref ? ' (' + b.ref + ')' : '') + (b.forPerson ? ' — ' + personName(b.forPerson) : '');
+            }
+
+            // Etiqueta "Referente a" (dependente em conjunto) nos lançamentos
+            function forTag(x) {
+                return x && x.forPerson ? ' <span style="font-size:0.72rem; font-weight:600; color:var(--accent-blue); background:rgba(56,189,248,0.12); border-radius:10px; padding:1px 7px;">👤 ' + esc(personName(x.forPerson)) + '</span>' : '';
             }
 
             function setMonth(key) {
@@ -2448,6 +2745,8 @@
                         if (parsed.appointments) state.appointments = parsed.appointments;
                         if (parsed.vitals) state.vitals = parsed.vitals;
                         if (parsed.billSeries) state.billSeries = parsed.billSeries;
+                        if (parsed.dependents) state.dependents = parsed.dependents;
+                        if (parsed.settings) state.settings = parsed.settings;
                         if (parsed.syncRoomId) state.syncRoomId = parsed.syncRoomId;
                     }
                 } catch(e) {}
@@ -2468,7 +2767,9 @@
                         exams: state.exams,
                         appointments: state.appointments,
                         vitals: state.vitals,
-                        billSeries: state.billSeries || []
+                        billSeries: state.billSeries || [],
+                        dependents: state.dependents || [],
+                        settings: state.settings || {}
                     }));
                     storageWarned = false;
                 } catch(e) {
@@ -2489,7 +2790,9 @@
                         exams: state.exams,
                         appointments: state.appointments,
                         vitals: state.vitals,
-                        billSeries: state.billSeries || []
+                        billSeries: state.billSeries || [],
+                        dependents: state.dependents || [],
+                        settings: state.settings || {}
                     }).catch(function(err) {
                         console.error('Erro no Firebase:', err);
                     });
@@ -2540,7 +2843,7 @@
                 var el = document.getElementById('auth-info');
                 if (!el) return;
                 el.innerHTML = user
-                    ? 'Conectado como <b>' + esc(user.email) + '</b><br>Sala sincronizada: <b>' + esc(currentRoomName()) + '</b>'
+                    ? 'Conectado como <b>' + esc(user.email) + '</b><br>Sala sincronizada: ' + (currentRoomName() ? '<b>' + esc(currentRoomName()) + '</b>' : '<b style="color:var(--accent-amber);">nenhuma ainda — toque em "Ver ou trocar a sala"</b>')
                     : '<span style="color:var(--accent-amber);">Sem login (sem internet ao abrir o app). Os dados ficam só neste aparelho até conectar.</span>';
             }
 
@@ -2623,7 +2926,7 @@
             });
 
             // ===== SALAS: cada sala tem os seus próprios lançamentos =====
-            var DATA_KEYS = ['items', 'bills', 'billSeries', 'patients', 'medications', 'exams', 'appointments', 'vitals'];
+            var DATA_KEYS = ['items', 'bills', 'billSeries', 'patients', 'medications', 'exams', 'appointments', 'vitals', 'dependents'];
             var roomCopySource = null; // dados da sala anterior, guardados só para a pergunta "copiar?"
 
             function dataHasContent(obj) {
@@ -2631,8 +2934,13 @@
             }
 
             function currentRoomName() {
-                var r = (state.syncRoomId || DEFAULT_ROOM).trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
-                return r || 'familia';
+                return String(state.syncRoomId || DEFAULT_ROOM || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+            }
+
+            // Primeira vez na conta e sem sala: pergunta qual é a sala (não entra em nenhuma sozinho)
+            function askRoom() {
+                document.getElementById('sync-room-hint').style.display = 'block';
+                openSyncModal();
             }
 
             function renderAllData() {
@@ -2707,6 +3015,9 @@
                 user.reauthenticateWithCredential(cred).then(function() {
                     if (currentRoomName() !== p.room) throw { code: 'room-changed' };
                     DATA_KEYS.forEach(function(k) { state[k] = p.src[k] || []; });
+                    if (p.src.settings) state.settings = p.src.settings;
+                    if (p.src.profiles) Object.keys(p.src.profiles).forEach(function(k) { if (k !== 'main') state.profiles[k] = p.src.profiles[k]; });
+                    renderAccountSelect();
                     saveData(); // grava na sala nova
                     renderAllData();
                     try { localStorage.removeItem('sf_orphan_data'); } catch(e) {}
@@ -2749,13 +3060,19 @@
                         if (saved && saved !== currentRoomName()) {
                             // A conta usa outra sala: troca sem copiar nada (os dados vêm da nuvem)
                             DATA_KEYS.forEach(function(k) { state[k] = []; });
+                            state.settings = {};
+                            state.currentAccount = 'main';
+                            state.profiles = { main: deviceProfile };
                             state.syncRoomId = saved;
                             saveData(false);
                             renderAllData();
-                        } else if (!saved) {
+                        } else if (!saved && currentRoomName()) {
                             saveUserRoom(currentRoomName());
                         }
                         go();
+                        // Aparelho/conta novos: abre o Perfil (em branco) e pergunta a sala
+                        if (!(deviceProfile && deviceProfile.confirmed)) switchTab('profile');
+                        if (!currentRoomName()) askRoom();
                     }).catch(go);
                 } catch(e) { go(); }
             }
@@ -2765,10 +3082,15 @@
                 // Guarda uma cópia da sala atual (só para oferecer copiar, se a nova estiver vazia)
                 var snap = JSON.parse(JSON.stringify(DATA_KEYS.reduce(function(o, k) { o[k] = state[k] || []; return o; }, {})));
                 snap.__room = oldRoom;
+                snap.settings = JSON.parse(JSON.stringify(state.settings || {}));
+                snap.profiles = JSON.parse(JSON.stringify(sharedProfiles()));
                 roomCopySource = snap;
 
                 // Esvazia a tela: a sala nova mostra SÓ os dados dela
                 DATA_KEYS.forEach(function(k) { state[k] = []; });
+                state.settings = {};
+                state.currentAccount = 'main';
+                state.profiles = { main: deviceProfile };
                 state.syncRoomId = newRoom;
                 saveData(false);
                 renderAllData();
@@ -2779,11 +3101,11 @@
 
             function initFirebaseSync() {
                 var dot = document.getElementById('sync-status-dot');
-                var roomId = (state.syncRoomId || DEFAULT_ROOM).trim().toLowerCase();
-                if (!roomId) roomId = DEFAULT_ROOM;
+                var roomId = currentRoomName();
 
                 try {
-                    if (dbRef) dbRef.off();
+                    if (dbRef) { dbRef.off(); dbRef = null; }
+                    if (!roomId) { dot.classList.remove('sync-active'); return; } // ainda sem sala escolhida
 
                     initFirebaseApp();
 
@@ -2793,8 +3115,7 @@
                         return;
                     }
 
-                    var cleanRoom = roomId.replace(/[^a-z0-9_-]/g, '');
-                    if (!cleanRoom) cleanRoom = 'familia';
+                    var cleanRoom = roomId;
 
                     dbRef = firebase.database().ref('rooms/' + cleanRoom);
 
@@ -2811,13 +3132,13 @@
                         var data = snapshot.val();
                         if (data) {
                             isRemoteUpdate = true;
+                            // Perfis compartilhados da sala (dos dependentes); o perfil DESTE aparelho é mantido
+                            state.profiles = { main: deviceProfile };
                             if (data.profiles) {
-                                // Recebe os perfis compartilhados, mas mantém o perfil DESTE aparelho
                                 Object.keys(data.profiles).forEach(function(k) {
                                     if (k !== 'main') state.profiles[k] = data.profiles[k];
                                 });
                             }
-                            state.profiles.main = deviceProfile;
                             state.items = data.items || [];
                             state.bills = data.bills || [];
                             state.patients = data.patients || [];
@@ -2826,8 +3147,13 @@
                             state.appointments = data.appointments || [];
                             state.vitals = data.vitals || [];
                             state.billSeries = data.billSeries || [];
+                            state.dependents = data.dependents || [];
+                            state.settings = data.settings || {};
+                            var migrated = migrateDependents();
+                            if (!accountExists(state.currentAccount)) state.currentAccount = 'main';
 
                             saveData(false);
+                            renderAccountSelect();
                             applyProfileState();
                             renderFeeds();
                             renderBills();
@@ -2837,7 +3163,8 @@
                             isRemoteUpdate = false;
                             // Gera parcelas que faltam (depois de receber dados da nuvem)
                             setTimeout(function() {
-                                if (ensureSeriesBills()) { saveData(); renderBills(); renderReports(); }
+                                var changed = ensureSeriesBills();
+                                if (changed || migrated) { saveData(); renderBills(); renderReports(); }
                             }, 0);
                         } else {
                             // Sala vazia na nuvem: NADA é copiado sem a senha da pessoa.
@@ -2868,9 +3195,8 @@
             function applyProfileState() {
                 var acc = state.currentAccount;
                 if (!state.profiles[acc]) {
-                    state.profiles[acc] = acc === 'sebastiao'
-                        ? { name: 'Sr. Sebastião', job: 'aposentado', email: '' }
-                        : { name: 'Giovani Vieira Mesquita', job: 'penal', email: '' };
+                    var dep0 = getDependent(acc);
+                    state.profiles[acc] = { name: dep0 ? dep0.name : '', job: '', email: '' };
                 }
 
                 if (acc === 'main' && deviceProfile) state.profiles.main = deviceProfile;
@@ -2885,7 +3211,7 @@
                 }
 
                 document.getElementById('prof-name').value = activeProfile.name || '';
-                document.getElementById('prof-job').value = activeProfile.job || 'penal';
+                document.getElementById('prof-job').value = activeProfile.job || '';
                 var emailInp = document.getElementById('prof-email');
                 var loginEmail = '';
                 try { loginEmail = (window.firebase && firebase.auth && firebase.auth().currentUser || {}).email || ''; } catch(e) {}
@@ -2903,7 +3229,8 @@
                     patNav.style.display = 'none';
                 }
 
-                if (activeProfile.job === 'aposentado') {
+                // Aba Saúde: só aparece se alguém desta conta tiver a Saúde ligada
+                if (healthPeopleForCurrent().length) {
                     healthNav.style.display = 'flex';
                 } else {
                     healthNav.style.display = 'none';
@@ -2911,6 +3238,8 @@
                         switchTab('expenses');
                     }
                 }
+                renderHealthPersonSelect();
+                renderDependentsManager();
 
                 renderIncomeOptions();
             }
@@ -2920,8 +3249,8 @@
                 sel.innerHTML = '';
 
                 var acc = state.currentAccount;
-                var activeProfile = state.profiles[acc] || { job: 'penal' };
-                var opts = jobIncomes[activeProfile.job] || jobIncomes.penal;
+                var activeProfile = state.profiles[acc] || { job: '' };
+                var opts = jobIncomes[activeProfile.job] || jobIncomes.outras;
 
                 for (var i = 0; i < opts.length; i++) {
                     var opt = document.createElement('option');
@@ -2986,7 +3315,7 @@
 
                         expFeed.innerHTML += '<div class="transaction-item">' +
                             '<div class="trans-info">' +
-                                '<span class="trans-title">' + esc(i.title) + (i.ref ? ' <span style="color:var(--text-sub); font-weight:400;">(' + esc(i.ref) + ')</span>' : '') + '</span>' +
+                                '<span class="trans-title">' + esc(i.title) + forTag(i) + (i.ref ? ' <span style="color:var(--text-sub); font-weight:400;">(' + esc(i.ref) + ')</span>' : '') + '</span>' +
                                 '<span class="trans-sub">' + esc(i.detail || 'Débito/PIX') + ' • 📅 Pago em ' + formatDate(normalizeDate(i.date)) + esc(authorStr) + '</span>' +
                                 (i.dueDate ? '<span class="trans-sub" style="display:block; color:' + (i.dueDate < normalizeDate(i.date) ? '#f87171' : 'var(--text-sub)') + ';">' + (i.fromBill ? '✅ Conta paga • vencimento ' : '📌 Vencimento original ') + formatDate(i.dueDate) + (i.dueDate < normalizeDate(i.date) ? ' (paga com atraso)' : (i.dueDate > normalizeDate(i.date) ? ' (paga adiantada)' : '')) + '</span>' : '') +
                                 attachesHtml +
@@ -3010,7 +3339,7 @@
                         var idClean = String(i.id).replace(/'/g, "");
                         incFeed.innerHTML += '<div class="transaction-item">' +
                             '<div class="trans-info">' +
-                                '<span class="trans-title">' + esc(i.title) + '</span>' +
+                                '<span class="trans-title">' + esc(i.title) + forTag(i) + '</span>' +
                                 '<span class="trans-sub">' + esc(i.detail || 'Receita Registrada') + ' • 📅 ' + formatDate(normalizeDate(i.date)) + esc(authorStr) + '</span>' +
                             '</div>' +
                             '<div class="trans-right">' +
@@ -3189,6 +3518,7 @@
                     state.items.unshift({
                         id: Date.now().toString(),
                         type: 'expense',
+                        forPerson: forPersonValue('exp-for'),
                         title: desc,
                         detail: method,
                         amount: parseFloat(amt),
@@ -3249,6 +3579,7 @@
                             date: date,
                             detail: method,
                             account: state.currentAccount,
+                            forPerson: forPersonValue('bill-for'),
                             author: getAuthorName(),
                             paid: false,
                             attachments: billAtts
@@ -3273,6 +3604,7 @@
                             total: total,
                             detail: method,
                             account: state.currentAccount,
+                            forPerson: forPersonValue('bill-for'),
                             author: getAuthorName(),
                             ended: false
                         };
@@ -3347,6 +3679,7 @@
                         type: 'expense',
                         title: bill.title,
                         ref: bill.ref || '',
+                        forPerson: bill.forPerson || '',
                         dueDate: normalizeDate(bill.date),
                         billId: String(bill.id),
                         fromBill: true,
@@ -3594,7 +3927,7 @@
             function renderHealthData() {
                 initHealthMonthSelector();
                 var selectedMonth = document.getElementById('health-month-select').value || getCurrentMonthKey();
-                var acc = state.currentAccount;
+                var acc = healthPerson();
 
                 // MEDICAÇÕES
                 var medsFeed = document.getElementById('meds-feed');
@@ -3703,7 +4036,7 @@
 
             document.getElementById('btn-migrate-meds').addEventListener('click', function() {
                 var selectedMonth = document.getElementById('health-month-select').value;
-                var acc = state.currentAccount;
+                var acc = healthPerson();
 
                 var prevKey = addMonths(selectedMonth, -1);
 
@@ -3758,7 +4091,7 @@
                     times: times,
                     notes: notes,
                     monthKey: selectedMonth,
-                    account: state.currentAccount
+                    account: healthPerson()
                 });
 
                 saveData();
@@ -3834,7 +4167,7 @@
                         notes: notes,
                         fileData: fileBase64 || null,
                         fileType: fileType || null,
-                        account: state.currentAccount
+                        account: healthPerson()
                     });
 
                     saveData();
@@ -3874,7 +4207,7 @@
                     datetime: datetime,
                     location: location,
                     notes: notes,
-                    account: state.currentAccount
+                    account: healthPerson()
                 });
 
                 saveData();
@@ -3909,7 +4242,7 @@
                     pa: pa,
                     glicemia: glicemia,
                     datetime: datetime,
-                    account: state.currentAccount
+                    account: healthPerson()
                 });
 
                 saveData();
@@ -3947,12 +4280,12 @@
                 if (!window.jspdf) return alert('Biblioteca PDF carregando, tente em instantes.');
                 var doc = new window.jspdf.jsPDF();
 
-                var acc = state.currentAccount;
-                var prof = state.profiles[acc] || {};
+                var acc = healthPerson();
+                var prof = { name: personName(acc) };
                 var selectedMonth = document.getElementById('health-month-select').value || getCurrentMonthKey();
 
                 doc.setFontSize(16);
-                doc.text('Relatório Acompanhamento de Saúde - ' + (prof.name || 'Sr. Sebastião'), 14, 20);
+                doc.text('Relatório Acompanhamento de Saúde - ' + prof.name, 14, 20);
                 doc.setFontSize(10);
                 doc.text('Mês de Referência: ' + monthLabel(selectedMonth), 14, 26);
 
@@ -3976,7 +4309,7 @@
                     body: apptsData.length > 0 ? apptsData : [['Nenhuma consulta agendada', '-', '-', '-']]
                 });
 
-                doc.save('Relatorio_Saude_' + (prof.name || 'Sebastiao').replace(/\s+/g, '_') + '.pdf');
+                doc.save('Relatorio_Saude_' + slugify(prof.name || 'Saude') + '.pdf');
             });
 
             // ===================== RELATÓRIOS COM FILTROS E ANÁLISES =====================
@@ -4193,7 +4526,7 @@
                         var bd = normalizeDate(b.date);
                         var status = b.paid ? 'Paga' : (bd < today ? 'Em atraso' : (bd === today ? 'Vence hoje' : 'A vencer'));
                         rows.push({ date: bd, dueDate: bd, month: mk, kind: b.paid ? 'paid' : 'pending', typeLabel: status, title: billLabel(b),
-                            detail: b.detail || 'Boleto/PIX', amount: amt, account: b.account || 'main', author: whoOf(b.author), category: cat });
+                            detail: b.detail || 'Boleto/PIX', amount: amt, account: b.account || 'main', author: whoOf(b.author), category: cat, forPerson: b.forPerson || '' });
                     });
                 } else {
                     state.items.forEach(function(i) {
@@ -4204,7 +4537,7 @@
                         if (!accOk(i.account) || !periodTest(mk) || !textOk(i.title) || !methodOk(i.detail) || !authorOk(i.author) || !valueOk(amt)) return;
                         if (f.category && cat !== f.category) return;
                         rows.push({ date: normalizeDate(i.date), month: mk, kind: i.type, typeLabel: i.type === 'income' ? 'Receita' : 'Despesa',
-                            title: i.title + (i.ref ? ' (' + i.ref + ')' : ''), dueDate: i.dueDate || '', detail: i.detail || '', amount: amt, account: i.account || 'main', author: whoOf(i.author), category: cat });
+                            title: i.title + (i.ref ? ' (' + i.ref + ')' : ''), dueDate: i.dueDate || '', detail: i.detail || '', amount: amt, account: i.account || 'main', author: whoOf(i.author), category: cat, forPerson: i.forPerson || '' });
                     });
                 }
                 return rows;
@@ -4261,6 +4594,7 @@
                         else if (f.group === 'category') { label = r.category; key = label; }
                         else if (f.group === 'method') { label = r.detail || 'Não informado'; key = label; }
                         else if (f.group === 'author') { label = r.author; key = label; }
+                        else if (f.group === 'person') { label = r.forPerson ? personName(r.forPerson) : 'Geral / Eu'; key = r.forPerson || '_'; }
                         else { key = r.account; label = getAccountLabelById(r.account); }
                         if (!map[key]) map[key] = { key: key, label: label, count: 0, a: 0, b: 0 };
                         map[key].count++;
@@ -4755,6 +5089,7 @@
 
             document.getElementById('global-account-select').addEventListener('change', function(e) {
                 state.currentAccount = e.target.value;
+                renderForPersonSelects();
                 applyProfileState();
                 renderFeeds();
                 renderBills();
@@ -4790,6 +5125,7 @@
                 state.items.unshift({
                     id: Date.now().toString(),
                     type: 'income',
+                    forPerson: forPersonValue('inc-for'),
                     title: desc,
                     detail: 'Receita Registrada',
                     amount: parseFloat(amt),
@@ -4842,6 +5178,11 @@
                     document.getElementById('prof-email').focus();
                     return;
                 }
+                if (!document.getElementById('prof-job').value) {
+                    alert('Escolha a profissão / categoria.');
+                    document.getElementById('prof-job').focus();
+                    return;
+                }
                 if (!document.getElementById('prof-name').value.trim()) {
                     alert('Preencha o nome.');
                     document.getElementById('prof-name').focus();
@@ -4856,19 +5197,23 @@
                     deviceProfile = state.profiles.main;
                     deviceProfile.confirmed = true;
                     saveDeviceProfile();
+                } else {
+                    var depP = getDependent(acc);
+                    if (depP) depP.name = state.profiles[acc].name;
                 }
 
                 saveData(true);
+                renderAccountSelect();
                 applyProfileState();
                 renderFeeds();
                 renderReports();
                 alert(acc === 'main'
                     ? 'Perfil salvo neste aparelho! Seus lançamentos vão sair com o nome: ' + state.profiles.main.name
-                    : 'Perfil do Sr. Sebastião salvo (vale para todos os aparelhos).');
+                    : 'Perfil de ' + state.profiles[acc].name + ' salvo (vale para todos os aparelhos da sala).');
             });
 
             // ===================== BACKUP E RESTAURAÇÃO =====================
-            var BACKUP_KEYS = ['items', 'bills', 'billSeries', 'patients', 'medications', 'exams', 'appointments', 'vitals'];
+            var BACKUP_KEYS = ['items', 'bills', 'billSeries', 'patients', 'medications', 'exams', 'appointments', 'vitals', 'dependents'];
             var LAST_BACKUP_KEY = 'sf_last_backup';
 
             function getLastBackup() {
@@ -5064,8 +5409,12 @@
                     initFirebaseSync();
                     return;
                 }
-                if (!confirm('Mudar para a sala "' + val + '"?\n\nCada sala tem os seus próprios lançamentos. NADA será copiado.\nOs dados da sala atual ("' + currentRoomName() + '") continuam guardados nela.')) return;
+                var msg = currentRoomName()
+                    ? 'Mudar para a sala "' + val + '"?\n\nCada sala tem os seus próprios lançamentos. NADA será copiado.\nOs dados da sala atual ("' + currentRoomName() + '") continuam guardados nela.'
+                    : 'Entrar na sala "' + val + '"?\n\nVocê vai ver só os lançamentos dessa sala.';
+                if (!confirm(msg)) return;
                 modalSync.classList.remove('active');
+                document.getElementById('sync-room-hint').style.display = 'none';
                 switchRoom(val);
             });
 
@@ -5390,6 +5739,7 @@
                         Categoria: r.category,
                         Pagamento: r.detail,
                         'Lançado por': r.author,
+                        'Referente a': r.forPerson ? personName(r.forPerson) : '',
                         Valor: r.amount
                     };
                 });
@@ -5487,8 +5837,10 @@
 
             loadData();
             initDeviceProfile();
+            migrateDependents();
             if (ensureSeriesBills()) saveData(false);
             setFormDatesForMonth();
+            renderAccountSelect();
             applyProfileState();
             renderFeeds();
             renderBills();
