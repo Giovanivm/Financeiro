@@ -1,21 +1,18 @@
 {
-  "short_name": "Finanças",
+  "id": "./",
   "name": "Sucesso Financeiro",
-  "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2845/2845531.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2845/2845531.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
-  ],
+  "short_name": "Finanças",
+  "description": "Controle financeiro da família, contas a pagar, relatórios e saúde.",
+  "lang": "pt-BR",
   "start_url": "./index.html",
   "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
-  "display": "standalone"
+  "icons": [
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
 }

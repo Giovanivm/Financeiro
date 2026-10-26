@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Sucesso Financeiro & Saúde</title>
 
     <!-- Configurações para PWA / Instalação Nativas -->
@@ -11,6 +11,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Finanças">
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
     <!-- Firebase SDK v9 (Compatibilizado) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
@@ -45,13 +47,21 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        /* Corpo preso à tela visível (no iPhone, 100vh passa da tela e esconde partes).
+           As margens "safe-area" afastam o conteúdo do entalhe e da barra de status. */
+        html { height: 100%; background-color: var(--bg-primary); }
         body {
             background-color: var(--bg-primary);
             color: var(--text-main);
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
             overflow: hidden;
+            overscroll-behavior: none;
+            padding-top: env(safe-area-inset-top);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
 
         .top-bar {
@@ -185,9 +195,11 @@
 
         .content-container {
             flex: 1;
+            min-height: 0;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             padding: 16px;
-            padding-bottom: 85px;
+            padding-bottom: calc(85px + env(safe-area-inset-bottom));
         }
 
         .tab-content { display: none; }
@@ -416,10 +428,13 @@
         .rep-table .num { text-align: right; white-space: nowrap; }
         .rep-table tfoot td { font-weight: 700; border-bottom: none; }
 
+        .top-bar, .account-selector-bar, .month-nav-bar, #update-banner { flex-shrink: 0; }
+
         .nav-bar {
             position: fixed;
             bottom: 0; left: 0; right: 0;
-            height: 65px;
+            height: calc(65px + env(safe-area-inset-bottom));
+            padding-bottom: env(safe-area-inset-bottom);
             background-color: var(--bg-card);
             border-top: 1px solid var(--border-color);
             display: flex;
@@ -724,6 +739,11 @@
 
         <!-- ABA 1: DESPESAS -->
         <div id="tab-expenses" class="tab-content active">
+            <div id="install-banner" class="card" style="display:none; align-items:center; gap:10px; padding:12px; border-color: var(--accent-purple);">
+                <div style="flex:1; font-size:0.82rem;">📲 <b>Instale o app</b> na tela inicial para abrir com um toque.</div>
+                <button type="button" class="btn-icon" id="btn-install-banner" style="background:var(--accent-purple); color:#fff; font-weight:bold; padding:6px 10px;">Instalar</button>
+                <button type="button" id="btn-install-banner-close" title="Agora não" style="background:none; border:none; color:var(--text-sub); font-size:1.3rem; cursor:pointer;">&times;</button>
+            </div>
             <div id="device-user-banner" style="font-size:0.8rem; margin-bottom:10px;"></div>
             <div id="backup-reminder" class="card" style="display:none; border-color: var(--accent-amber); padding:12px;"></div>
             <div class="summary-grid">
@@ -1338,15 +1358,22 @@
                 <button type="button" class="btn-action" id="btn-backup-restore" style="background: var(--bg-input); border: 1px solid var(--border-color); margin-top: 10px;">♻️ Restaurar a partir de um Backup</button>
             </div>
 
+            <div class="card" style="border-color: var(--accent-purple);">
+                <div class="card-title">📲 Instalar o App</div>
+                <div id="install-status" style="font-size: 0.85rem; margin-bottom: 10px; line-height: 1.4;"></div>
+                <div class="export-grid">
+                    <button type="button" class="btn-action btn-pwa" id="btn-install-pwa">📲 Instalar neste aparelho</button>
+                    <button type="button" class="btn-action" id="btn-share-app" style="background: var(--bg-input); border: 1px solid var(--border-color);">🔗 Enviar link do app</button>
+                </div>
+            </div>
+
             <div class="card">
-                <div class="card-title">📱 Atalho na Tela Inicial / Computador</div>
-                <button class="btn-action btn-pwa" id="btn-install-pwa" style="margin-bottom: 12px; display: none;">📱 Instalar Aplicativo Agora</button>
-                <p style="font-size: 0.85rem; color: var(--text-sub); line-height: 1.4;">
-                    Para instalar este app manualmente:<br>
-                    • <b>Android / Chrome:</b> Abra no Chrome > 3 pontos superiores > <i>"Adicionar à tela inicial"</i>.<br>
-                    • <b>iPhone / Safari:</b> Abra no Safari > Botão Compartilhar > <i>"Adicionar à Tela de Início"</i>.<br>
-                    • <b>Computador (Chrome/Edge):</b> Clique no ícone ⊕ na barra de endereço.
+                <div class="card-title">🏠 Sala Sincronizada</div>
+                <p style="font-size: 0.82rem; color: var(--text-sub); margin-bottom: 10px; line-height: 1.4;">
+                    É o "endereço" onde os seus lançamentos ficam guardados na nuvem. Quem usa a mesma sala vê os mesmos dados.
+                    Normalmente você não precisa mexer aqui: o app já abre na sala da sua conta.
                 </p>
+                <button type="button" class="btn-action" id="btn-open-sync-profile" style="background: var(--bg-input); border: 1px solid var(--border-color);">⚙️ Ver ou trocar a sala</button>
             </div>
 
             <div style="text-align:center; font-size:0.75rem; color:var(--text-sub); padding:4px 0 12px;">
@@ -1529,6 +1556,18 @@
         </div>
     </div>
 
+    <!-- MODAL: COMO INSTALAR (quando o navegador não instala sozinho, ex.: iPhone) -->
+    <div class="modal-overlay" id="modal-install">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-purple); font-size: 1.1rem;">📲 Instalar o App</h3>
+                <button id="btn-close-install" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div id="install-help-steps" style="font-size: 0.9rem; line-height: 1.6;"></div>
+            <button type="button" class="btn-action" id="btn-install-copy" style="background: var(--bg-input); border: 1px solid var(--border-color); margin-top: 14px;">📋 Copiar link do app</button>
+        </div>
+    </div>
+
     <!-- MODAL: SALA VAZIA / COPIAR DADOS (exige senha) -->
     <div class="modal-overlay" id="modal-copy-room">
         <div class="modal-body">
@@ -1610,26 +1649,129 @@
                 navigator.serviceWorker.register('./sw.js').catch(function(){});
             }
 
+            // ===================== INSTALADOR (tela inicial do celular / atalho no computador) =====================
             var deferredPrompt = null;
             var btnInstallPWA = document.getElementById('btn-install-pwa');
+            var APP_URL = 'https://giovanivm.github.io/Financeiro/';
+
+            function isStandalone() {
+                return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+            }
+
+            function detectPlatform() {
+                var ua = navigator.userAgent || '';
+                var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                var isAndroid = /Android/i.test(ua);
+                var inApp = /FBAN|FBAV|Instagram|WhatsApp|Line\/|; wv\)|GSA\//i.test(ua);
+                var iosNotSafari = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+                return { ios: isIOS, android: isAndroid, inApp: inApp, iosNotSafari: iosNotSafari, desktop: !isIOS && !isAndroid };
+            }
+
+            function installSteps() {
+                var p = detectPlatform();
+                if (p.ios && (p.inApp || p.iosNotSafari)) {
+                    return '<b>Você abriu o app dentro do WhatsApp ou de outro aplicativo.</b> No iPhone, só dá para instalar pelo <b>Safari</b>:<br><br>' +
+                        '1️⃣ Toque no botão abaixo <b>"Copiar link"</b>.<br>' +
+                        '2️⃣ Abra o <b>Safari</b> (bússola azul) e cole o link na barra de endereço.<br>' +
+                        '3️⃣ No Safari, toque em <b>Compartilhar</b> (quadrado com seta para cima ⬆️).<br>' +
+                        '4️⃣ Role e toque em <b>"Adicionar à Tela de Início"</b> e depois em <b>Adicionar</b>.';
+                }
+                if (p.ios) {
+                    return '1️⃣ Toque em <b>Compartilhar</b> (quadrado com seta para cima ⬆️), na barra do Safari (embaixo ou em cima).<br>' +
+                        '2️⃣ Role a lista e toque em <b>"Adicionar à Tela de Início"</b>.<br>' +
+                        '3️⃣ Toque em <b>Adicionar</b>. O ícone 💰 aparece na tela do iPhone.';
+                }
+                if (p.android && p.inApp) {
+                    return '<b>Você abriu o app dentro do WhatsApp ou de outro aplicativo.</b><br><br>' +
+                        '1️⃣ Toque nos <b>3 pontinhos ⋮</b> no canto de cima e escolha <b>"Abrir no Chrome"</b> (ou "Abrir no navegador").<br>' +
+                        '2️⃣ No Chrome, entre em <b>Perfil</b> e toque de novo em <b>"Instalar neste aparelho"</b>.';
+                }
+                if (p.android) {
+                    return '1️⃣ No Chrome, toque nos <b>3 pontinhos ⋮</b> no canto de cima.<br>' +
+                        '2️⃣ Toque em <b>"Instalar app"</b> ou <b>"Adicionar à tela inicial"</b>.<br>' +
+                        '3️⃣ Confirme em <b>Instalar</b>. O ícone 💰 aparece na tela do celular.';
+                }
+                return '1️⃣ No <b>Chrome</b> ou <b>Edge</b>, clique no ícone de instalar (🖥️⬇ ou ⊕) no lado direito da barra de endereço.<br>' +
+                    '2️⃣ Se não aparecer: menu <b>⋮</b> → <b>"Transmitir, salvar e compartilhar"</b> → <b>"Instalar página como app"</b> (no Edge: <b>⋯</b> → <b>Aplicativos</b> → <b>Instalar este site como um aplicativo</b>).<br>' +
+                    '3️⃣ Confirme. O app ganha um atalho na área de trabalho e no menu Iniciar.';
+            }
+
+            function openInstallHelp() {
+                document.getElementById('install-help-steps').innerHTML = installSteps();
+                document.getElementById('modal-install').classList.add('active');
+            }
+
+            function renderInstallStatus() {
+                var el = document.getElementById('install-status');
+                if (!el) return;
+                if (isStandalone()) {
+                    el.innerHTML = '<span style="color:var(--accent-green);">✅ Você está usando o app instalado.</span>';
+                    btnInstallPWA.style.display = 'none';
+                } else {
+                    el.innerHTML = 'Coloque o app na <b>tela inicial do celular</b> ou na <b>área de trabalho do computador</b>. Ele abre em tela cheia, como um aplicativo normal.';
+                    btnInstallPWA.style.display = 'flex';
+                }
+                var bn = document.getElementById('install-banner');
+                var dismissed = false;
+                try { dismissed = localStorage.getItem('sf_install_dismissed') === '1'; } catch(e) {}
+                if (bn) bn.style.display = (!isStandalone() && !dismissed) ? 'flex' : 'none';
+            }
+
+            function doInstall() {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(function(choice) {
+                        deferredPrompt = null;
+                        if (choice.outcome === 'accepted') {
+                            try { localStorage.setItem('sf_install_dismissed', '1'); } catch(e) {}
+                        }
+                        renderInstallStatus();
+                    });
+                } else {
+                    openInstallHelp();
+                }
+            }
 
             window.addEventListener('beforeinstallprompt', function(e) {
                 e.preventDefault();
                 deferredPrompt = e;
-                btnInstallPWA.style.display = 'block';
+                renderInstallStatus();
+            });
+            window.addEventListener('appinstalled', function() {
+                try { localStorage.setItem('sf_install_dismissed', '1'); } catch(e) {}
+                renderInstallStatus();
             });
 
-            btnInstallPWA.addEventListener('click', function() {
-                if (deferredPrompt) {
-                    deferredPrompt.prompt();
-                    deferredPrompt.userChoice.then(function(choiceResult) {
-                        if (choiceResult.outcome === 'accepted') {
-                            btnInstallPWA.style.display = 'none';
-                        }
-                        deferredPrompt = null;
-                    });
+            btnInstallPWA.addEventListener('click', doInstall);
+            document.getElementById('btn-install-banner').addEventListener('click', doInstall);
+            document.getElementById('btn-install-banner-close').addEventListener('click', function() {
+                try { localStorage.setItem('sf_install_dismissed', '1'); } catch(e) {}
+                renderInstallStatus();
+            });
+            document.getElementById('btn-close-install').addEventListener('click', function() {
+                document.getElementById('modal-install').classList.remove('active');
+            });
+
+            function copyAppLink() {
+                var done = function() { alert('Link copiado! Agora cole no Safari (iPhone) ou no Chrome (Android).'); };
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(APP_URL).then(done).catch(function() { prompt('Copie o link:', APP_URL); });
+                } else {
+                    prompt('Copie o link:', APP_URL);
+                }
+            }
+            document.getElementById('btn-install-copy').addEventListener('click', copyAppLink);
+
+            document.getElementById('btn-share-app').addEventListener('click', function() {
+                var text = 'App Sucesso Financeiro. No iPhone, abra este link no Safari; no Android, no Chrome. Depois toque em "Instalar" no Perfil:';
+                if (navigator.share) {
+                    navigator.share({ title: 'Sucesso Financeiro', text: text, url: APP_URL }).catch(function() {});
+                } else {
+                    copyAppLink();
                 }
             });
+
+            setTimeout(renderInstallStatus, 0);
 
             var FIXED_DB_URL  = "https://financeiro-de-sucesso-default-rtdb.firebaseio.com/";
             var FIXED_API_KEY = "AIzaSyC3fPJCOBJG7L0EmDDHMG-dZ1bWsA30UyE";
@@ -1640,7 +1782,7 @@
 
             // ===================== VERSÃO E ATUALIZAÇÃO =====================
             // Ao publicar uma versão nova, basta mudar este número.
-            var APP_VERSION = '2026.10.23-email-obrigatorio';
+            var APP_VERSION = '2026.10.26-instalar';
 
             // Busca a versão nova direto do GitHub (ignorando a cópia guardada no aparelho) e recarrega
             function hardReload() {
@@ -4903,10 +5045,12 @@
             });
 
             var modalSync = document.getElementById('modal-sync');
-            document.getElementById('btn-open-sync').addEventListener('click', function() {
-                document.getElementById('sync-room-id').value = state.syncRoomId || DEFAULT_ROOM;
+            function openSyncModal() {
+                document.getElementById('sync-room-id').value = currentRoomName();
                 modalSync.classList.add('active');
-            });
+            }
+            document.getElementById('btn-open-sync').addEventListener('click', openSyncModal);
+            document.getElementById('btn-open-sync-profile').addEventListener('click', openSyncModal);
 
             document.getElementById('btn-close-sync').addEventListener('click', function() {
                 modalSync.classList.remove('active');
