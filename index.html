@@ -658,6 +658,54 @@
         .attach-chip button { background: none; border: none; color: var(--accent-red); font-size: 1.1rem; cursor: pointer; line-height: 1; }
         .attach-links { display: flex; gap: 6px; flex-wrap: wrap; }
 
+        /* Leitor de boletos */
+        .btn-scan {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+            background: linear-gradient(135deg, rgba(56,189,248,.18), rgba(16,185,129,.18));
+            border: 1px solid var(--accent-blue); color: var(--text-main); border-radius: 10px;
+            padding: 11px 10px; font-size: 0.9rem; font-weight: 700; cursor: pointer; margin-bottom: 12px;
+        }
+        .btn-scan small { font-weight: 400; color: var(--text-sub); font-size: 0.75rem; }
+        .paycode-chip {
+            display: none; align-items: center; gap: 8px; margin: -4px 0 12px; padding: 8px 10px;
+            background: rgba(16,185,129,.12); border: 1px solid var(--accent-green); border-radius: 8px;
+            font-size: 0.76rem; line-height: 1.35;
+        }
+        .paycode-chip span { flex: 1; }
+        .paycode-chip button { background: none; border: none; color: var(--accent-red); font-size: 1.2rem; cursor: pointer; }
+        .scan-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+        .scan-big {
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center;
+            background: var(--bg-input); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-main);
+            padding: 14px 8px; font-size: 0.9rem; font-weight: 700; cursor: pointer; min-height: 84px;
+        }
+        .scan-big small { font-size: 0.7rem; font-weight: 400; color: var(--text-sub); }
+        .scan-big input { display: none; }
+        #scan-cam-wrap { position: relative; margin-bottom: 12px; border-radius: 10px; overflow: hidden; background: #000; }
+        #scan-video { width: 100%; max-height: 52vh; display: block; object-fit: cover; }
+        .scan-guide { position: absolute; left: 6%; right: 6%; top: 25%; bottom: 25%; border: 2px solid rgba(16,185,129,.9); border-radius: 8px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); pointer-events: none; }
+        .scan-guide::after { content: ''; position: absolute; left: 4%; right: 4%; top: 50%; height: 2px; background: #ef4444; opacity: .8; animation: scanline 1.6s ease-in-out infinite; }
+        @keyframes scanline { 0%,100% { transform: translateY(-30px); } 50% { transform: translateY(30px); } }
+        .scan-cam-btns { position: absolute; bottom: 8px; left: 8px; right: 8px; display: flex; gap: 8px; justify-content: center; }
+        .scan-cam-btns button { background: rgba(15,23,42,.85); color: #fff; border: 1px solid rgba(255,255,255,.3); border-radius: 20px; padding: 7px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        #scan-text { font-family: monospace; font-size: 0.85rem; resize: vertical; }
+        .scan-row-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+        #scan-status { font-size: 0.82rem; line-height: 1.45; margin: 4px 0 8px; min-height: 1em; }
+        .scan-card { background: var(--bg-primary); border: 1px solid var(--accent-green); border-radius: 10px; padding: 12px; }
+        .scan-row { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dotted var(--border-color); font-size: 0.85rem; }
+        .scan-row span { color: var(--text-sub); white-space: nowrap; }
+        .scan-row b { text-align: right; }
+        .scan-row small { font-weight: 400; color: var(--text-sub); }
+        .scan-code { margin-top: 10px; font-family: monospace; font-size: 0.74rem; color: var(--text-sub); word-break: break-all; }
+        .scan-warn { margin-top: 8px; font-size: 0.78rem; color: var(--accent-amber); line-height: 1.4; }
+        .scan-link { display: inline-block; margin-top: 10px; font-size: 0.82rem; color: var(--accent-blue); }
+        .scan-need { outline: 2px solid var(--accent-amber) !important; box-shadow: 0 0 0 4px rgba(245,158,11,.25); }
+        #scan-toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none; z-index: 3000;
+            background: #064e3b; color: #fff; border: 1px solid var(--accent-green); border-radius: 12px; padding: 12px 16px; font-size: 0.88rem; text-align: center;
+            transition: all .25s; max-width: 90vw; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+        #scan-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #scan-toast small { color: #a7f3d0; }
+
         .attach-link {
             display: inline-flex;
             align-items: center;
@@ -761,6 +809,8 @@
             <div class="card">
                 <div class="card-title">➕ Nova Despesa Manual</div>
                 <form id="form-exp">
+                    <button type="button" class="btn-scan" data-scan="exp">📷 Ler boleto, Pix ou nota fiscal <small>(preenche sozinho)</small></button>
+                    <div class="paycode-chip" id="exp-paycode-chip"></div>
                     <div class="form-group">
                         <label>Descrição</label>
                         <input type="text" id="exp-desc" class="form-control" placeholder="Ex: Farmácia / Mercado" required>
@@ -832,6 +882,8 @@
             <div class="card">
                 <div class="card-title">📅 Agendar Conta a Pagar / Boleto</div>
                 <form id="form-bill">
+                    <button type="button" class="btn-scan" data-scan="bill">📷 Ler boleto ou Pix <small>(preenche sozinho)</small></button>
+                    <div class="paycode-chip" id="bill-paycode-chip"></div>
                     <div class="form-group">
                         <label>Descrição da Conta</label>
                         <input type="text" id="bill-desc" class="form-control" placeholder="Ex: Energia / Condomínio / Remédios" required>
@@ -1425,6 +1477,7 @@
                     <label>Conta</label>
                     <input type="text" id="pay-bill-title-preview" class="form-control" readonly style="opacity:0.7;">
                     <div id="pay-bill-due-preview" style="font-size:0.8rem; color:var(--text-sub); margin-top:4px;"></div>
+                    <button type="button" class="btn-scan" id="btn-pay-copy-code" style="display:none; margin:10px 0 0;">📋 Copiar código para pagar no app do banco</button>
                 </div>
                 <div class="form-group">
                     <label>Valor Efetivamente Pago (R$)</label>
@@ -1480,6 +1533,11 @@
                         <option value="Crédito">Cartão de Crédito</option>
                         <option value="Dinheiro">Dinheiro</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Código do boleto / Pix copia e cola <small style="color:var(--text-sub); font-weight:400;">(para copiar na hora de pagar)</small></label>
+                    <textarea id="edit-bill-code" class="form-control" rows="2" style="font-family:monospace; font-size:0.8rem;" placeholder="Opcional"></textarea>
+                    <button type="button" class="btn-attach" data-scan="editbill" style="margin-top:6px; width:100%;">📷 Ler o boleto deste mês</button>
                 </div>
                 <div class="attach-box" data-slot="editbill-boleto" data-kind="boleto">
                     <div class="attach-box-title">📄 Boleto / Documentos da Conta</div>
@@ -1647,6 +1705,39 @@
             <button type="button" class="btn-action" id="btn-install-copy" style="background: var(--bg-input); border: 1px solid var(--border-color); margin-top: 14px;">📋 Copiar link do app</button>
         </div>
     </div>
+
+    <!-- MODAL: LEITOR DE BOLETOS / PIX / NOTA FISCAL -->
+    <div class="modal-overlay" id="modal-scan">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.05rem;">📷 Ler Boleto, Pix ou Nota</h3>
+                <button id="btn-close-scan" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div id="scan-cam-wrap" style="display:none;">
+                <video id="scan-video" playsinline muted></video>
+                <div class="scan-guide"></div>
+                <div class="scan-cam-btns">
+                    <button type="button" id="btn-scan-torch" style="display:none;">🔦 Lanterna</button>
+                    <button type="button" id="btn-scan-stop">✖ Fechar câmera</button>
+                </div>
+            </div>
+            <div class="scan-pick" id="scan-pick">
+                <button type="button" class="scan-big" id="btn-scan-camera">📷 Câmera ao vivo<small>código de barras ou QR Code</small></button>
+                <label class="scan-big">🖼️ Foto ou PDF<small>do boleto, conta ou nota (galeria, e-mail, WhatsApp)</small><input type="file" id="scan-file" accept="image/*,application/pdf,.pdf"></label>
+            </div>
+            <div class="form-group" style="margin-bottom:6px;">
+                <label>Ou cole a linha digitável / Pix copia e cola</label>
+                <textarea id="scan-text" class="form-control" rows="3" placeholder="Ex.: 34191.09230 45678.901237 ... ou 00020126..."></textarea>
+                <div class="scan-row-btns">
+                    <button type="button" class="btn-attach" id="btn-scan-paste">📋 Colar</button>
+                    <button type="button" class="btn-attach" id="btn-scan-read" style="border-color:var(--accent-blue);">🔍 Ler código</button>
+                </div>
+            </div>
+            <div id="scan-status"></div>
+            <div id="scan-result"></div>
+        </div>
+    </div>
+    <div id="scan-toast"></div>
 
     <!-- MODAL: SALA VAZIA / COPIAR DADOS (exige senha) -->
     <div class="modal-overlay" id="modal-copy-room">
@@ -1847,7 +1938,7 @@
 
             // ===================== VERSÃO E ATUALIZAÇÃO =====================
             // Ao publicar uma versão nova, basta mudar este número.
-            var APP_VERSION = '2026.10.26-dependentes';
+            var APP_VERSION = '2026.10.27-boletos';
 
             // Busca a versão nova direto do GitHub (ignorando a cópia guardada no aparelho) e recarrega
             function hardReload() {
@@ -2731,6 +2822,896 @@
                 });
             });
 
+            // ===================== LEITOR DE BOLETOS / PIX / NOTA FISCAL =====================
+            var BankNames = {
+                '001': 'Banco do Brasil', '003': 'Banco da Amazônia', '004': 'Banco do Nordeste', '021': 'Banestes',
+                '033': 'Santander', '037': 'Banpará', '041': 'Banrisul', '047': 'Banese', '070': 'BRB', '077': 'Inter',
+                '084': 'Uniprime', '085': 'Ailos', '097': 'Credisis', '104': 'Caixa', '133': 'Cresol', '136': 'Unicred',
+                '197': 'Stone', '208': 'BTG Pactual', '212': 'Banco Original', '237': 'Bradesco', '246': 'ABC Brasil',
+                '260': 'Nubank', '290': 'PagBank', '318': 'BMG', '323': 'Mercado Pago', '336': 'C6 Bank', '341': 'Itaú',
+                '380': 'PicPay', '389': 'Mercantil', '399': 'HSBC', '403': 'Cora', '422': 'Safra', '536': 'Neon',
+                '623': 'Banco Pan', '633': 'Rendimento', '637': 'Sofisa', '643': 'Banco Pine', '655': 'Votorantim',
+                '707': 'Daycoval', '735': 'Neon', '745': 'Citibank', '748': 'Sicredi', '756': 'Sicoob'
+            };
+            var ArrecSegments = {
+                '1': { name: 'Prefeitura / IPTU / ISS', desc: 'Prefeitura (IPTU / taxas)' },
+                '2': { name: 'Saneamento (água e esgoto)', desc: 'Conta de Água' },
+                '3': { name: 'Energia elétrica / gás', desc: 'Conta de Energia' },
+                '4': { name: 'Telefone / internet / TV', desc: 'Conta de Telefone / Internet' },
+                '5': { name: 'Órgão do governo (tributos)', desc: 'Imposto / Taxa do Governo' },
+                '6': { name: 'Carnê / convênio', desc: 'Carnê' },
+                '7': { name: 'Multa de trânsito', desc: 'Multa de Trânsito' },
+                '9': { name: 'Convênio bancário', desc: 'Conta / Convênio' }
+            };
+
+            function onlyDigits(s) { return String(s || '').replace(/\D/g, ''); }
+
+            function mod10(num) {
+                var sum = 0, w = 2;
+                for (var i = num.length - 1; i >= 0; i--) {
+                    var p = parseInt(num.charAt(i), 10) * w;
+                    sum += p > 9 ? Math.floor(p / 10) + (p % 10) : p;
+                    w = w === 2 ? 1 : 2;
+                }
+                return (10 - (sum % 10)) % 10;
+            }
+
+            function mod11Sum(num) {
+                var sum = 0, w = 2;
+                for (var i = num.length - 1; i >= 0; i--) {
+                    sum += parseInt(num.charAt(i), 10) * w;
+                    w = w === 9 ? 2 : w + 1;
+                }
+                return sum;
+            }
+            // DV do código de barras de boleto bancário
+            function mod11Bank(num) {
+                var dv = 11 - (mod11Sum(num) % 11);
+                return (dv === 0 || dv === 10 || dv === 11) ? 1 : dv;
+            }
+            // DV de arrecadação (água, luz...) — aceita as duas variações usadas pelas empresas
+            function mod11ArrecOk(num, dv) {
+                var r = mod11Sum(num) % 11;
+                var a = (r === 0 || r === 1) ? 0 : 11 - r;
+                var b = r === 10 ? 1 : (r === 0 || r === 1 ? 0 : 11 - r);
+                return dv === a || dv === b || (r === 1 && dv === 1);
+            }
+            // DV da chave de acesso de nota fiscal
+            function mod11Chave(num) {
+                var r = mod11Sum(num) % 11;
+                return r < 2 ? 0 : 11 - r;
+            }
+
+            function isoDate(d) {
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            function addDays(base, n) {
+                var d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+                d.setDate(d.getDate() + n);
+                return d;
+            }
+
+            // Fator de vencimento: base antiga 07/10/1997; a partir de 22/02/2025 o fator recomeçou em 1000
+            function dueFromFactor(f, today) {
+                if (!f) return '';
+                today = today || new Date();
+                var cands = [addDays(new Date(1997, 9, 7), f)];
+                if (f >= 1000) cands.push(addDays(new Date(2025, 1, 22), f - 1000));
+                cands.sort(function(a, b) { return Math.abs(a - today) - Math.abs(b - today); });
+                return isoDate(cands[0]);
+            }
+
+            function bankBarcodeOk(b) {
+                return /^\d{44}$/.test(b) && b.charAt(0) !== '8' && parseInt(b.charAt(4), 10) === mod11Bank(b.slice(0, 4) + b.slice(5));
+            }
+
+            function arrecBarcodeOk(b) {
+                if (!/^8\d{43}$/.test(b)) return false;
+                var id = b.charAt(2), rest = b.slice(0, 3) + b.slice(4), dv = parseInt(b.charAt(3), 10);
+                if (id === '6' || id === '7') return mod10(rest) === dv;
+                if (id === '8' || id === '9') return mod11ArrecOk(rest, dv);
+                return false;
+            }
+
+            function bankLineToBarcode(l) {
+                return l.slice(0, 4) + l.charAt(32) + l.slice(33, 47) + l.slice(4, 9) + l.slice(10, 20) + l.slice(21, 31);
+            }
+            function bankBarcodeToLine(b) {
+                var c1 = b.slice(0, 4) + b.slice(19, 24), c2 = b.slice(24, 34), c3 = b.slice(34, 44);
+                return c1 + mod10(c1) + c2 + mod10(c2) + c3 + mod10(c3) + b.charAt(4) + b.slice(5, 19);
+            }
+            function arrecBlockDvOk(block, dv, id) {
+                if (id === '6' || id === '7') return mod10(block) === dv;
+                return mod11ArrecOk(block, dv);
+            }
+            function arrecBarcodeToLine(b) {
+                var id = b.charAt(2), out = '';
+                for (var i = 0; i < 4; i++) {
+                    var blk = b.slice(i * 11, i * 11 + 11), dv;
+                    if (id === '6' || id === '7') dv = mod10(blk);
+                    else { var r = mod11Sum(blk) % 11; dv = (r === 0 || r === 1) ? 0 : 11 - r; }
+                    out += blk + dv;
+                }
+                return out;
+            }
+
+            function fmtBankLine(l) {
+                return l.slice(0, 5) + '.' + l.slice(5, 10) + ' ' + l.slice(10, 15) + '.' + l.slice(15, 21) + ' ' +
+                    l.slice(21, 26) + '.' + l.slice(26, 32) + ' ' + l.charAt(32) + ' ' + l.slice(33);
+            }
+            function fmtArrecLine(l) {
+                var p = [];
+                for (var i = 0; i < 4; i++) p.push(l.slice(i * 12, i * 12 + 11) + '-' + l.charAt(i * 12 + 11));
+                return p.join(' ');
+            }
+
+            // Procura uma data AAAAMMDD plausível no "campo livre" das contas de consumo
+            function findArrecDate(b, today) {
+                today = today || new Date();
+                for (var i = 19; i <= 36; i++) {
+                    var s = b.slice(i, i + 8);
+                    var y = +s.slice(0, 4), m = +s.slice(4, 6), d = +s.slice(6, 8);
+                    if (y < 2020 || y > 2040 || m < 1 || m > 12 || d < 1 || d > 31) continue;
+                    var dt = new Date(y, m - 1, d);
+                    if (dt.getMonth() !== m - 1) continue;
+                    if (Math.abs(dt - today) > 200 * 864e5) continue;
+                    return isoDate(dt);
+                }
+                return '';
+            }
+
+            function parseBankBarcode(b, line, today) {
+                var bank = b.slice(0, 3);
+                var cents = parseInt(b.slice(9, 19), 10);
+                return {
+                    kind: 'boleto', valid: true,
+                    typeLabel: 'Boleto bancário',
+                    bank: bank, bankName: BankNames[bank] || ('Banco ' + bank),
+                    amount: cents > 0 ? cents / 100 : null,
+                    due: dueFromFactor(parseInt(b.slice(5, 9), 10), today),
+                    dueSure: true,
+                    barcode: b,
+                    line: line || bankBarcodeToLine(b),
+                    lineFmt: fmtBankLine(line || bankBarcodeToLine(b)),
+                    descSuggestion: 'Boleto ' + (BankNames[bank] || ('Banco ' + bank))
+                };
+            }
+
+            function parseArrecBarcode(b, line, today) {
+                var seg = ArrecSegments[b.charAt(1)] || { name: 'Conta de consumo', desc: 'Conta' };
+                var id = b.charAt(2);
+                var cents = parseInt(b.slice(4, 15), 10);
+                var hasValue = (id === '6' || id === '8') && cents > 0;
+                var l = line || arrecBarcodeToLine(b);
+                var due = findArrecDate(b, today);
+                return {
+                    kind: 'arrecadacao', valid: true,
+                    typeLabel: 'Conta de consumo / convênio',
+                    segment: seg.name,
+                    company: b.slice(15, 19),
+                    amount: hasValue ? cents / 100 : null,
+                    due: due, dueSure: false,
+                    barcode: b, line: l, lineFmt: fmtArrecLine(l),
+                    descSuggestion: seg.desc
+                };
+            }
+
+            function parseNfeKey(ch, extra) {
+                var cnpj = ch.slice(6, 20);
+                return {
+                    kind: 'nota', valid: true,
+                    typeLabel: ch.slice(20, 22) === '65' ? 'Nota fiscal de consumidor (NFC-e)' : 'Nota fiscal (NF-e)',
+                    chave: ch, cnpj: cnpj,
+                    cnpjFmt: cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5'),
+                    month: '20' + ch.slice(2, 4) + '-' + ch.slice(4, 6),
+                    amount: extra && extra.amount ? extra.amount : null,
+                    date: extra && extra.date ? extra.date : '',
+                    url: extra && extra.url ? extra.url : '',
+                    descSuggestion: 'Compra'
+                };
+            }
+            function nfeKeyOk(ch) {
+                return /^\d{44}$/.test(ch) && /^(55|65)$/.test(ch.slice(20, 22)) && mod11Chave(ch.slice(0, 43)) === +ch.charAt(43);
+            }
+
+            // ---- Pix copia e cola (BR Code) ----
+            function crc16(str) {
+                var crc = 0xFFFF;
+                for (var i = 0; i < str.length; i++) {
+                    crc ^= str.charCodeAt(i) << 8;
+                    for (var j = 0; j < 8; j++) crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+                }
+                return ('0000' + crc.toString(16).toUpperCase()).slice(-4);
+            }
+            function tlv(s) {
+                var out = {}, i = 0;
+                while (i + 4 <= s.length) {
+                    var id = s.substr(i, 2), len = parseInt(s.substr(i + 2, 2), 10);
+                    if (isNaN(len)) break;
+                    out[id] = s.substr(i + 4, len);
+                    i += 4 + len;
+                }
+                return out;
+            }
+            function parsePix(raw) {
+                var s = String(raw).trim();
+                var t = tlv(s);
+                var crcOk = s.length > 8 && s.slice(-8, -4) === '6304' && crc16(s.slice(0, -4)) === s.slice(-4).toUpperCase();
+                var acc = null;
+                for (var k = 26; k <= 51; k++) {
+                    var v = t[String(k)];
+                    if (v && /br\.gov\.bcb\.pix/i.test(v)) { acc = tlv(v); break; }
+                }
+                if (!acc) return null;
+                var amount = t['54'] ? parseFloat(t['54']) : null;
+                var name = (t['59'] || '').trim();
+                return {
+                    kind: 'pix', valid: crcOk,
+                    typeLabel: 'Pix (QR Code / copia e cola)',
+                    amount: amount && amount > 0 ? amount : null,
+                    name: name, city: (t['60'] || '').trim(),
+                    key: acc['01'] || '', info: acc['02'] || '',
+                    dynamic: !!acc['25'],
+                    pix: s,
+                    descSuggestion: name ? 'Pix ' + titleCase(name) : 'Pagamento Pix'
+                };
+            }
+            function titleCase(s) {
+                return String(s || '').toLowerCase().replace(/(^|\s)(\S)/g, function(m, a, b) { return a + b.toUpperCase(); });
+            }
+
+            // ---- QR Code de NFC-e (link da SEFAZ) ----
+            function parseNfceUrl(raw) {
+                var s = String(raw).trim();
+                if (!/^https?:\/\//i.test(s)) return null;
+                var q = s.split('?')[1] || '';
+                var params = {};
+                q.split('&').forEach(function(kv) {
+                    var p = kv.split('=');
+                    try { params[decodeURIComponent(p[0]).toLowerCase()] = decodeURIComponent(p.slice(1).join('=')); } catch (e) {}
+                });
+                var extra = { url: s };
+                if (params.p) {
+                    var parts = params.p.split('|');
+                    var ch = onlyDigits(parts[0]);
+                    if (!nfeKeyOk(ch)) return null;
+                    // Versão de contingência traz dia e valor: chave|2|amb|dia|valor|...
+                    if (parts.length >= 7 && /^\d{1,2}$/.test(parts[3]) && /^\d+(\.\d+)?$/.test(parts[4])) {
+                        extra.amount = parseFloat(parts[4]);
+                        extra.date = '20' + ch.slice(2, 4) + '-' + ch.slice(4, 6) + '-' + String(parts[3]).padStart(2, '0');
+                    }
+                    return parseNfeKey(ch, extra);
+                }
+                if (params.chnfe) {
+                    var ch2 = onlyDigits(params.chnfe);
+                    if (!nfeKeyOk(ch2)) return null;
+                    if (params.vnf) extra.amount = parseFloat(params.vnf);
+                    if (params.dhemi) {
+                        var txt = params.dhemi;
+                        if (/^[0-9a-f]+$/i.test(txt) && txt.length % 2 === 0) {
+                            txt = txt.replace(/../g, function(h) { return String.fromCharCode(parseInt(h, 16)); });
+                        }
+                        var m = txt.match(/(\d{4})-(\d{2})-(\d{2})/);
+                        if (m) extra.date = m[1] + '-' + m[2] + '-' + m[3];
+                    }
+                    return parseNfeKey(ch2, extra);
+                }
+                return null;
+            }
+
+            // Entrada única: aceita linha digitável, código de barras, Pix copia e cola ou link de NFC-e
+            function parsePaymentCode(raw, today) {
+                var s = String(raw || '').trim();
+                if (!s) return { valid: false, error: 'Nada para ler.' };
+                if (/^0002\d{2}/.test(s.replace(/\s/g, '')) || /br\.gov\.bcb\.pix/i.test(s)) {
+                    var px = parsePix(s.replace(/[\r\n]/g, ''));
+                    if (px) return px;
+                }
+                var nf = parseNfceUrl(s);
+                if (nf) return nf;
+                var d = onlyDigits(s);
+                if (d.length === 47) {
+                    var b = bankLineToBarcode(d);
+                    var fieldsOk = mod10(d.slice(0, 9)) === +d.charAt(9) && mod10(d.slice(10, 20)) === +d.charAt(20) && mod10(d.slice(21, 31)) === +d.charAt(31);
+                    if (bankBarcodeOk(b) || fieldsOk) {
+                        var r1 = parseBankBarcode(b, d, today);
+                        if (!bankBarcodeOk(b) || !fieldsOk) r1.warn = 'Um dígito de conferência não bateu. Confira os números com o boleto.';
+                        return r1;
+                    }
+                    return { valid: false, error: 'Esta linha digitável tem 47 números, mas os dígitos de conferência não batem. Confira se não houve erro de digitação.' };
+                }
+                if (d.length === 48 && d.charAt(0) === '8') {
+                    var id = d.charAt(2), bc = '', blocksOk = true;
+                    for (var i = 0; i < 4; i++) {
+                        var blk = d.slice(i * 12, i * 12 + 11);
+                        if (!arrecBlockDvOk(blk, +d.charAt(i * 12 + 11), id)) blocksOk = false;
+                        bc += blk;
+                    }
+                    if (arrecBarcodeOk(bc) || blocksOk) {
+                        var r2 = parseArrecBarcode(bc, d, today);
+                        if (!arrecBarcodeOk(bc) || !blocksOk) r2.warn = 'Um dígito de conferência não bateu. Confira os números com a conta.';
+                        return r2;
+                    }
+                    return { valid: false, error: 'Esta linha tem 48 números, mas os dígitos de conferência não batem. Confira se não houve erro de digitação.' };
+                }
+                if (d.length === 44) {
+                    if (bankBarcodeOk(d)) return parseBankBarcode(d, null, today);
+                    if (arrecBarcodeOk(d)) return parseArrecBarcode(d, null, today);
+                    if (nfeKeyOk(d)) return parseNfeKey(d, null);
+                    return { valid: false, error: 'Código com 44 números não reconhecido (dígito de conferência inválido).' };
+                }
+                if (d.length > 0 && d.length < 44) return { valid: false, error: 'Faltam números: tem ' + d.length + '. A linha digitável de boleto tem 47 números (contas de água, luz e telefone têm 48).' };
+                return { valid: false, error: 'Não reconheci esse código. Cole a linha digitável do boleto (47 ou 48 números) ou o Pix copia e cola.' };
+            }
+
+            // Procura códigos dentro de um texto grande (ex.: texto extraído de PDF)
+            function findCodeInText(text, today) {
+                var t = String(text || '');
+                var pixM = t.replace(/[\r\n]+/g, '').match(/000201.*?br\.gov\.bcb\.pix.*?6304[0-9A-Fa-f]{4}/i);
+                var cands = [];
+                var re = /\d[\d.\-\s]{42,70}\d/g, m;
+                while ((m = re.exec(t))) cands.push(m[0]);
+                var flat = t.replace(/[^\d]+/g, ' ');
+                for (var i = 0; i < cands.length; i++) {
+                    var dd = onlyDigits(cands[i]);
+                    var tries = [dd];
+                    if (dd.length > 48) { tries.push(dd.slice(0, 47)); tries.push(dd.slice(0, 48)); tries.push(dd.slice(-47)); tries.push(dd.slice(-48)); }
+                    for (var j = 0; j < tries.length; j++) {
+                        var r = parsePaymentCode(tries[j], today);
+                        if (r.valid && !r.warn && r.kind !== 'nota') return r;
+                    }
+                }
+                // números separados por quebras: junta sequências do texto
+                var nums = flat.trim().split(' ');
+                for (var a = 0; a < nums.length; a++) {
+                    var acc = '';
+                    for (var bI = a; bI < nums.length && acc.length < 48; bI++) {
+                        acc += nums[bI];
+                        if (acc.length === 47 || acc.length === 48) {
+                            var r2 = parsePaymentCode(acc, today);
+                            if (r2.valid && !r2.warn && r2.kind !== 'nota') return r2;
+                        }
+                    }
+                }
+                if (pixM) {
+                    var px = parsePix(pixM[0]);
+                    if (!(px && px.valid)) px = parsePix(pixM[0].replace(/\s+/g, ''));
+                    if (px && px.valid) return px;
+                }
+                return null;
+            }
+
+            // ---- Leitura por câmera / foto / PDF ----
+            var ZXING_URL = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+            var PDFJS_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+            var PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+            var scriptPromises = {};
+            function loadScript(url) {
+                if (!scriptPromises[url]) {
+                    scriptPromises[url] = new Promise(function(resolve, reject) {
+                        var sc = document.createElement('script');
+                        sc.src = url; sc.async = true;
+                        sc.onload = function() { resolve(); };
+                        sc.onerror = function() { delete scriptPromises[url]; reject(new Error('Sem internet para carregar o leitor.')); };
+                        document.head.appendChild(sc);
+                    });
+                }
+                return scriptPromises[url];
+            }
+
+            var nativeDetectorP = null;
+            function getNativeDetector() {
+                if (nativeDetectorP) return nativeDetectorP;
+                nativeDetectorP = new Promise(function(resolve) {
+                    if (!('BarcodeDetector' in window)) return resolve(null);
+                    try {
+                        window.BarcodeDetector.getSupportedFormats().then(function(f) {
+                            var want = ['itf', 'qr_code', 'code_128'].filter(function(x) { return f.indexOf(x) >= 0; });
+                            if (want.indexOf('itf') < 0) return resolve(null);
+                            resolve(new window.BarcodeDetector({ formats: want }));
+                        }, function() { resolve(null); });
+                    } catch (e) { resolve(null); }
+                });
+                return nativeDetectorP;
+            }
+
+            var zxReader = null;
+            function getZx() {
+                if (zxReader) return Promise.resolve(zxReader);
+                return loadScript(ZXING_URL).then(function() {
+                    var Z = window.ZXing;
+                    var hints = new Map();
+                    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.ITF, Z.BarcodeFormat.QR_CODE, Z.BarcodeFormat.CODE_128]);
+                    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+                    var r = new Z.MultiFormatReader();
+                    r.setHints(hints);
+                    zxReader = r;
+                    return r;
+                });
+            }
+            function zxDecodeCanvas(reader, canvas) {
+                var Z = window.ZXing;
+                try {
+                    var src = new Z.HTMLCanvasElementLuminanceSource(canvas);
+                    var res = reader.decodeWithState(new Z.BinaryBitmap(new Z.HybridBinarizer(src)));
+                    return res ? res.getText() : null;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            // Lê códigos de uma imagem (canvas). Devolve lista de textos encontrados.
+            function decodeCanvas(canvas) {
+                return getNativeDetector().then(function(det) {
+                    if (det) {
+                        return det.detect(canvas).then(function(codes) {
+                            return codes.map(function(c) { return c.rawValue; });
+                        }, function() { return []; });
+                    }
+                    return getZx().then(function(reader) {
+                        var t = zxDecodeCanvas(reader, canvas);
+                        return t ? [t] : [];
+                    });
+                });
+            }
+
+            function rotatedCanvas(src) {
+                var c = document.createElement('canvas');
+                c.width = src.height; c.height = src.width;
+                var ctx = c.getContext('2d');
+                ctx.translate(c.width / 2, c.height / 2);
+                ctx.rotate(Math.PI / 2);
+                ctx.drawImage(src, -src.width / 2, -src.height / 2);
+                return c;
+            }
+            function scaledCanvas(src, side) {
+                var sc = Math.min(2.5, side / Math.max(src.width, src.height));
+                var c = document.createElement('canvas');
+                c.width = Math.round(src.width * sc); c.height = Math.round(src.height * sc);
+                var ctx = c.getContext('2d');
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(src, 0, 0, c.width, c.height);
+                return c;
+            }
+
+            function firstValid(texts) {
+                for (var i = 0; i < texts.length; i++) {
+                    var r = parsePaymentCode(texts[i]);
+                    if (r.valid && !r.warn) return r;
+                }
+                return null;
+            }
+
+            // Tenta a imagem em tamanhos e posições diferentes (boleto fotografado de pé ou deitado)
+            function decodeImageCanvas(canvas) {
+                var sizes = [2400, 2000, 2800, 1600, 3200, 1300];
+                var attempts = [];
+                sizes.forEach(function(sz) {
+                    attempts.push(function() { return scaledCanvas(canvas, sz); });
+                    attempts.push(function() { return rotatedCanvas(scaledCanvas(canvas, sz)); });
+                });
+                var i = 0;
+                function next() {
+                    if (i >= attempts.length) return Promise.resolve(null);
+                    var c = attempts[i++]();
+                    return decodeCanvas(c).then(function(texts) {
+                        return firstValid(texts) || next();
+                    });
+                }
+                return next();
+            }
+
+            function fileToCanvas(file) {
+                return new Promise(function(resolve, reject) {
+                    var url = URL.createObjectURL(file);
+                    var img = new Image();
+                    img.onload = function() {
+                        var c = document.createElement('canvas');
+                        c.width = img.naturalWidth; c.height = img.naturalHeight;
+                        c.getContext('2d').drawImage(img, 0, 0);
+                        URL.revokeObjectURL(url);
+                        resolve(c);
+                    };
+                    img.onerror = function() { URL.revokeObjectURL(url); reject(new Error('Não consegui abrir esta imagem.')); };
+                    img.src = url;
+                });
+            }
+
+            function readPdf(file) {
+                return loadScript(PDFJS_URL).then(function() {
+                    var lib = window.pdfjsLib;
+                    lib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+                    return file.arrayBuffer().then(function(buf) {
+                        return lib.getDocument({ data: buf }).promise;
+                    });
+                }).then(function(pdf) {
+                    var pages = Math.min(pdf.numPages, 3);
+                    var texts = [];
+                    var p = Promise.resolve();
+                    for (var n = 1; n <= pages; n++) {
+                        (function(n) {
+                            p = p.then(function() {
+                                return pdf.getPage(n).then(function(pg) {
+                                    return pg.getTextContent().then(function(tc) {
+                                        texts.push(tc.items.map(function(it) { return it.str; }).join(' '));
+                                    });
+                                });
+                            });
+                        })(n);
+                    }
+                    return p.then(function() {
+                        var found = findCodeInText(texts.join('\n'));
+                        if (found) return found;
+                        // PDF escaneado: desenha a 1ª página e procura o código de barras
+                        return pdf.getPage(1).then(function(pg) {
+                            var vp = pg.getViewport({ scale: 3 });
+                            var c = document.createElement('canvas');
+                            c.width = vp.width; c.height = vp.height;
+                            return pg.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise.then(function() {
+                                return decodeImageCanvas(c);
+                            });
+                        });
+                    });
+                });
+            }
+
+            // ---- Janela do leitor ----
+            var scan = { target: null, stream: null, timer: null, busy: false, file: null, result: null };
+            var payCodes = { bill: null, exp: null, editbill: null };
+
+            function scanEl(id) { return document.getElementById(id); }
+            function scanStatus(msg, color) {
+                var el = scanEl('scan-status');
+                el.innerHTML = msg || '';
+                el.style.color = color || 'var(--text-sub)';
+            }
+
+            window.openScanner = function(target) {
+                scan.target = target;
+                scan.file = null;
+                scan.result = null;
+                scanEl('scan-text').value = '';
+                scanEl('scan-result').innerHTML = '';
+                scanStatus('');
+                scanEl('modal-scan').classList.add('active');
+            };
+
+            function stopCamera() {
+                if (scan.timer) { clearTimeout(scan.timer); scan.timer = null; }
+                if (scan.stream) { scan.stream.getTracks().forEach(function(t) { t.stop(); }); scan.stream = null; }
+                scanEl('scan-video').srcObject = null;
+                scanEl('scan-cam-wrap').style.display = 'none';
+                scanEl('scan-pick').style.display = '';
+            }
+
+            function closeScanner() {
+                stopCamera();
+                scanEl('modal-scan').classList.remove('active');
+            }
+
+            function startCamera() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    scanStatus('Este aparelho não liberou a câmera aqui. Use "Foto ou PDF do boleto".', 'var(--accent-amber)');
+                    return;
+                }
+                scanStatus('Abrindo a câmera...');
+                navigator.mediaDevices.getUserMedia({
+                    audio: false,
+                    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+                }).then(function(stream) {
+                    scan.stream = stream;
+                    var v = scanEl('scan-video');
+                    v.srcObject = stream;
+                    v.setAttribute('playsinline', '');
+                    v.muted = true;
+                    v.play();
+                    scanEl('scan-cam-wrap').style.display = 'block';
+                    scanEl('scan-pick').style.display = 'none';
+                    var track = stream.getVideoTracks()[0];
+                    var caps = track && track.getCapabilities ? track.getCapabilities() : {};
+                    scanEl('btn-scan-torch').style.display = caps.torch ? '' : 'none';
+                    scanStatus('Aponte para o <b>código de barras</b> (de preferência com o celular deitado) ou para o <b>QR Code</b>.');
+                    return Promise.all([getNativeDetector(), getNativeDetector().then(function(d) { return d ? null : getZx(); })]);
+                }).then(function() {
+                    scanLoop();
+                }).catch(function(err) {
+                    stopCamera();
+                    var msg = (err && err.name === 'NotAllowedError')
+                        ? 'A câmera foi bloqueada. Libere a permissão de câmera para o app nas configurações do navegador, ou use "Foto ou PDF".'
+                        : (err && (err.name === 'NotFoundError' || err.name === 'OverconstrainedError'))
+                        ? 'Não encontrei câmera neste aparelho. Use "Foto ou PDF" ou cole a linha digitável.'
+                        : (err && err.name === 'NotReadableError')
+                        ? 'A câmera está sendo usada por outro app. Feche-o e tente de novo.'
+                        : 'Não consegui abrir a câmera. Use "Foto ou PDF" ou cole a linha digitável.';
+                    scanStatus(msg, 'var(--accent-amber)');
+                });
+            }
+
+            var frameCanvas = document.createElement('canvas');
+            function scanLoop() {
+                if (!scan.stream) return;
+                var v = scanEl('scan-video');
+                if (v.readyState >= 2 && v.videoWidth) {
+                    // usa a faixa central (onde fica a mira)
+                    var w = v.videoWidth, h = v.videoHeight;
+                    var bandH = Math.round(h * 0.5);
+                    frameCanvas.width = w; frameCanvas.height = bandH;
+                    frameCanvas.getContext('2d').drawImage(v, 0, Math.round((h - bandH) / 2), w, bandH, 0, 0, w, bandH);
+                    scan.tick = (scan.tick || 0) + 1;
+                    var src = frameCanvas;
+                    // o leitor de código de barras é sensível ao tamanho: varia a escala a cada tentativa
+                    var SCALES = [1, 0.85, 1.2, 0.7, 1.4];
+                    var factor = SCALES[scan.tick % SCALES.length];
+                    if (scan.tick % 3 === 0) {
+                        // de vez em quando lê o quadro inteiro (QR Code fora da mira)
+                        src = document.createElement('canvas');
+                        src.width = w; src.height = h;
+                        src.getContext('2d').drawImage(v, 0, 0, w, h);
+                    } else if (scan.tick % 3 === 2) {
+                        // faixa vertical girada (código de barras em pé, celular na vertical)
+                        var bandW = Math.round(w * 0.5);
+                        var vc = document.createElement('canvas');
+                        vc.width = bandW; vc.height = h;
+                        vc.getContext('2d').drawImage(v, Math.round((w - bandW) / 2), 0, bandW, h, 0, 0, bandW, h);
+                        src = rotatedCanvas(vc);
+                    }
+                    if (factor !== 1) src = scaledCanvas(src, Math.round(Math.max(src.width, src.height) * factor));
+                    decodeCanvas(src).then(function(t1) {
+                        return firstValid(t1);
+                    }).then(function(r) {
+                        if (r && scan.stream) {
+                            if (navigator.vibrate) navigator.vibrate(80);
+                            stopCamera();
+                            showScanResult(r);
+                        } else {
+                            scan.timer = setTimeout(scanLoop, 120);
+                        }
+                    }, function() { scan.timer = setTimeout(scanLoop, 400); });
+                } else {
+                    scan.timer = setTimeout(scanLoop, 200);
+                }
+            }
+
+            function handleScanFile(file) {
+                if (!file) return;
+                scan.file = file;
+                scanEl('scan-result').innerHTML = '';
+                var isPdf = /pdf/i.test(file.type) || /\.pdf$/i.test(file.name || '');
+                scanStatus('⏳ Lendo ' + (isPdf ? 'o PDF' : 'a foto') + '...');
+                var job = isPdf ? readPdf(file) : fileToCanvas(file).then(decodeImageCanvas);
+                job.then(function(r) {
+                    if (r) return showScanResult(r);
+                    scanStatus(isPdf
+                        ? 'Não encontrei o código neste PDF. Copie a linha digitável do boleto e cole no campo abaixo.'
+                        : 'Não consegui ler o código nesta foto. Dicas: foto bem de perto só do código de barras, com boa luz e sem tremer. Ou digite a linha digitável abaixo.',
+                        'var(--accent-amber)');
+                }, function(err) {
+                    scanStatus((err && err.message) || 'Não consegui ler este arquivo.', 'var(--accent-amber)');
+                });
+            }
+
+            function findDuplicate(r) {
+                var code = r.line || r.pix;
+                if (!code || r.kind === 'pix' && !r.amount) return null;
+                return state.bills.concat(state.items).find(function(o) {
+                    return o.payCode && o.payCode.code === code;
+                }) || null;
+            }
+
+            function lookupCnpj(cnpj) {
+                var ctrl = window.AbortController ? new AbortController() : null;
+                var to = setTimeout(function() { if (ctrl) ctrl.abort(); }, 6000);
+                return fetch('https://brasilapi.com.br/api/cnpj/v1/' + cnpj, ctrl ? { signal: ctrl.signal } : {})
+                    .then(function(res) { clearTimeout(to); return res.ok ? res.json() : null; })
+                    .then(function(j) { return j ? titleCase(j.nome_fantasia || j.razao_social || '') : ''; })
+                    .catch(function() { clearTimeout(to); return ''; });
+            }
+
+            function showScanResult(r) {
+                scan.result = r;
+                if (!r.valid) {
+                    scanEl('scan-result').innerHTML = '';
+                    return scanStatus('❌ ' + esc(r.error || 'Código inválido.'), 'var(--accent-red)');
+                }
+                scanStatus('');
+                var rows = [];
+                function row(label, value, color) {
+                    rows.push('<div class="scan-row"><span>' + label + '</span><b' + (color ? ' style="color:' + color + '"' : '') + '>' + value + '</b></div>');
+                }
+                row('Tipo', esc(r.typeLabel));
+                if (r.kind === 'boleto') row('Banco', esc(r.bankName));
+                if (r.kind === 'arrecadacao') row('Conta de', esc(r.segment));
+                if (r.kind === 'pix' && r.name) row('Recebedor', esc(titleCase(r.name)) + (r.city ? ' <small>(' + esc(titleCase(r.city)) + ')</small>' : ''));
+                if (r.kind === 'nota') row('CNPJ da loja', esc(r.cnpjFmt) + ' <small id="scan-cnpj-name"></small>');
+                row('Valor', r.amount ? fmtMoney(r.amount) : '<span style="color:var(--accent-amber)">não vem no código — digite</span>');
+                if (r.kind === 'boleto') row('Vencimento', r.due ? formatDate(r.due) : 'sem data no código');
+                if (r.kind === 'arrecadacao') row('Vencimento', r.due ? formatDate(r.due) + ' <small style="color:var(--accent-amber)">(confira)</small>' : '<span style="color:var(--accent-amber)">não vem no código — digite</span>');
+                if (r.kind === 'nota') row('Data da compra', r.date ? formatDate(r.date) : '<span style="color:var(--text-sub)">' + r.month.slice(5) + '/' + r.month.slice(0, 4) + ' — confira o dia</span>');
+
+                var codeHtml = '';
+                if (r.lineFmt) codeHtml = '<div class="scan-code">' + esc(r.lineFmt) + '</div>';
+                var warn = r.warn ? '<div class="scan-warn">⚠️ ' + esc(r.warn) + '</div>' : '';
+                if (r.kind === 'pix' && r.dynamic && !r.amount) warn += '<div class="scan-warn">Este Pix é de cobrança: o valor só aparece no app do banco. Digite o valor.</div>';
+                if (r.kind === 'pix' && !r.valid) warn += '<div class="scan-warn">O código Pix parece incompleto.</div>';
+                var dup = findDuplicate(r);
+                if (dup) warn += '<div class="scan-warn">⚠️ Este código já foi lançado: "' + esc(dup.title) + '" (' + formatDate(normalizeDate(dup.date)) + ').</div>';
+                var link = r.url ? '<a class="scan-link" href="' + esc(r.url) + '" target="_blank" rel="noopener">🔎 Ver a nota no site da Sefaz</a>' : '';
+
+                scanEl('scan-result').innerHTML =
+                    '<div class="scan-card">' + rows.join('') + codeHtml + warn + link +
+                    '<button type="button" class="btn-submit" id="btn-scan-use" style="background-color:var(--accent-green); margin-top:12px;">✅ Usar estes dados</button></div>';
+                scanEl('btn-scan-use').onclick = applyScanResult;
+
+                if (r.kind === 'nota') {
+                    lookupCnpj(r.cnpj).then(function(name) {
+                        if (!name || scan.result !== r) return;
+                        r.storeName = name;
+                        r.descSuggestion = name;
+                        var el = scanEl('scan-cnpj-name');
+                        if (el) el.textContent = '— ' + name;
+                    });
+                }
+            }
+
+            function setIfEmpty(id, val, force) {
+                var el = scanEl(id);
+                if (!el || val === null || val === undefined || val === '') return;
+                if (force || !el.value) el.value = val;
+            }
+            function flash(id) {
+                var el = scanEl(id);
+                if (!el) return;
+                el.classList.add('scan-need');
+                setTimeout(function() { el.classList.remove('scan-need'); }, 4000);
+            }
+
+            function applyScanResult() {
+                var r = scan.result;
+                if (!r || !r.valid) return;
+                var t = scan.target;
+                var code = r.line ? { type: r.kind, code: r.line } : (r.pix ? { type: 'pix', code: r.pix } : null);
+                var amt = r.amount ? r.amount.toFixed(2) : '';
+                var need = [];
+
+                if (t === 'bill') {
+                    setIfEmpty('bill-desc', r.descSuggestion);
+                    setIfEmpty('bill-amount', amt, true);
+                    if (r.due) scanEl('bill-date').value = r.due; else need.push('bill-date');
+                    if (r.kind !== 'nota') scanEl('bill-method').value = 'Boleto/PIX';
+                    if (!amt) need.push('bill-amount');
+                } else if (t === 'exp') {
+                    setIfEmpty('exp-desc', r.descSuggestion);
+                    setIfEmpty('exp-amount', amt, true);
+                    if (r.kind === 'nota') {
+                        if (r.date) scanEl('exp-date').value = r.date;
+                    } else if (r.due) {
+                        scanEl('exp-due').value = r.due;
+                    }
+                    if (!amt) need.push('exp-amount');
+                } else if (t === 'editbill') {
+                    if (code) scanEl('edit-bill-code').value = code.code;
+                    if (amt) scanEl('edit-bill-amount').value = amt;
+                    if (r.due) scanEl('edit-bill-date').value = r.due;
+                }
+                if (t !== 'editbill' && r.kind !== 'nota') {
+                    payCodes[t] = code;
+                    renderPayCodeChip(t);
+                }
+                var slot = t === 'bill' ? 'bill-boleto' : t === 'exp' ? 'exp-boleto' : 'editbill-boleto';
+                var file = scan.file;
+                closeScanner();
+                if (file && !getSlotFiles(slot).some(function(a) { return a.name === file.name; })) {
+                    readFileForAttach(file, 'boleto', function(att) {
+                        if (att) { attachSlots[slot].push(att); renderSlot(slot); }
+                    });
+                }
+                need.forEach(flash);
+                if (need.length) scanEl(need[0]).focus();
+            }
+
+            function renderPayCodeChip(t) {
+                var el = scanEl(t + '-paycode-chip');
+                if (!el) return;
+                var c = payCodes[t];
+                if (!c) { el.innerHTML = ''; el.style.display = 'none'; return; }
+                el.style.display = 'flex';
+                el.innerHTML = '<span>🔗 ' + (c.type === 'pix' ? 'Pix copia e cola' : 'Código do boleto') + ' guardado — na hora de pagar, é só tocar em <b>📋 Código</b>.</span>' +
+                    '<button type="button" title="Remover">×</button>';
+                el.querySelector('button').onclick = function() { payCodes[t] = null; renderPayCodeChip(t); };
+            }
+
+            function takePayCode(t) {
+                var c = payCodes[t];
+                payCodes[t] = null;
+                renderPayCodeChip(t);
+                return c;
+            }
+
+            function copyText(text) {
+                function fallback() {
+                    var ta = document.createElement('textarea');
+                    ta.value = text; ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed'; ta.style.opacity = '0';
+                    document.body.appendChild(ta); ta.select();
+                    var ok = false;
+                    try { ok = document.execCommand('copy'); } catch (e) {}
+                    document.body.removeChild(ta);
+                    return ok;
+                }
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    return navigator.clipboard.writeText(text).then(function() { return true; }, function() { return fallback(); });
+                }
+                return Promise.resolve(fallback());
+            }
+
+            function scanToast(msg) {
+                var el = document.getElementById('scan-toast');
+                el.innerHTML = msg;
+                el.classList.add('show');
+                clearTimeout(el._t);
+                el._t = setTimeout(function() { el.classList.remove('show'); }, 3500);
+            }
+
+            window.copyPayCode = function(id) {
+                var o = state.bills.find(function(b) { return String(b.id) === String(id); }) ||
+                        state.items.find(function(i) { return String(i.id) === String(id); });
+                if (!o || !o.payCode) return;
+                copyText(o.payCode.code).then(function(ok) {
+                    if (ok) scanToast('✅ ' + (o.payCode.type === 'pix' ? 'Pix copia e cola' : 'Código do boleto') + ' copiado!<br><small>Abra o app do banco e cole em "Pagar boleto"' + (o.payCode.type === 'pix' ? ' / "Pix copia e cola"' : '') + '.</small>');
+                    else window.prompt('Copie o código abaixo:', o.payCode.code);
+                });
+            };
+
+            function payCodeBtn(o) {
+                if (!o.payCode) return '';
+                return '<button class="btn-icon" style="font-size:0.72rem; padding:3px 8px;" title="Copiar código para pagar no app do banco" onclick="window.copyPayCode(\'' + String(o.id).replace(/'/g, '') + '\')">📋 Código</button>';
+            }
+
+            document.querySelectorAll('[data-scan]').forEach(function(btn) {
+                btn.addEventListener('click', function() { window.openScanner(this.getAttribute('data-scan')); });
+            });
+            scanEl('btn-close-scan').addEventListener('click', closeScanner);
+            scanEl('btn-scan-camera').addEventListener('click', startCamera);
+            scanEl('btn-scan-stop').addEventListener('click', stopCamera);
+            scanEl('btn-scan-torch').addEventListener('click', function() {
+                var track = scan.stream && scan.stream.getVideoTracks()[0];
+                if (!track) return;
+                scan.torch = !scan.torch;
+                track.applyConstraints({ advanced: [{ torch: scan.torch }] }).catch(function() {});
+            });
+            scanEl('scan-file').addEventListener('change', function() {
+                var f = this.files && this.files[0];
+                this.value = '';
+                handleScanFile(f);
+            });
+            scanEl('btn-scan-read').addEventListener('click', function() {
+                scan.file = null;
+                var txt = scanEl('scan-text').value;
+                var r = parsePaymentCode(txt);
+                if (!r.valid && txt.length > 60) r = findCodeInText(txt) || r;
+                showScanResult(r);
+            });
+            scanEl('btn-scan-paste').addEventListener('click', function() {
+                if (!navigator.clipboard || !navigator.clipboard.readText) {
+                    scanEl('scan-text').focus();
+                    return scanStatus('Toque e segure no campo abaixo e escolha "Colar".');
+                }
+                navigator.clipboard.readText().then(function(t) {
+                    scanEl('scan-text').value = t || '';
+                    scanEl('btn-scan-read').click();
+                }, function() {
+                    scanEl('scan-text').focus();
+                    scanStatus('Toque e segure no campo abaixo e escolha "Colar".');
+                });
+            });
+            scanEl('scan-text').addEventListener('input', function() {
+                var d = onlyDigits(this.value);
+                if (d.length === 47 || d.length === 48 || /6304[0-9A-Fa-f]{4}\s*$/.test(this.value)) {
+                    scan.file = null;
+                    showScanResult(parsePaymentCode(this.value));
+                }
+            });
+
             function loadData() {
                 try {
                     var data = localStorage.getItem('sf_app_data_v12');
@@ -3421,8 +4402,9 @@
                     '<div class="trans-info">' +
                         '<span class="trans-title">' + (b.seriesId ? '🔁 ' : '') + esc(billLabel(b)) + '</span>' +
                         '<span class="trans-sub">Vencimento: <b>' + formatDate(bd) + '</b> • ' + esc(b.detail || 'Boleto/PIX') + '</span>' +
-                        '<div style="margin-top:4px; display:flex; gap:6px; align-items:center;">' +
+                        '<div style="margin-top:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">' +
                             '<span class="badge-status ' + badgeClass + '">' + badgeText + '</span>' +
+                            payCodeBtn(b) +
                             docAttach +
                         '</div>' +
                     '</div>' +
@@ -3526,6 +4508,7 @@
                         account: acc,
                         author: getAuthorName(),
                         dueDate: dueDate || '',
+                        payCode: takePayCode('exp'),
                         attachments: getSlotFiles('exp-boleto').concat(getSlotFiles('exp-comprovante'))
                     });
                     document.getElementById('exp-due').value = '';
@@ -3565,6 +4548,7 @@
                 var date = document.getElementById('bill-date').value;
                 var method = document.getElementById('bill-method').value;
                 var billAtts = getSlotFiles('bill-boleto');
+                var billCode = payCodes.bill;
 
                 if (!desc || !amt || !date) return;
 
@@ -3582,6 +4566,7 @@
                             forPerson: forPersonValue('bill-for'),
                             author: getAuthorName(),
                             paid: false,
+                            payCode: billCode,
                             attachments: billAtts
                         });
                     } else {
@@ -3611,10 +4596,11 @@
                         state.billSeries = state.billSeries || [];
                         state.billSeries.push(s);
                         ensureSeriesBills();
-                        if (billAtts.length) {
+                        if (billAtts.length || billCode) {
                             var first = window.materializeBill(s.id, 0);
                             var fb = state.bills.find(function(x) { return String(x.id) === first; });
-                            if (fb) fb.attachments = billAtts;
+                            if (fb && billAtts.length) fb.attachments = billAtts;
+                            if (fb && billCode) fb.payCode = billCode;
                         }
                         var gen = state.bills.filter(function(x) { return x.seriesId === s.id; }).length;
                         alert(repeat === 'installments'
@@ -3633,6 +4619,7 @@
                     document.getElementById('bill-desc').value = '';
                     document.getElementById('bill-amount').value = '';
                     clearSlot('bill-boleto');
+                    takePayCode('bill');
                 })();
             });
 
@@ -3647,6 +4634,9 @@
                 document.getElementById('pay-bill-amount-paid').value = bill.amount;
                 document.getElementById('pay-bill-date').value = getTodayStr();
                 clearSlot('pay-comprovante');
+                var copyBtn = document.getElementById('btn-pay-copy-code');
+                copyBtn.style.display = bill.payCode ? 'flex' : 'none';
+                copyBtn.onclick = function() { window.copyPayCode(bill.id); };
 
                 document.getElementById('modal-pay-bill').classList.add('active');
             };
@@ -3683,6 +4673,7 @@
                         dueDate: normalizeDate(bill.date),
                         billId: String(bill.id),
                         fromBill: true,
+                        payCode: bill.payCode || null,
                         detail: bill.detail || 'Boleto/PIX',
                         amount: amountPaid,
                         date: payDate,
@@ -3741,6 +4732,7 @@
                 document.getElementById('edit-bill-amount').value = bill.amount;
                 document.getElementById('edit-bill-date').value = normalizeDate(bill.date);
                 document.getElementById('edit-bill-method').value = bill.detail || 'Boleto/PIX';
+                document.getElementById('edit-bill-code').value = bill.payCode ? bill.payCode.code : '';
                 setSlotFiles('editbill-boleto', getAttachments(bill));
                 document.getElementById('edit-bill-series-wrap').style.display = bill.seriesId ? 'flex' : 'none';
                 document.getElementById('edit-bill-apply-series').checked = false;
@@ -3764,6 +4756,15 @@
                     bill.amount = parseFloat(document.getElementById('edit-bill-amount').value);
                     bill.date = document.getElementById('edit-bill-date').value;
                     bill.detail = document.getElementById('edit-bill-method').value;
+                    var codeTxt = document.getElementById('edit-bill-code').value.trim();
+                    if (!codeTxt) {
+                        bill.payCode = null;
+                    } else if (!bill.payCode || bill.payCode.code !== codeTxt) {
+                        var pc = parsePaymentCode(codeTxt);
+                        bill.payCode = pc.valid && (pc.line || pc.pix)
+                            ? { type: pc.kind, code: pc.line || pc.pix }
+                            : { type: 'texto', code: codeTxt };
+                    }
 
                     var s = bill.seriesId ? findSeries(bill.seriesId) : null;
                     if (s && document.getElementById('edit-bill-apply-series').checked) {
@@ -4320,8 +5321,8 @@
             var CATEGORY_RULES = [
                 ['Alimentação', ['mercado', 'supermercado', 'atacadão', 'atacadao', 'assai', 'padaria', 'açougue', 'acougue', 'hortifruti', 'sacolão', 'feira', 'restaurante', 'lanche', 'lanchonete', 'ifood', 'pizza', 'comida', 'almoço', 'jantar', 'café', 'sorvete', 'hamburguer', 'churrasco', 'marmita', 'pamonha', 'bebida', 'água mineral']],
                 ['Saúde', ['farmácia', 'drogaria', 'remédio', 'medicamento', 'médico', 'consulta', 'exame', 'dentista', 'plano de saúde', 'unimed', 'ipasgo', 'hospital', 'clínica', 'laboratório', 'fisioterapia', 'psicólogo', 'óculos', 'ótica']],
-                ['Transporte', ['combustível', 'gasolina', 'etanol', 'álcool', 'diesel', 'posto', 'uber', '99', 'ônibus', 'estacionamento', 'pedágio', 'oficina', 'mecânico', 'pneu', 'ipva', 'licenciamento', 'detran', 'lava jato', 'carro', 'moto', 'óleo']],
-                ['Moradia', ['aluguel', 'condomínio', 'energia', 'luz', 'equatorial', 'enel', 'água', 'saneago', 'internet', 'gás', 'iptu', 'reforma', 'material de construção', 'móveis', 'eletrodoméstico']],
+                ['Transporte', ['combustível', 'gasolina', 'etanol', 'álcool', 'diesel', 'posto', 'uber', '99', 'ônibus', 'estacionamento', 'pedágio', 'oficina', 'mecânico', 'pneu', 'ipva', 'licenciamento', 'detran', 'lava jato', 'carro', 'moto', 'óleo', 'multa de trânsito', 'multa']],
+                ['Moradia', ['aluguel', 'condomínio', 'energia', 'luz', 'equatorial', 'enel', 'água', 'saneago', 'internet', 'gás', 'iptu', 'prefeitura', 'reforma', 'material de construção', 'móveis', 'eletrodoméstico']],
                 ['Contas e Assinaturas', ['telefone', 'celular', 'claro', 'vivo', 'tim', 'netflix', 'spotify', 'streaming', 'assinatura', 'tv', 'amazon', 'globoplay', 'disney', 'youtube', 'tarifa', 'anuidade']],
                 ['Cartão e Dívidas', ['cartão', 'fatura', 'empréstimo', 'financiamento', 'parcela', 'consignado', 'juros', 'dívida', 'acordo']],
                 ['Educação', ['escola', 'faculdade', 'curso', 'livro', 'material escolar', 'mensalidade', 'apostila', 'pós']],
