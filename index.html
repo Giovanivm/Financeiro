@@ -703,6 +703,11 @@
         #scan-toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none; z-index: 3000;
             background: #064e3b; color: #fff; border: 1px solid var(--accent-green); border-radius: 12px; padding: 12px 16px; font-size: 0.88rem; text-align: center;
             transition: all .25s; max-width: 90vw; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+        .nf-items { margin-top: 10px; max-height: 260px; overflow-y: auto; border-top: 1px solid var(--border-color); }
+        .nf-item { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px dotted var(--border-color); font-size: 0.8rem; }
+        .nf-item b { display: block; font-weight: 600; }
+        .nf-item small { color: var(--text-sub); }
+        .nf-item span { white-space: nowrap; font-weight: 600; }
         #scan-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         #scan-toast small { color: #a7f3d0; }
 
@@ -811,6 +816,7 @@
                 <form id="form-exp">
                     <button type="button" class="btn-scan" data-scan="exp">📷 Ler boleto, Pix ou nota fiscal <small>(preenche sozinho)</small></button>
                     <div class="paycode-chip" id="exp-paycode-chip"></div>
+                    <div class="paycode-chip" id="exp-nfce-chip"></div>
                     <div class="form-group">
                         <label>Descrição</label>
                         <input type="text" id="exp-desc" class="form-control" placeholder="Ex: Farmácia / Mercado" required>
@@ -1739,6 +1745,17 @@
     </div>
     <div id="scan-toast"></div>
 
+    <!-- MODAL: ITENS DA NOTA FISCAL -->
+    <div class="modal-overlay" id="modal-nfce-view">
+        <div class="modal-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+                <h3 style="color: var(--accent-blue); font-size: 1.05rem;" id="nfce-view-title">🧾 Nota fiscal</h3>
+                <button onclick="document.getElementById('modal-nfce-view').classList.remove('active')" style="background:none; border:none; color:var(--text-sub); font-size:1.5rem; cursor:pointer;">&times;</button>
+            </div>
+            <div id="nfce-view-body"></div>
+        </div>
+    </div>
+
     <!-- MODAL: SALA VAZIA / COPIAR DADOS (exige senha) -->
     <div class="modal-overlay" id="modal-copy-room">
         <div class="modal-body">
@@ -1938,7 +1955,7 @@
 
             // ===================== VERSÃO E ATUALIZAÇÃO =====================
             // Ao publicar uma versão nova, basta mudar este número.
-            var APP_VERSION = '2026.10.27-boletos';
+            var APP_VERSION = '2026.10.29-notas';
 
             // Busca a versão nova direto do GitHub (ignorando a cópia guardada no aparelho) e recarrega
             function hardReload() {
@@ -3522,13 +3539,15 @@
                 if (r.kind === 'boleto') row('Banco', esc(r.bankName));
                 if (r.kind === 'arrecadacao') row('Conta de', esc(r.segment));
                 if (r.kind === 'pix' && r.name) row('Recebedor', esc(titleCase(r.name)) + (r.city ? ' <small>(' + esc(titleCase(r.city)) + ')</small>' : ''));
-                if (r.kind === 'nota') row('CNPJ da loja', esc(r.cnpjFmt) + ' <small id="scan-cnpj-name"></small>');
+                if (r.kind === 'nota') row('CNPJ da loja', esc(r.cnpjFmt) + ' <small id="scan-cnpj-name">' + (r.storeName ? '— ' + esc(r.storeName) : '') + '</small>');
                 row('Valor', r.amount ? fmtMoney(r.amount) : '<span style="color:var(--accent-amber)">não vem no código — digite</span>');
                 if (r.kind === 'boleto') row('Vencimento', r.due ? formatDate(r.due) : 'sem data no código');
                 if (r.kind === 'arrecadacao') row('Vencimento', r.due ? formatDate(r.due) + ' <small style="color:var(--accent-amber)">(confira)</small>' : '<span style="color:var(--accent-amber)">não vem no código — digite</span>');
-                if (r.kind === 'nota') row('Data da compra', r.date ? formatDate(r.date) : '<span style="color:var(--text-sub)">' + r.month.slice(5) + '/' + r.month.slice(0, 4) + ' — confira o dia</span>');
+                if (r.kind === 'nota') row('Data da compra', r.date ? formatDate(r.date) + (r.time ? ' <small>' + esc(r.time) + '</small>' : '') : '<span style="color:var(--text-sub)">' + r.month.slice(5) + '/' + r.month.slice(0, 4) + ' — confira o dia</span>');
+                if (r.kind === 'nota' && r.payment) row('Pagamento', esc(r.payment));
 
                 var codeHtml = '';
+                if (r.items && r.items.length) codeHtml = nfceItemsHtml(r.items);
                 if (r.lineFmt) codeHtml = '<div class="scan-code">' + esc(r.lineFmt) + '</div>';
                 var warn = r.warn ? '<div class="scan-warn">⚠️ ' + esc(r.warn) + '</div>' : '';
                 if (r.kind === 'pix' && r.dynamic && !r.amount) warn += '<div class="scan-warn">Este Pix é de cobrança: o valor só aparece no app do banco. Digite o valor.</div>';
@@ -3542,11 +3561,31 @@
                     '<button type="button" class="btn-submit" id="btn-scan-use" style="background-color:var(--accent-green); margin-top:12px;">✅ Usar estes dados</button></div>';
                 scanEl('btn-scan-use').onclick = applyScanResult;
 
-                if (r.kind === 'nota') {
+                if (r.kind === 'nota' && r.url && NFCE_PROXY && !r.fetchTried) {
+                    r.fetchTried = true;
+                    scanStatus('⏳ Buscando os itens da nota na Sefaz...');
+                    fetchNfceItems(r.url).then(function(nf) {
+                        if (scan.result !== r) return;
+                        if (!nf.items.length && !nf.total) throw new Error('A Sefaz não mostrou os itens desta nota agora.');
+                        r.items = nf.items;
+                        if (nf.total) r.amount = nf.total;
+                        if (nf.date) r.date = nf.date;
+                        r.time = nf.time;
+                        r.payment = nf.payment;
+                        if (nf.store && !r.storeName) { r.storeName = titleCase(nf.store); r.descSuggestion = r.storeName; }
+                        showScanResult(r);
+                        scanStatus('✅ ' + nf.items.length + ' item(ns) lido(s) direto da Sefaz.', 'var(--accent-green)');
+                    }).catch(function(e) {
+                        if (scan.result === r) scanStatus('⚠️ ' + esc(e.message) + ' Você pode digitar o valor.', 'var(--accent-amber)');
+                    });
+                }
+                if (r.kind === 'nota' && !r.cnpjTried) {
+                    r.cnpjTried = true;
                     lookupCnpj(r.cnpj).then(function(name) {
                         if (!name || scan.result !== r) return;
                         r.storeName = name;
                         r.descSuggestion = name;
+                        if (r.items) return showScanResult(r);
                         var el = scanEl('scan-cnpj-name');
                         if (el) el.textContent = '— ' + name;
                     });
@@ -3584,6 +3623,14 @@
                     setIfEmpty('exp-amount', amt, true);
                     if (r.kind === 'nota') {
                         if (r.date) scanEl('exp-date').value = r.date;
+                        var mm = methodFromPayment(r.payment);
+                        if (mm) scanEl('exp-method').value = mm;
+                        pendingNfce = (r.items && r.items.length) ? {
+                            store: r.storeName || '', cnpj: r.cnpj, chave: r.chave, url: r.url,
+                            date: r.date || '', time: r.time || '', payment: r.payment || '',
+                            total: r.amount || null, items: r.items
+                        } : null;
+                        renderNfceChip();
                     } else if (r.due) {
                         scanEl('exp-due').value = r.due;
                     }
@@ -3711,6 +3758,153 @@
                     showScanResult(parsePaymentCode(this.value));
                 }
             });
+
+            // ---- Itens da NFC-e (consulta na Sefaz por meio do "intermediário" Cloudflare) ----
+            var NFCE_PROXY = 'https://leitor-notas.giovanivm.workers.dev/';
+
+            function brNum(s) {
+                s = String(s || '').replace(/[^\d.,-]/g, '');
+                if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+                var n = parseFloat(s);
+                return isNaN(n) ? null : n;
+            }
+
+            function docText(doc) {
+                var out = [];
+                var walker = doc.createTreeWalker(doc.body || doc.documentElement, NodeFilter.SHOW_TEXT, null);
+                var n;
+                while ((n = walker.nextNode())) {
+                    var p = n.parentNode && n.parentNode.nodeName;
+                    if (p === 'SCRIPT' || p === 'STYLE' || p === 'NOSCRIPT') continue;
+                    out.push(n.nodeValue);
+                }
+                return out.join(' ').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+            }
+
+            // Lê a página de consulta da NFC-e (modelo usado pela Sefaz-GO e outros estados)
+            function parseNfceHtml(html) {
+                // A Sefaz-GO entrega a nota "escondida" dentro de um texto de JavaScript (com \" \n <\/span>)
+                if (/\\["\/nt]/.test(html) && /tabResult|txtTit|RvlUnit/.test(html)) {
+                    html = html
+                        .replace(/\\r|\\n|\\t/g, ' ')
+                        .replace(/\\\//g, '/')
+                        .replace(/\\"/g, '"')
+                        .replace(/\\'/g, "'")
+                        .replace(/<\/?script[^>]*>/gi, ' ');
+                }
+                var doc = new DOMParser().parseFromString(html, 'text/html');
+                var text = docText(doc);
+                var items = [];
+                var ITEM_RE = /(.{1,160}?)\s*\(\s*C[óo]digo:\s*([^)]*?)\s*\)\s*Qtde\.?:\s*([\d.,]+)\s*UN:\s*(\S+)\s*Vl\.\s*Unit\.?:\s*([\d.,]+)\s*Vl\.\s*Total\s*([\d.,]+)/i;
+                function pushItem(m) {
+                    items.push({ d: m[1].trim(), c: m[2].trim(), q: brNum(m[3]), un: m[4].trim(), vu: brNum(m[5]), vt: brNum(m[6]) });
+                }
+                // 1º jeito: cada item numa linha da tabela
+                Array.prototype.forEach.call(doc.querySelectorAll('tr'), function(tr) {
+                    if (tr.querySelector('tr')) return;
+                    var t = docText({ body: tr, createTreeWalker: doc.createTreeWalker.bind(doc) });
+                    var m = t.match(new RegExp('^\\s*' + ITEM_RE.source, 'i'));
+                    if (m) pushItem(m);
+                });
+                // 2º jeito: procura no texto corrido
+                if (!items.length) {
+                    var reG = new RegExp(ITEM_RE.source, 'gi'), m;
+                    while ((m = reG.exec(text))) {
+                        m[1] = m[1].replace(/^.*(Filtrar itens\.*|ELETR[ÔO]NICA|\bGO\b)/i, '');
+                        pushItem(m);
+                    }
+                }
+                var total = (text.match(/Valor\s+a\s+pagar\s*R\$:?\s*([\d.,]+)/i) || [])[1];
+                var totalItens = (text.match(/Valor\s+total\s*R\$:?\s*([\d.,]+)/i) || [])[1];
+                var em = text.match(/Emiss[ãa]o:\s*(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}:\d{2}))?/i);
+                var pay = '';
+                var pm = text.match(/Forma\s+de\s+pagamento:?\s*Valor\s+pago\s*R\$:?\s*(.+?)\s+([\d.,]+)\s*(?:Troco|Informa|$)/i);
+                if (pm) pay = pm[1].replace(/^\d+\s*-\s*/, '').trim();
+                var store = '';
+                var top = doc.querySelector('#u20, .txtTopo');
+                if (top) store = top.textContent.replace(/\s+/g, ' ').trim();
+                if (!store) {
+                    var sm = text.match(/ELETR[ÔO]NICA\s+(.+?)\s+CNPJ/i);
+                    if (sm) store = sm[1].trim();
+                }
+                var cnpj = (text.match(/CNPJ:?\s*([\d./-]{14,18})/i) || [])[1] || '';
+                var frame = doc.querySelector('iframe[src], frame[src]');
+                return {
+                    items: items,
+                    total: brNum(total) || brNum(totalItens) || (items.length ? items.reduce(function(s, i) { return s + (i.vt || 0); }, 0) : null),
+                    date: em ? em[3] + '-' + em[2] + '-' + em[1] : '',
+                    time: em && em[4] ? em[4] : '',
+                    payment: pay,
+                    store: store,
+                    cnpj: cnpj,
+                    frameSrc: frame ? frame.getAttribute('src') : ''
+                };
+            }
+
+            function proxyFetch(url) {
+                var ctrl = window.AbortController ? new AbortController() : null;
+                var to = setTimeout(function() { if (ctrl) ctrl.abort(); }, 20000);
+                return fetch(NFCE_PROXY + (NFCE_PROXY.indexOf('?') >= 0 ? '&' : '?') + 'url=' + encodeURIComponent(url), ctrl ? { signal: ctrl.signal } : {})
+                    .then(function(res) {
+                        clearTimeout(to);
+                        if (res.status === 404) throw new Error('A Sefaz não mostrou os itens desta nota (às vezes a nota leva alguns minutos para aparecer depois da compra).');
+                        if (!res.ok) throw new Error('A Sefaz não respondeu (erro ' + res.status + ').');
+                        return res.text();
+                    }, function(e) {
+                        clearTimeout(to);
+                        throw new Error('Sem resposta da Sefaz. Tente de novo em instantes.');
+                    });
+            }
+
+            function fetchNfceItems(url) {
+                if (!NFCE_PROXY) return Promise.reject(new Error('Leitura de itens ainda não configurada.'));
+                return proxyFetch(url).then(function(html) {
+                    var r = parseNfceHtml(html);
+                    if (r.items.length || !r.frameSrc) return r;
+                    var next = new URL(r.frameSrc, url).href;
+                    return proxyFetch(next).then(parseNfceHtml);
+                });
+            }
+
+            function methodFromPayment(p) {
+                p = stripAccents(p || '');
+                if (/credito/.test(p)) return 'Crédito';
+                if (/debito|pix/.test(p)) return 'Débito/PIX';
+                if (/dinheiro/.test(p)) return 'Dinheiro';
+                return '';
+            }
+
+            function nfceItemsHtml(list) {
+                return '<div class="nf-items">' + list.map(function(it) {
+                    return '<div class="nf-item"><div><b>' + esc(it.d) + '</b><small>' +
+                        (it.q !== null ? String(it.q).replace('.', ',') + ' ' + esc(it.un || '') : '') +
+                        (it.vu !== null ? ' × ' + fmtMoney(it.vu) : '') + '</small></div><span>' + fmtMoney(it.vt || 0) + '</span></div>';
+                }).join('') + '</div>';
+            }
+
+            window.showNfceItems = function(id) {
+                var o = state.items.find(function(i) { return String(i.id) === String(id); });
+                if (!o || !o.nfce) return;
+                var n = o.nfce;
+                scanEl('nfce-view-title').textContent = '🧾 ' + (n.store || o.title);
+                scanEl('nfce-view-body').innerHTML =
+                    '<div class="scan-row"><span>Data</span><b>' + (n.date ? formatDate(n.date) : formatDate(normalizeDate(o.date))) + (n.time ? ' ' + esc(n.time) : '') + '</b></div>' +
+                    (n.payment ? '<div class="scan-row"><span>Pagamento</span><b>' + esc(n.payment) + '</b></div>' : '') +
+                    nfceItemsHtml(n.items || []) +
+                    '<div class="scan-row" style="border:none; font-size:1rem;"><span>Total</span><b>' + fmtMoney(n.total || o.amount) + '</b></div>' +
+                    (n.url ? '<a class="scan-link" href="' + esc(n.url) + '" target="_blank" rel="noopener">🔎 Ver a nota no site da Sefaz</a>' : '');
+                scanEl('modal-nfce-view').classList.add('active');
+            };
+
+            var pendingNfce = null;
+            function renderNfceChip() {
+                var el = document.getElementById('exp-nfce-chip');
+                if (!pendingNfce) { el.innerHTML = ''; el.style.display = 'none'; return; }
+                el.style.display = 'flex';
+                el.innerHTML = '<span>🧾 ' + pendingNfce.items.length + ' item(ns) da nota serão salvos junto com esta despesa.</span><button type="button" title="Remover">×</button>';
+                el.querySelector('button').onclick = function() { pendingNfce = null; renderNfceChip(); };
+            }
+            function takeNfce() { var n = pendingNfce; pendingNfce = null; renderNfceChip(); return n; }
 
             function loadData() {
                 try {
@@ -4293,6 +4487,9 @@
                         var idClean = String(i.id).replace(/'/g, "");
 
                         var attachesHtml = renderAttachments(i);
+                        if (i.nfce && i.nfce.items && i.nfce.items.length) {
+                            attachesHtml += '<div style="margin-top:4px;"><button class="btn-icon" style="font-size:0.72rem; padding:3px 8px;" onclick="window.showNfceItems(\'' + idClean + '\')">🧾 Itens da nota (' + i.nfce.items.length + ')</button></div>';
+                        }
 
                         expFeed.innerHTML += '<div class="transaction-item">' +
                             '<div class="trans-info">' +
@@ -4509,6 +4706,7 @@
                         author: getAuthorName(),
                         dueDate: dueDate || '',
                         payCode: takePayCode('exp'),
+                        nfce: takeNfce(),
                         attachments: getSlotFiles('exp-boleto').concat(getSlotFiles('exp-comprovante'))
                     });
                     document.getElementById('exp-due').value = '';
